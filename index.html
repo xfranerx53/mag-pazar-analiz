@@ -70,6 +70,7 @@ body{padding-bottom:calc(66px + env(safe-area-inset-bottom))}
 .big{width:100%;font-size:17px;padding:13px;font-weight:600}
 .step{font-weight:700;margin:2px 0 8px;font-size:15px}.step i{font-style:normal;display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--pr);color:var(--on);text-align:center;line-height:22px;font-size:13px;margin-right:6px}
 .pick{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:12px}
+.favc{display:inline-flex}.favc button{border-radius:99px 0 0 99px;padding:6px 10px}.favc .fx{border-radius:0 99px 99px 0;border-left:0;padding:6px 8px;color:var(--mu)}
 .pick small{color:var(--mu);display:block;font-size:13px;margin-top:2px}
 dialog.sheet{margin:auto auto 0;width:100%;max-width:640px;border-radius:16px 16px 0 0;max-height:88vh;padding:0;display:none;flex-direction:column}
 dialog.sheet[open]{display:flex}
@@ -111,13 +112,14 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <div class="card">
 <div class="step"><i>1</i>Nerede arayalım?</div>
 <div class="row" style="margin-top:0"><button class="p" onclick="geoMe()">📍 Konumum</button><input id="tadr" placeholder="veya semt / adres yaz" style="flex:1 1 160px;width:auto"><button onclick="geoAddr()">Ara</button></div>
-<button class="pick" style="margin-top:8px" onclick="pickOpen()"><span><b>🗺 Haritadan seç</b><small>Haritayı kaydır, ortadaki iğneyi istediğin yere getir (dünyanın her yeri)</small></span><span>Aç ›</span></button>
+<button class="pick" style="margin-top:8px" onclick="pickOpen()"><span><b>🗺 Haritadan seç</b><small>Nokta seç, alan çiz ya da yol boyunca tara (dünyanın her yeri)</small></span><span>Aç ›</span></button>
+<div id="tfav" class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px"></div>
 <div class="mu" style="margin-top:6px">Merkez: <b id="tcen"></b></div>
 </div>
 <div class="card">
 <div class="step"><i>2</i>Ne kadar uzağa?</div>
 <div class="seg" id="trseg"><button data-r="0.5">500 m</button><button data-r="1">1 km</button><button data-r="2">2 km</button><button data-r="3">3 km</button><button data-r="5">5 km</button><button data-r="10">10 km</button><button data-r="15">15 km</button><button data-r="25">25 km</button></div>
-<input id="trad" type="hidden" value="2">
+<input id="trad" type="hidden" value="2"><div class="mu" id="tsekN" style="margin-top:6px" hidden></div>
 <div class="row" style="margin-top:4px"><span class="mu">veya istediğin mesafeyi yaz:</span><input id="trc" type="number" inputmode="decimal" min="0.1" max="300" step="0.1" placeholder="örn. 7,5" style="width:110px"><b>km</b></div>
 </div>
 <div class="card">
@@ -174,7 +176,7 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <div class="sec" id="s-analiz">
 <div class="bar"><button class="p" onclick="excelReport()">📊 Excel raporu indir</button></div>
 <div id="analiz"></div>
-<div class="card"><h3>Dünya haritası</h3><div class="mu">Daire büyüklüğü = firma sayısı • yeşil = içinde müşteri var • yakınlaştırdıkça daireler şehir, semt ve tek tek firmalara ayrılır</div><div class="row" style="margin:6px 0"><button onclick="mapFit()">🌍 Tüm kayıtlar</button><button id="geoBtn" onclick="geoMissing()">📍 Konumu olmayanları bul</button></div><div id="map"></div><div class="mu" id="mapnote"></div></div>
+<div class="card"><h3>Dünya haritası</h3><div class="mu">Daire büyüklüğü = firma sayısı • yeşil = içinde müşteri var • yakınlaştırdıkça daireler şehir, semt ve tek tek firmalara ayrılır</div><div class="row" style="margin:6px 0"><button onclick="mapFit()">🌍 Tüm kayıtlar</button><button id="geoBtn" onclick="geoMissing()">📍 Konumu olmayanları bul</button><button onclick="mapRoute()">🧭 Görünen alandan rota</button></div><div class="row" style="margin:0 0 6px"><select id="mDur" style="width:auto" onchange="mapDraw()"></select><select id="mSek" style="width:auto" onchange="mapDraw()"></select><select id="mOwn" style="width:auto" onchange="mapDraw()" hidden></select></div><div id="map"></div><div class="mu" id="mapnote"></div></div>
 <div id="analiz2"></div>
 </div>
 
@@ -202,7 +204,7 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 
 <dialog id="dlgCall" class="sheet"><div class="shd"><div class="row" style="justify-content:space-between;margin:0"><b>📞 Arama modu</b><span><b id="cqP"></b> <button type="button" onclick="dlgCall.close()">Bitir</button></span></div></div><div class="sbody" id="cqB"></div><div class="sft" style="flex-wrap:wrap" id="cqF"></div></dialog>
 <dialog id="dlgWB" class="sheet"><div class="shd"><div class="row" style="justify-content:space-between;margin:0"><b>💬 Toplu WhatsApp</b><b id="wbP"></b></div><label>Mesaj şablonu</label><select id="wbT"></select></div><div class="sbody" id="wbB"></div><div class="sft" id="wbF"><button type="button" id="wbSk" onclick="wb.i++;renderWB()">⏭ Atla</button><button type="button" class="p" id="wbGo" onclick="wbGo()">WhatsApp'ta aç → sıradaki</button><button type="button" onclick="dlgWB.close()">Kapat</button></div></dialog>
-<dialog id="dlgPick" class="sheet"><div class="shd"><b style="font-size:17px">🗺 Haritadan merkez seç</b></div><div class="sbody" style="padding:0;position:relative"><div id="pmap" style="height:min(62vh,520px)"></div><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);font-size:34px;line-height:1;pointer-events:none;z-index:500;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))">📍</div></div><div class="mu" id="pinfo" style="padding:6px 14px">Haritayı kaydır veya bir yere dokun; iğne ortada kalır. Daire = seçili mesafe.</div><div class="sft"><button type="button" onclick="pickMe()">📍 Konumum</button><button type="button" onclick="dlgPick.close()">Vazgeç</button><button type="button" class="p" onclick="pickOk()">✔ Burayı merkez yap</button></div></dialog>
+<dialog id="dlgPick" class="sheet"><div class="shd"><b style="font-size:17px">🗺 Haritadan seç</b><div class="seg" id="pmod" style="margin:8px 0 0"><button data-m="nokta" class="on">📍 Daire</button><button data-m="alan">⬠ Alan çiz</button><button data-m="yol">〰 Yol boyunca</button></div></div><div class="sbody" style="padding:0;position:relative"><div id="pmap" style="height:min(54vh,500px)"></div><div id="ppin" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);font-size:34px;line-height:1;pointer-events:none;z-index:500;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))">📍</div></div><div class="mu" id="pinfo" style="padding:6px 14px"></div><div class="row" style="padding:0 14px 4px;margin:0;align-items:center"><span id="pdrawB" hidden><button type="button" onclick="pkUndo()">↶ Geri al</button> <button type="button" onclick="pkClear()">Temizle</button></span><span id="pgenW" hidden>Genişlik <select id="pgen" style="width:auto" onchange="pkDraw()"><option value="100">100 m</option><option value="200">200 m</option><option value="300" selected>300 m</option><option value="500">500 m</option><option value="1000">1 km</option></select></span><label class="chip" style="margin:0"><input type="checkbox" id="phist" checked onchange="pkDraw()">Taranmış yerler</label></div><div class="sft"><button type="button" onclick="pickMe()">📍 Konumum</button><button type="button" onclick="dlgPick.close()">Vazgeç</button><button type="button" class="p" onclick="pickOk()">✔ Tamam</button></div></dialog>
 <dialog id="dlgR" class="sheet"><div class="shd"><b style="font-size:17px">🗺 Ziyaret rotası (en kısa sıra)</b></div><div class="sbody" id="rpB"></div><div class="sft"><button type="button" onclick="printRoute()">🖨 Yazdır</button><button type="button" class="p" onclick="dlgR.close()">Kapat</button></div></dialog>
 
 <dialog id="dlg"><form onsubmit="return false">
@@ -295,6 +297,7 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <h4>Satış ve pazar hesapları</h4>
 <div class="g3"><div><label>Ort. poşet satış fiyatı (₺/kg)</label><input id="a_kgf" type="number" step="0.01"></div><div><label>Hedef kâr marjı (% satış fiyatı)</label><input id="a_marj" type="number"></div><div><label>Varsayılan sipariş aralığı (gün)</label><input id="a_sipa" type="number"></div>
 <div><label>Numune dönüş süresi (gün)</label><input id="a_numg" type="number"></div></div>
+<div class="g3"><div><label>Para birimi</label><select id="a_para"><option value="TRY">₺ Türk lirası (TRY)</option><option value="USD">$ ABD doları (USD)</option><option value="EUR">€ Euro (EUR)</option><option value="GBP">£ Sterlin (GBP)</option><option value="RUB">₽ Rus rublesi (RUB)</option><option value="AZN">₼ Azerbaycan manatı (AZN)</option><option value="GEL">₾ Gürcü larisi (GEL)</option><option value="IQD">Irak dinarı (IQD)</option><option value="SAR">Suudi riyali (SAR)</option><option value="AED">BAE dirhemi (AED)</option><option value="UAH">₴ Ukrayna grivnası (UAH)</option><option value="KZT">₸ Kazak tengesi (KZT)</option></select></div><div><label>Ülke telefon kodu</label><input id="a_ukod" inputmode="numeric" placeholder="90"></div><div class="mu" style="align-self:end">Başında 0 olan veya ülke kodsuz numaralara WhatsApp'ta bu kod eklenir. +7, +49 gibi yazılmış numaralar olduğu gibi kalır.</div></div>
 <details><summary>Sektör başı tahmini poşet tüketimi (kg / ay)</summary><p class="mu">Başlangıç tahminleridir, tecrübene göre değiştir. Aday puanı, bölge raporu ve yoğunluk haritası bunu kullanır.</p><div id="tukBox" class="g3"></div></details>
 <h4>WhatsApp mesaj şablonları</h4>
 <p class="mu">{firma} ve {yetkili} yazdığın yere kaydın bilgisi otomatik gelir.</p>
@@ -403,8 +406,12 @@ const today=()=>fmt(new Date());
 const plus=n=>{const d=new Date();d.setDate(d.getDate()+n);return fmt(d)};
 const fd=s=>s?String(s).split("-").reverse().join("."):"";
 const fdt=t=>{const d=new Date(t);return fd(fmt(d))+" "+pad(d.getHours())+":"+pad(d.getMinutes())};
-const TL=n=>new Intl.NumberFormat("tr-TR",{style:"currency",currency:"TRY",maximumFractionDigits:0}).format(n||0);
-const TL2=n=>new Intl.NumberFormat("tr-TR",{style:"currency",currency:"TRY"}).format(n||0);
+function PARA(){try{return ayar.para||"TRY"}catch(e){return"TRY"}}
+const PSYM=()=>({TRY:"₺",USD:"$",EUR:"€",GBP:"£",RUB:"₽",AZN:"₼",GEL:"₾",SAR:"SAR",AED:"AED",IQD:"IQD",UAH:"₴",KZT:"₸"}[PARA()]||PARA());
+const TL=n=>new Intl.NumberFormat("tr-TR",{style:"currency",currency:PARA(),maximumFractionDigits:0}).format(n||0);
+const TL2=n=>new Intl.NumberFormat("tr-TR",{style:"currency",currency:PARA()}).format(n||0);
+let paraN=null;function paraLabels(){if(!paraN){paraN=[];const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode())if(n.nodeValue.includes("₺"))paraN.push([n,n.nodeValue]);
+ document.querySelectorAll("[placeholder*='₺']").forEach(e=>paraN.push([e,e.placeholder,1]))}const y=PSYM();paraN.forEach(([n,o,a])=>{const v=o.split("₺").join(y);if(a)n.placeholder=v;else if(n.nodeValue!==v)n.nodeValue=v})}
 const NUM=n=>new Intl.NumberFormat("tr-TR",{maximumFractionDigits:2}).format(n||0);
 const uid_=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const clean=o=>JSON.parse(JSON.stringify(o));
@@ -416,7 +423,12 @@ const ls={get:k=>{try{return localStorage.getItem(LSP+k)}catch(e){return null}},
  localStorage.setItem(LSP+"_tasindi","1")}catch(e){}})();
 const lsJ=(k,d)=>{try{return JSON.parse(ls.get(k))??d}catch(e){return d}};
 const digits=t=>String(t||"").replace(/\D/g,"");
-function waNum(t){let d=digits(t);if(!d)return"";if(d.startsWith("00"))d=d.slice(2);if(d.startsWith("0"))d="90"+d.slice(1);else if(d.length===10)d="90"+d;return d.length>=11?d:""}
+function ulkeKod(){try{return String(ayar.ulkeKod||"90").replace(/\D/g,"")||"90"}catch(e){return"90"}}
+// telefonu WhatsApp biçimine çevir: +… ve 00… uluslararası; 0… ve kısa numaralar Ayarlar'daki ülke koduyla
+function waNum(t){const raw=String(t||"").trim(),K=ulkeKod();let d=digits(t);if(!d)return"";
+ if(raw.startsWith("+"))return d.length>=8?d:"";if(d.startsWith("00"))return d.length>=10?d.slice(2):"";
+ if(d.startsWith("0"))d=K+d.slice(1);else if(!(K==="90"&&d.startsWith("90")&&d.length===12)&&!(K!=="90"&&d.startsWith(K)&&d.length>=K.length+7))d=K+d;
+ return d.length>=(K==="90"?12:K.length+7)?d:""}
 const normF=s=>String(s||"").toLocaleLowerCase("tr").replace(/[^a-z0-9çğıöşü]/g,"");
 const tel10=t=>{const d=digits(t);return d.length>=10?d.slice(-10):""};
 const ILN={};Object.keys(IL).forEach(k=>ILN[normF(k)]=k);Object.entries(ILALIAS).forEach(([a,k])=>ILN[normF(a)]=k);
@@ -572,7 +584,7 @@ function card(x,ck){
 }
 
 /* ================= ekranlar ================= */
-function render(){
+function render(){try{paraLabels()}catch(e){}
  const c=n=>data.filter(x=>x.durum===n).length,bt=data.reduce((s,x)=>s+Math.max(0,bakiye(x)),0);
  $("stats").innerHTML=[["Toplam",data.length],["Yeni",c("Yeni")],["İlgileniyor",c("İlgileniyor")],["Teklif verildi",c("Teklif verildi")],["Müşteri",c("Müşteri")],["Alacak",TL(bt)]].map(a=>`<div class="st"><b>${a[1]}</b><span>${a[0]}</span></div>`).join("");
  // satışçı filtresi
@@ -660,9 +672,9 @@ function monthTable(){
  const M=months(6),T=allT(),S=allS();
  const met=[["Yeni aday",m=>data.filter(x=>ym(tsDay(x.c||0))===m).length,String],
   ["Görüşme",m=>data.reduce((s,x)=>s+arr(x.gorus).filter(g=>ym(tsDay(g.t))===m).length,0),String],
-  ["Teklif (₺)",m=>T.filter(o=>ym(o.t.tar)===m).reduce((s,o)=>s+docTop(o.t),0),TL],
-  ["Sipariş cirosu (₺)",m=>S.filter(o=>sipAktif(o.s)&&ym(o.s.tar)===m).reduce((s,o)=>s+docTop(o.s),0),TL],
-  ["Tahsilat (₺)",m=>data.reduce((s,x)=>s+arr(x.odeme).filter(p=>ym(p.tar)===m).reduce((a,p)=>a+(+p.tutar||0),0),0),TL]];
+  [`Teklif (${PSYM()})`,m=>T.filter(o=>ym(o.t.tar)===m).reduce((s,o)=>s+docTop(o.t),0),TL],
+  [`Sipariş cirosu (${PSYM()})`,m=>S.filter(o=>sipAktif(o.s)&&ym(o.s.tar)===m).reduce((s,o)=>s+docTop(o.s),0),TL],
+  [`Tahsilat (${PSYM()})`,m=>data.reduce((s,x)=>s+arr(x.odeme).filter(p=>ym(p.tar)===m).reduce((a,p)=>a+(+p.tutar||0),0),0),TL]];
  const mn=m=>new Date(m+"-01T00:00:00").toLocaleDateString("tr-TR",{month:"short",year:"2-digit"});
  return `<div class="card tw"><h3>Aylık karşılaştırma</h3><table class="tb"><tr><th></th>${M.map(m=>`<th class="n">${mn(m)}</th>`).join("")}<th class="n">Geçen aya göre</th></tr>`+met.map(([n,f,F])=>{const v=M.map(f),a=v[5],b=v[4],ch=b?Math.round((a-b)/b*100):(a?100:0);return `<tr><td><b>${n}</b></td>${v.map(x=>`<td class="n">${F(x)}</td>`).join("")}<td class="n ${ch>0?"up":ch<0?"dn":""}">${ch>0?"▲":ch<0?"▼":""} %${Math.abs(ch)}</td></tr>`}).join("")+`</table></div>`;
 }
@@ -703,7 +715,17 @@ function renderAnaliz(){
 let map=null,mapLayer=null,mapFitted=false,geoRun=false;
 // kaydın haritadaki yeri: 1) taramadan/ziyaretten gelen gerçek konum 2) Türkiye il merkezi 3) yok
 function leadPos(x){if(x.konum&&isFinite(x.konum.lat)&&isFinite(x.konum.lon))return[+x.konum.lat,+x.konum.lon,1];const k=ilOf(x.il);return k&&IL[k]?[IL[k][0],IL[k][1],0]:null}
-function mapPts(){return data.map(x=>({x,p:leadPos(x)})).filter(o=>o.p)}
+function mapOk(x){const d=$("mDur").value,s=$("mSek").value,o=$("mOwn").value;return(!d||(d==="*"?x.durum!=="İlgilenmiyor":x.durum===d))&&(!s||x.sektor===s)&&(!o||(o==="-"?!x.sahip:x.sahip===o))}
+function mapPts(){return data.filter(mapOk).map(x=>({x,p:leadPos(x)})).filter(o=>o.p)}
+function mapSel(){const k=(id,h)=>{const e=$(id),v=e.value;e.innerHTML=h;e.value=v;if(e.value!==v)e.value=""};
+ k("mDur",'<option value="">Tüm durumlar</option><option value="*">İlgilenmeyenler hariç</option>'+DUR.map(d=>`<option>${esc(d)}</option>`).join(""));
+ k("mSek",'<option value="">Tüm sektörler</option>'+[...new Set(data.map(x=>x.sektor).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"tr")).map(d=>`<option>${esc(d)}</option>`).join(""));
+ const ul=Object.entries(users).filter(([,u])=>u.rol!=="beklemede");$("mOwn").hidden=!(cloudOn()&&ul.length);
+ k("mOwn",'<option value="">Tüm satışçılar</option><option value="-">Sahipsiz</option>'+ul.map(([i,u])=>`<option value="${i}">${esc(u.ad||u.email)}</option>`).join(""))}
+function mapRoute(){if(!map)return;const b=map.getBounds(),l=data.filter(mapOk).filter(x=>x.konum&&isFinite(x.konum.lat)&&b.contains([x.konum.lat,x.konum.lon]));
+ if(!l.length){alert("Haritada görünen alanda tam konumu olan firma yok. Haritayı yakınlaştır/kaydır veya süzgeci değiştir.");return}
+ if(l.length>60&&!confirm(l.length+" firma var, rota çok uzun olur. Yakınlaştırıp daha küçük alan seçmen önerilir. Yine de devam edilsin mi?"))return;
+ const pts=l.map(x=>({ad:x.firma,lat:x.konum.lat,lon:x.konum.lon,tel:x.telefon,adres:addr(x)}));getPos(p=>planRoute(pts,p),()=>planRoute(pts,null))}
 function mapFit(){if(!map)return;const pts=mapPts();if(!pts.length){map.setView([25,15],2);return}map.fitBounds(L.latLngBounds(pts.map(o=>[o.p[0],o.p[1]])).pad(.15),{maxZoom:12})}
 function mapDraw(){if(!map)return;if(mapLayer)mapLayer.remove();mapLayer=L.layerGroup().addTo(map);
  const z=map.getZoom(),T=z>=13?0:60/Math.pow(2,z),g={};
@@ -712,12 +734,12 @@ function mapDraw(){if(!map)return;if(mapLayer)mapLayer.remove();mapLayer=L.layer
   const mk=L.circleMarker(ll,{radius:one?7:6+Math.sqrt(c.n)*4,color:c.m?"#067647":"#1F3864",fillColor:c.m?"#12b76a":"#4f75c2",fillOpacity:.6,weight:2});
   mk.bindPopup(one?`<b>${esc(c.f[0].firma)}</b><br>${esc([c.f[0].sektor,c.f[0].durum].filter(Boolean).join(" • "))}<br>${esc(addr(c.f[0]))}`:`<b>${c.n} firma, ${c.m} müşteri</b><br><small>${c.f.map(x=>esc(x.firma)).join("<br>")}${c.n>8?"<br>… yakınlaştır":""}</small>`);
   if(!one)mk.on("dblclick",()=>map.setView(ll,Math.min(z+3,16)));mk.addTo(mapLayer)});
- const yok=data.length-mapPts().length,yak=data.filter(x=>!(x.konum&&isFinite(x.konum.lat))&&leadPos(x)).length;
+ const D=data.filter(mapOk),yok=D.length-mapPts().length,yak=D.filter(x=>!(x.konum&&isFinite(x.konum.lat))&&leadPos(x)).length;
  $("mapnote").textContent=(yok?yok+" kaydın yeri bilinmiyor. ":"")+(yak?yak+" kayıt il merkezinde gösteriliyor (tam konumu yok). ":"")+(yok||yak?"“📍 Konumu olmayanları bul” adres/il/ülke bilgisinden yerini bulur.":"")}
 async function drawMap(){
  try{loadCss("https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css");await loadScript("https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js")}catch(e){$("mapnote").textContent=e.message;return}
  if(!map){map=L.map("map",{scrollWheelZoom:false,worldCopyJump:true,minZoom:1}).setView([25,15],2);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(map);map.on("zoomend",mapDraw)}
- setTimeout(()=>{map.invalidateSize();if(!mapFitted){mapFitted=true;mapFit()}mapDraw()},60);
+ mapSel();setTimeout(()=>{map.invalidateSize();if(!mapFitted){mapFitted=true;mapFit()}mapDraw()},60);
 }
 // konumu olmayan kayıtları ücretsiz OpenStreetMap adres aramasıyla (Nominatim, saniyede 1 istek) bul
 async function geoMissing(){
@@ -954,7 +976,7 @@ async function excelReport(){
  const T=[["No","Tarih","Firma","Ürünler","KDV hariç","Genel toplam","Durum"]];allT().forEach(o=>T.push([o.t.no||"",fd(o.t.tar),o.x.firma,kalemOzet(o.t,1),docAra(o.t),docTop(o.t),o.t.durum]));add("Teklifler",T);
  const S=[["No","Tarih","Firma","Ürünler","KDV hariç","Genel toplam","Teslim","Durum"]];allS().forEach(o=>S.push([o.s.no||"",fd(o.s.tar),o.x.firma,kalemOzet(o.s,1),docAra(o.s),docTop(o.s),fd(o.s.teslim),o.s.durum]));add("Siparişler",S);
  const P=[["Tarih","Firma","Tutar","Şekil","Not"]];data.forEach(x=>arr(x.odeme).forEach(p=>P.push([fd(p.tar),x.firma,+p.tutar||0,p.tip,p.not||""])));add("Tahsilat",P);
- const M=months(12),O=[["Ay","Yeni aday","Görüşme","Teklif ₺","Sipariş ₺","Tahsilat ₺"]];M.forEach(m=>O.push([m,data.filter(x=>ym(tsDay(x.c||0))===m).length,data.reduce((s,x)=>s+arr(x.gorus).filter(g=>ym(tsDay(g.t))===m).length,0),allT().filter(o=>ym(o.t.tar)===m).reduce((s,o)=>s+docTop(o.t),0),allS().filter(o=>sipAktif(o.s)&&ym(o.s.tar)===m).reduce((s,o)=>s+docTop(o.s),0),data.reduce((s,x)=>s+arr(x.odeme).filter(p=>ym(p.tar)===m).reduce((a,p)=>a+(+p.tutar||0),0),0)]));add("Aylık özet",O);
+ const M=months(12),O=[["Ay","Yeni aday","Görüşme","Teklif "+PSYM(),"Sipariş "+PSYM(),"Tahsilat "+PSYM()]];M.forEach(m=>O.push([m,data.filter(x=>ym(tsDay(x.c||0))===m).length,data.reduce((s,x)=>s+arr(x.gorus).filter(g=>ym(tsDay(g.t))===m).length,0),allT().filter(o=>ym(o.t.tar)===m).reduce((s,o)=>s+docTop(o.t),0),allS().filter(o=>sipAktif(o.s)&&ym(o.s.tar)===m).reduce((s,o)=>s+docTop(o.s),0),data.reduce((s,x)=>s+arr(x.odeme).filter(p=>ym(p.tar)===m).reduce((a,p)=>a+(+p.tutar||0),0),0)]));add("Aylık özet",O);
  add("Ürünler",[["Ürün","Tür","Ebat","Mikron","Birim","Fiyat","Maliyet"],...katalog.map(u=>[u.ad,u.tip,u.ebat,u.kal,u.birim,u.fiyat,u.maliyet])]);
  XLSX.writeFile(wb,"mag-pazar-rapor-"+today()+".xlsx");
 }
@@ -969,7 +991,7 @@ function openAyar(){
  $("aAdm").hidden=!isAdmin();$("aSat").hidden=isAdmin();
  Object.entries(AF).forEach(([k,v])=>$(k).value=ayar.firma[v]||"");ayarLogo=ayar.firma.logo||"";$("a_lp").src=ayarLogo;$("a_lp").hidden=!ayarLogo;$("a_ld").hidden=!ayarLogo;$("a_logo").value="";
  $("h_g").value=ayar.hedef.gorusme||0;$("h_m").value=ayar.hedef.musteri||0;$("h_t").value=ayar.hedef.teklif||0;$("a_uyku").value=ayar.uyku||60;
- $("a_kgf").value=ayar.kgFiyat||"";$("a_marj").value=ayar.hedefMarj??25;$("a_sipa").value=ayar.sipAralik||30;$("a_numg").value=ayar.numuneGun||7;$("tukBox").innerHTML=TSEK.map(s=>`<div><label>${esc(s.ad)}</label><input type="number" min="0" data-tk="${s.k}" value="${tuk(s.k)}"></div>`).join("");$("a_veri").value=ayar.veriUrl||"";$("veriT").textContent=vOzet();$("a_gkey").value=ayar.googleKey||"";$("a_geo").value=ayar.geoKey||"";$("geoT").textContent=ayar.geoKey?"Bugün bu cihazdan "+geoToday()+" Geoapify sorgusu yapıldı.":"";$("a_glim").value=ayar.gLimit||900;
+ $("a_kgf").value=ayar.kgFiyat||"";$("a_para").value=ayar.para||"TRY";$("a_ukod").value=ayar.ulkeKod||"90";$("a_marj").value=ayar.hedefMarj??25;$("a_sipa").value=ayar.sipAralik||30;$("a_numg").value=ayar.numuneGun||7;$("tukBox").innerHTML=TSEK.map(s=>`<div><label>${esc(s.ad)}</label><input type="number" min="0" data-tk="${s.k}" value="${tuk(s.k)}"></div>`).join("");$("a_veri").value=ayar.veriUrl||"";$("veriT").textContent=vOzet();$("a_gkey").value=ayar.googleKey||"";$("a_geo").value=ayar.geoKey||"";$("geoT").textContent=ayar.geoKey?"Bugün bu cihazdan "+geoToday()+" Geoapify sorgusu yapıldı.":"";$("a_glim").value=ayar.gLimit||900;
  sw=clean(ayar.sablon);renderSl();dlgA.showModal();
 }
 function saveAyarForm(){
@@ -977,7 +999,7 @@ function saveAyarForm(){
  Object.entries(AF).forEach(([k,v])=>ayar.firma[v]=$(k).value.trim());ayar.firma.logo=ayarLogo;
  ayar.hedef={gorusme:+$("h_g").value||0,musteri:+$("h_m").value||0,teklif:+$("h_t").value||0};ayar.uyku=Math.max(7,+$("a_uyku").value||60);
  ayar.sablon=sw.filter(s=>s.ad.trim()||s.metin.trim()).map(s=>({ad:s.ad.trim()||"Şablon",metin:s.metin.trim()}));
- let nk=$("a_gkey").value.trim();if(nk&&!okGoogle(nk)){alert("Google API anahtarı \"AIza\" ile başlamalı. Girdiğin değer bir Google Haritalar anahtarı değil, kaydedilmedi. Google kullanmayacaksan bu kutuyu boş bırak.");nk=""}const kc=nk!==(ayar.googleKey||"");ayar.googleKey=nk;ayar.geoKey=normGeo($("a_geo").value);{const nv=$("a_veri").value.trim();if(nv!==(ayar.veriUrl||"")){ayar.veriUrl=nv;vIdx=null;vIdxP=null;for(const k in vMeta)delete vMeta[k];for(const k in vTile)delete vTile[k];for(const C of [vYer,vBlk,vS,vYK])for(const k in C)delete C[k]}}ayar.kgFiyat=+$("a_kgf").value||0;ayar.hedefMarj=$("a_marj").value===""?25:+$("a_marj").value;ayar.sipAralik=+$("a_sipa").value||30;ayar.numuneGun=+$("a_numg").value||7;{const tk={};document.querySelectorAll("[data-tk]").forEach(i=>{if(i.value!==""&&+i.value!==TUK_DEF[i.dataset.tk])tk[i.dataset.tk]=+i.value});ayar.tuketim=tk}ayar.gLimit=Math.max(0,+$("a_glim").value||0);
+ let nk=$("a_gkey").value.trim();if(nk&&!okGoogle(nk)){alert("Google API anahtarı \"AIza\" ile başlamalı. Girdiğin değer bir Google Haritalar anahtarı değil, kaydedilmedi. Google kullanmayacaksan bu kutuyu boş bırak.");nk=""}const kc=nk!==(ayar.googleKey||"");ayar.googleKey=nk;ayar.geoKey=normGeo($("a_geo").value);{const nv=$("a_veri").value.trim();if(nv!==(ayar.veriUrl||"")){ayar.veriUrl=nv;vIdx=null;vIdxP=null;for(const k in vMeta)delete vMeta[k];for(const k in vTile)delete vTile[k];for(const C of [vYer,vBlk,vS,vYK])for(const k in C)delete C[k]}}ayar.kgFiyat=+$("a_kgf").value||0;ayar.para=$("a_para").value||"TRY";ayar.ulkeKod=$("a_ukod").value.replace(/\D/g,"")||"90";ayar.hedefMarj=$("a_marj").value===""?25:+$("a_marj").value;ayar.sipAralik=+$("a_sipa").value||30;ayar.numuneGun=+$("a_numg").value||7;{const tk={};document.querySelectorAll("[data-tk]").forEach(i=>{if(i.value!==""&&+i.value!==TUK_DEF[i.dataset.tk])tk[i.dataset.tk]=+i.value});ayar.tuketim=tk}ayar.gLimit=Math.max(0,+$("a_glim").value||0);
  saveAyar();logEv("Ayarlar güncellendi");dlgA.close();if(kc&&window.google&&window.google.maps&&confirm("Google anahtarı değişti. Geçerli olması için sayfa yenilensin mi?"))location.reload();
 }
 
@@ -1164,6 +1186,8 @@ function taraInitUI(){
  sekSummary();$("trad").value=String(tara.r);const pre=[...document.querySelectorAll("#trseg button")].some(b=>+b.dataset.r===+tara.r);document.querySelectorAll("#trseg button").forEach(b=>b.classList.toggle("on",+b.dataset.r===+tara.r));if(document.activeElement!==$("trc"))$("trc").value=pre?"":String(tara.r);
  $("trad").value=String(tara.r);$("tkw").value=tara.kw||"";
  $("tcen").textContent=tara.c?`${tara.c.ad||"Seçilen nokta"} (${tara.c.lat.toFixed(4)}, ${tara.c.lon.toFixed(4)})`:"henüz seçilmedi";
+ const sk=tara.sekil;$("tsekN").hidden=!sk;if(sk){$("tsekN").textContent=(sk.tip==="alan"?"⬠ Haritada çizdiğin alan taranacak":"〰 Çizdiğin yolun iki yanı ("+kmTxt(sk.gen/2000)+") taranacak")+". Bir mesafeye dokunursan normal daireye döner.";document.querySelectorAll("#trseg button").forEach(b=>b.classList.remove("on"))}
+ renderFav();
 }
 function renderTaraG(){
  const k=!!ayar.googleKey;$("tgoo").disabled=!k;if(!k)$("tgoo").checked=false;else if(!$("tgoo").dataset.init){$("tgoo").checked=true;$("tgoo").dataset.init=1}
@@ -1183,11 +1207,11 @@ document.addEventListener("click",e=>{
  const r=e.target.closest("[data-sk]");if(r){const k=r.dataset.sk;tSek.has(k)?tSek.delete(k):tSek.add(k);renderSek();return}
  const g=e.target.closest("[data-sg]");if(g){const q=$("ssq").value.toLocaleLowerCase("tr"),l=TSEK.filter(s=>s.gr===g.dataset.sg&&(!q||(s.ad+" "+s.gr).toLocaleLowerCase("tr").includes(q))),all=l.every(s=>tSek.has(s.k));l.forEach(s=>all?tSek.delete(s.k):tSek.add(s.k));renderSek();return}
  const c=e.target.closest("[data-rsel]");if(c&&!e.target.closest("a,button,input,select,summary,label")){const id=c.dataset.rsel;tSel.has(id)?tSel.delete(id):tSel.add(id);renderTara()}
- const rb=e.target.closest("#trseg [data-r]");if(rb){$("trad").value=rb.dataset.r;tara.r=+rb.dataset.r;saveTara();taraInitUI();taraMapDraw(true)}
+ const rb=e.target.closest("#trseg [data-r]");if(rb){tara.sekil=null;$("trad").value=rb.dataset.r;tara.r=+rb.dataset.r;saveTara();taraInitUI();taraMapDraw(true)}
 });
 function sekDone(){tara.sek=[...tSek];saveTara();sekSummary();dlgS.close()}
 function setTView(v){tview=v;document.querySelectorAll("#tview button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));$("tres").hidden=v!=="l";$("tfil").hidden=v!=="l";$("tmapBox").hidden=v!=="m";if(v==="m")taraMapInit()}
-function setCenter(lat,lon,ad){tara.c={lat,lon,ad:ad||""};saveTara();taraInitUI();taraMapDraw(true)}
+function setCenter(lat,lon,ad,sekil){tara.c={lat,lon,ad:ad||""};tara.sekil=sekil||null;saveTara();taraInitUI();taraMapDraw(true)}
 function geoMe(){
  if(!navigator.geolocation){alert("Bu cihaz konum vermiyor. Adres yaz veya haritaya tıkla.");return}
  $("tstat").textContent="Konum alınıyor…";
@@ -1205,25 +1229,72 @@ $("tadr").addEventListener("keydown",e=>{if(e.key==="Enter")geoAddr()});
 $("trad").onchange=()=>{tara.r=+$("trad").value;saveTara();taraMapDraw(true)};
 const zoomFor=r=>r<=.5?16:r<=1?15:r<=2?14:r<=3?13:r<=5?12:r<=10?11:r<=15?10:r<=30?9:r<=60?8:r<=120?7:6;
 let trcT=null;
-$("trc").addEventListener("input",()=>{clearTimeout(trcT);trcT=setTimeout(()=>{const v=parseFloat(String($("trc").value).replace(",","."));if(!(v>0))return;const r=Math.min(300,Math.max(.1,Math.round(v*10)/10));$("trad").value=String(r);tara.r=r;saveTara();document.querySelectorAll("#trseg button").forEach(b=>b.classList.toggle("on",+b.dataset.r===r));taraMapDraw(true)},400)});
-/* --- haritadan merkez seçme --- */
-let pmap=null,pCirc=null,pT=null;
+$("trc").addEventListener("input",()=>{clearTimeout(trcT);trcT=setTimeout(()=>{const v=parseFloat(String($("trc").value).replace(",","."));if(!(v>0))return;const r=Math.min(300,Math.max(.1,Math.round(v*10)/10));$("trad").value=String(r);tara.sekil=null;tara.r=r;saveTara();document.querySelectorAll("#trseg button").forEach(b=>b.classList.toggle("on",+b.dataset.r===r));taraMapDraw(true)},400)});
+/* --- haritadan merkez / alan / yol seçme --- */
+let pmap=null,pCirc=null,pT=null,pLay=null,pHist=null,pMod="nokta",pPts=[];
+const mpp=(z,lat)=>156543.03*Math.cos(lat*Math.PI/180)/Math.pow(2,z);
 async function pickOpen(){
  try{loadCss(LCSS);await loadScript(LJS)}catch(e){alert("Harita yüklenemedi: "+e.message);return}
  dlgPick.showModal();
- const c=tara.c?[tara.c.lat,tara.c.lon]:[39,35],z=tara.c?zoomFor(tara.r||2):5;
+ const c=tara.c?[tara.c.lat,tara.c.lon]:[39,35],z=tara.c?zoomFor(tara.sekil?tara.sekil.r:(tara.r||2)):5;
  if(!pmap){pmap=L.map("pmap",{worldCopyJump:true,minZoom:2}).setView(c,z);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(pmap);
-  pCirc=L.circle(c,{radius:(tara.r||2)*1000,color:"#d92d20",weight:2,fillOpacity:.06,interactive:false}).addTo(pmap);
-  pmap.on("move",()=>pCirc.setLatLng(pmap.getCenter()));pmap.on("moveend",pickName);pmap.on("click",e=>pmap.panTo(e.latlng))}
+  pHist=L.layerGroup().addTo(pmap);pLay=L.layerGroup().addTo(pmap);
+  pCirc=L.circle(c,{radius:(tara.r||2)*1000,color:"#d92d20",weight:2,fillOpacity:.06,interactive:false});
+  pmap.on("move",()=>{if(pMod==="nokta")pCirc.setLatLng(pmap.getCenter())});pmap.on("moveend",()=>{if(pMod==="nokta")pickName()});pmap.on("zoomend",()=>{if(pMod==="yol")pkDraw()});
+  pmap.on("click",e=>{if(pMod==="nokta")pmap.panTo(e.latlng);else{pPts.push([e.latlng.lat,((e.latlng.lng+540)%360)-180]);pkDraw()}});
+  $("pmod").addEventListener("click",e=>{const b=e.target.closest("[data-m]");if(b)pkMode(b.dataset.m)})}
  else pmap.setView(c,z);
- pCirc.setRadius((tara.r||2)*1000);setTimeout(()=>{pmap.invalidateSize();pCirc.setLatLng(pmap.getCenter());pickName()},80)}
-function pickName(){clearTimeout(pT);pT=setTimeout(async()=>{const m=pmap.getCenter(),la=m.lat,lo=((m.lng+540)%360)-180;let ad="";
+ pCirc.setRadius((tara.r||2)*1000);
+ if(tara.sekil){pPts=tara.sekil.pts.map(p=>p.slice());$("pgen").value=String(tara.sekil.gen||300)}else pPts=[];
+ setTimeout(()=>{pmap.invalidateSize();pkMode(tara.sekil?tara.sekil.tip:"nokta")},80)}
+function pkMode(m){pMod=m;document.querySelectorAll("#pmod [data-m]").forEach(b=>b.classList.toggle("on",b.dataset.m===m));
+ $("ppin").hidden=m!=="nokta";$("pdrawB").hidden=m==="nokta";$("pgenW").hidden=m!=="yol";
+ if(m==="nokta"){pCirc.addTo(pmap);pCirc.setLatLng(pmap.getCenter());pickName()}else pCirc.remove();pkDraw()}
+function pkUndo(){pPts.pop();pkDraw()}
+function pkClear(){pPts=[];pkDraw()}
+function sekilYay(s,L_,stil){// şekli haritaya çiz (alan = çokgen, yol = kalın çizgi)
+ if(s.tip==="alan")return s.pts.length>=3?L.polygon(s.pts,stil).addTo(L_):L.polyline(s.pts,stil).addTo(L_);
+ const m=L_._map||pmap||tmap;return L.polyline(s.pts,{...stil,weight:Math.max(3,Math.min(400,(s.gen||300)*2/mpp(m?m.getZoom():14,s.pts[0][0]))),opacity:.35,lineCap:"round",lineJoin:"round"}).addTo(L_)}
+function histDraw(L_,stil){arr(lsJ("mag_taramalar",[])).forEach(t=>{if(t.sekil&&arr(t.sekil.pts).length)sekilYay(t.sekil,L_,stil);else if(t.c)L.circle([t.c.lat,t.c.lon],{radius:t.r*1000,...stil}).addTo(L_)})}
+function pkDraw(){if(!pmap)return;pLay.clearLayers();pHist.clearLayers();
+ if($("phist").checked)histDraw(pHist,{color:"#667085",weight:1,fillColor:"#98a2b3",fillOpacity:.18,interactive:false});
+ if(pMod==="nokta")return;
+ const st={color:"#d92d20",weight:3,fillOpacity:.08,interactive:false};
+ if(pPts.length>1)sekilYay({tip:pMod,pts:pPts,gen:+$("pgen").value},pLay,st);
+ if(pMod==="yol"&&pPts.length>1)L.polyline(pPts,{color:"#d92d20",weight:2,interactive:false}).addTo(pLay);
+ pPts.forEach((p,i)=>L.circleMarker(p,{radius:i===pPts.length-1?7:5,color:"#fff",fillColor:"#d92d20",fillOpacity:1,weight:2,interactive:false}).addTo(pLay));
+ const n=pPts.length;let t;
+ if(pMod==="alan")t=n<3?`Alanın köşelerine sırayla dokun (${n}/3+). Haritayı parmakla kaydırabilirsin.`:`${n} köşe • yaklaşık ${NUM(alanKm2(pPts))} km² • bitince ✔ Tamam`;
+ else{let l=0;for(let i=1;i<n;i++)l+=hav(pPts[i-1][0],pPts[i-1][1],pPts[i][0],pPts[i][1]);t=n<2?`Yolun başına dokun, sonra yol boyunca köşelere/bitişe dokun (${n}/2+).`:`${kmTxt(l)} yol, iki yanında ${kmTxt(+$("pgen").value/2000)} • bitince ✔ Tamam`}
+ $("pinfo").textContent=t}
+const pXY=(q,k)=>[q[1]*111.32*k,q[0]*110.57];
+function alanKm2(P){const k=Math.cos(P[0][0]*Math.PI/180),Q=P.map(q=>pXY(q,k));let a=0;for(let i=0,j=Q.length-1;i<Q.length;j=i++)a+=(Q[j][0]+Q[i][0])*(Q[j][1]-Q[i][1]);return Math.abs(a/2)}
+function segD(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy;let t=L2?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2:0;t=Math.max(0,Math.min(1,t));return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)}
+// işletme çizilen şeklin içinde mi?
+function inSekil(p,s){s=s||tara.sekil;if(!s||!arr(s.pts).length)return true;const k=Math.cos(p.lat*Math.PI/180),P=pXY([p.lat,p.lon],k),Q=s.pts.map(q=>pXY(q,k));
+ if(s.tip==="alan"){let inn=false;for(let i=0,j=Q.length-1;i<Q.length;j=i++){const[xi,yi]=Q[i],[xj,yj]=Q[j];if((yi>P[1])!==(yj>P[1])&&P[0]<(xj-xi)*(P[1]-yi)/(yj-yi)+xi)inn=!inn}return inn}
+ const g=(s.gen||300)/2000;for(let i=0;i<Q.length-1;i++)if(segD(P,Q[i],Q[i+1])<=g)return true;return false}
+function sekilKur(tip,pts,gen){const la=pts.map(p=>p[0]),lo=pts.map(p=>p[1]),c={lat:(Math.min(...la)+Math.max(...la))/2,lon:(Math.min(...lo)+Math.max(...lo))/2};
+ const r=Math.max(...pts.map(p=>hav(c.lat,c.lon,p[0],p[1])))+(tip==="yol"?gen/2000:0);return{tip,pts:pts.map(p=>[+p[0].toFixed(6),+p[1].toFixed(6)]),gen,r:Math.max(.1,Math.round(r*100)/100),c}}
+function pickName(){clearTimeout(pT);pT=setTimeout(async()=>{if(pMod!=="nokta")return;const m=pmap.getCenter(),la=m.lat,lo=((m.lng+540)%360)-180;let ad="";
  $("pinfo").textContent=`Seçilen: ${la.toFixed(4)}, ${lo.toFixed(4)} • yer adı aranıyor…`;
  try{const y=await yerYakin(la,lo);if(y)ad=y[0]+(y[4]?", "+y[4]:"")}catch(e){}
  if(!ad){try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=14&lat=${la}&lon=${lo}&accept-language=tr`);const a=(await r.json()).address||{};ad=[a.suburb||a.neighbourhood||a.quarter||a.village||a.town,a.city||a.province||a.state,a.country].filter((v,i,x)=>v&&x.indexOf(v)===i).join(", ")}catch(e){}}
- pmap._ad=ad;$("pinfo").textContent="Seçilen: "+(ad||`${la.toFixed(4)}, ${lo.toFixed(4)}`)+" • mesafe "+kmTxt(tara.r||2)},500)}
+ if(pMod!=="nokta")return;pmap._ad=ad;$("pinfo").textContent="Seçilen: "+(ad||`${la.toFixed(4)}, ${lo.toFixed(4)}`)+" • mesafe "+kmTxt(tara.r||2)},500)}
 function pickMe(){getPos(p=>{pmap.setView([p.lat,p.lon],Math.max(pmap.getZoom(),14))})}
-function pickOk(){const m=pmap.getCenter(),lo=((m.lng+540)%360)-180;setCenter(m.lat,lo,pmap._ad||"Haritada seçilen nokta");dlgPick.close();$("tstat").textContent=""}
+async function pickOk(){
+ if(pMod==="nokta"){const m=pmap.getCenter(),lo=((m.lng+540)%360)-180;setCenter(m.lat,lo,pmap._ad||"Haritada seçilen nokta");dlgPick.close();$("tstat").textContent="";return}
+ if(pPts.length<(pMod==="alan"?3:2)){alert(pMod==="alan"?"Alan için haritada en az 3 köşeye dokun.":"Yol için haritada en az 2 noktaya (başlangıç ve bitiş) dokun.");return}
+ const s=sekilKur(pMod,pPts,+$("pgen").value);let ad="";try{const y=await yerYakin(s.c.lat,s.c.lon);if(y)ad=y[0]+(y[4]?", "+y[4]:"")}catch(e){}
+ setCenter(s.c.lat,s.c.lon,(pMod==="alan"?"⬠ Çizilen alan":"〰 Yol boyunca")+(ad?" – "+ad:""),{tip:s.tip,pts:s.pts,gen:s.gen,r:s.r});dlgPick.close();$("tstat").textContent=""}
+/* --- kayıtlı yerler (favoriler, bu cihazda) --- */
+const favL=()=>arr(lsJ("mag_fav",[]));
+function renderFav(){const f=favL();$("tfav").innerHTML=f.map((x,i)=>`<span class="favc"><button type="button" data-fi="${i}">⭐ ${esc(x.ad)}</button><button type="button" class="fx" data-fx="${i}" title="Sil">✕</button></span>`).join("")+(tara.c?`<button type="button" onclick="favSave()">＋ Bu yeri kaydet</button>`:"")}
+function favSave(){if(!tara.c)return;const ad=(prompt("Bu yere bir ad ver (örn: Ostim Sanayi, İkitelli):",String(tara.c.ad||"").replace(/^[⬠〰]\s*/,""))||"").trim();if(!ad)return;
+ const f=favL().filter(x=>x.ad!==ad);f.push({ad,c:{lat:tara.c.lat,lon:tara.c.lon},r:tara.r,sekil:tara.sekil||null});ls.set("mag_fav",JSON.stringify(f.slice(-30)));renderFav()}
+$("tfav").addEventListener("click",e=>{const a=e.target.closest("[data-fi]"),d=e.target.closest("[data-fx]");
+ if(a){const x=favL()[+a.dataset.fi];if(!x)return;tara.r=x.r||tara.r;setCenter(x.c.lat,x.c.lon,x.ad,x.sekil);$("tstat").textContent=""}
+ if(d){const f=favL(),x=f[+d.dataset.fx];if(x&&confirm(`"${x.ad}" kayıtlı yerlerden silinsin mi?`)){f.splice(+d.dataset.fx,1);ls.set("mag_fav",JSON.stringify(f));renderFav()}}});
 async function taraMapInit(){
  try{loadCss(LCSS);await loadScript(LJS)}catch(e){$("tmapN").textContent=e.message;return}
  if(!tmap){tmap=L.map("tmap").setView(tara.c?[tara.c.lat,tara.c.lon]:[39,35],tara.c?zoomFor(tara.r):6);
@@ -1426,14 +1497,14 @@ async function doScan(){
  if(!tara.c){alert("Önce merkez seç: 📍 Konumumu kullan, adres yaz ya da haritaya tıkla.");return}
  const ks=[...tSek],secs=TSEK.filter(s=>ks.includes(s.k)),kw=$("tkw").value.trim();
  if(!secs.length&&!kw){alert("En az bir sektör seç (3. adım) veya gelişmiş seçeneklerden arama kelimesi yaz.");openSek();return}
- const rKm=+$("trad").value,useG=$("tgoo").checked&&!!ayar.googleKey,useO=$("tosm").checked,detay=$("tdet").checked;
+ const rKm=tara.sekil?tara.sekil.r:+$("trad").value,useG=$("tgoo").checked&&!!ayar.googleKey,useO=$("tosm").checked,detay=$("tdet").checked;
  if(!useG&&!useO){alert("En az bir kaynak seç (OpenStreetMap veya Google).");return}
- if(rKm>50&&!confirm(`${kmTxt(rKm)} çok büyük bir alan. Çok sayıda işletme gelir ve ilk indirme uzun sürebilir. Devam edilsin mi?`))return;
+ if(!tara.sekil&&rKm>50&&!confirm(`${kmTxt(rKm)} çok büyük bir alan. Çok sayıda işletme gelir ve ilk indirme uzun sürebilir. Devam edilsin mi?`))return;
  gLimitHit=false;
  if(useG){await gSync();const need=(secs.reduce((s,x)=>s+x.g.length,0)+(kw?1:0))*(detay&&rKm>=2?4:1);
   if(gLeft()<=0){alert("Google aylık sorgu sınırı doldu ("+(+ayar.gLimit||900)+"). Bu tarama yalnızca OpenStreetMap ile yapılacak.")}
   else if(need>gLeft()&&!confirm(`Bu tarama ${need} Google sorgusu ister, bu ay kalan: ${gLeft()}. Kalan kadarıyla devam edilsin mi?`))return}
- tara.r=rKm;tara.sek=ks;tara.kw=kw;$("tbtn").disabled=true;
+ if(!tara.sekil)tara.r=rKm;tara.sek=ks;tara.kw=kw;$("tbtn").disabled=true;
  const all=[],hata=[];
  if(useG&&gLeft()>0){try{$("tstat").textContent="Google'da aranıyor…";all.push(...await gSearch(tara.c,rKm,secs,kw,detay))}catch(e){hata.push("Google: "+(gAuthErr||e.message))}}
  const bilgi=[];
@@ -1443,9 +1514,9 @@ async function doScan(){
   else if(!geoOk)bilgi.push("Geoapify anahtarı yok → yavaş ücretsiz sunucu kullanıldı");
   if(!geoOk){try{$("tstat").textContent="OpenStreetMap'te aranıyor…";const n0=all.length;all.push(...await osmSearch(tara.c,rKm,secs,kw));bilgi.push(`Yedek sunucu ✓ ${all.length-n0} sonuç`)}catch(e){hata.push("OpenStreetMap: "+e.message)}}}
  all.forEach(p=>p.km=hav(tara.c.lat,tara.c.lon,p.lat,p.lon));
- tara.res=mergeRes(all.filter(p=>p.km<=rKm*1.02)).sort((a,b)=>a.km-b.km);markNew(ks,rKm);tara.t=Date.now();tSel.clear();saveTara();
+ tara.res=mergeRes(all.filter(p=>p.km<=rKm*1.02&&inSekil(p))).sort((a,b)=>a.km-b.km);markNew(ks,rKm);tara.t=Date.now();tSel.clear();saveTara();
  $("tbtn").disabled=false;
- $("tstat").textContent=(hata.length&&!tara.res.length?"⚠ Tarama yapılamadı. ":`✔ ${tara.res.length} işletme bulundu (${kmTxt(rKm)} içinde)`)+(bilgi.length?" • "+bilgi.join(" • "):"")+(gLimitHit?" • Google aylık sınırına ulaşıldı":"")+(hata.length?" • ⚠ "+hata.join(" | "):"");
+ $("tstat").textContent=(hata.length&&!tara.res.length?"⚠ Tarama yapılamadı. ":`✔ ${tara.res.length} işletme bulundu (${tara.sekil?(tara.sekil.tip==="alan"?"çizilen alanın":"çizilen yolun")+" içinde":kmTxt(rKm)+" içinde"})`)+(bilgi.length?" • "+bilgi.join(" • "):"")+(gLimitHit?" • Google aylık sınırına ulaşıldı":"")+(hata.length?" • ⚠ "+hata.join(" | "):"");
  logEv(`Tarama: ${kmTxt(rKm)}, ${tara.res.length} sonuç`,tara.c.ad||"");renderTaraG();renderTara();taraMapDraw();if(tara.res.length)$("tview").scrollIntoView({behavior:"smooth"});
 }
 const inList=p=>findDup({firma:p.ad,telefon:p.tel},null);
@@ -1469,7 +1540,7 @@ const TFG=[
 const ZINCIR=["bim","a101","a-101","şok","migros","macrocenter","carrefour","carrefoursa","metro gross","metro market","file market","hakmar","bizim toptan","tarım kredi","onur market","happy center","mopaş","gimsa","özdilek","altunbilekler","opet","shell","bp","petrol ofisi","totalenergies","total enerji","aytemiz","lukoil","türkiye petrolleri","moil","alpet","sunpet","mcdonald's","mcdonalds","burger king","domino's","dominos","kfc","popeyes","starbucks","simit sarayı","little caesars","pizza hut","sbarro","arby's","tavuk dünyası","usta dönerci","komagene","baydöner","gratis","watsons","rossmann","lc waikiki","lcw","koton","defacto","boyner","teknosa","mediamarkt","media markt","vatan bilgisayar","english home","madame coco","karaca","koçtaş","bauhaus","tekzen","decathlon","penti","ikea","gloria jean's","espressolab","kahve dünyası","caribou","ptt","aras kargo","yurtiçi kargo","mng kargo","sürat kargo","halkbank","ziraat bankası","garanti bbva","akbank","yapı kredi","iş bankası","vakıfbank"];
 const zRe=new RegExp("^("+ZINCIR.map(z=>z.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")+")($|[\\s'’.,-])","i");
 const isChain=p=>zRe.test(String(p.ad||"").toLocaleLowerCase("tr"));
-const isMobile=t=>waNum(t).startsWith("905");
+const isMobile=t=>{const d=waNum(t);return d.startsWith("90")?d.startsWith("905"):!!d};
 const gKey=p=>normF(p.ad)+"@"+(+p.lat).toFixed(3)+","+(+p.lon).toFixed(3);
 const ilce=p=>(String(p.il||"").split("/")[0]||"").trim();
 function tfSave(){ls.set("mag_tfil",JSON.stringify(tf))}
@@ -1580,9 +1651,9 @@ function applyOner(){let n=0;dk.kalemler.forEach(k=>{if(+k.maliyet){k.fiyat=oner
 /* --- yeni açılan işletmeler, taranan alanlar --- */
 function markNew(ks,rKm){
  const sc=arr(lsJ("mag_taramalar",[])),gor=lsJ("mag_gorulen",{})||{};
- tara.res.forEach(p=>{const k=gKey(p);p.yeni=!gor[k]&&sc.some(s=>s.c&&hav(s.c.lat,s.c.lon,p.lat,p.lon)<=s.r&&arr(s.sek).includes(p.sek));if(!gor[k])gor[k]=Date.now()});
- sc.push({t:Date.now(),c:{lat:tara.c.lat,lon:tara.c.lon,ad:tara.c.ad||""},r:rKm,sek:ks,n:tara.res.length});
- ls.set("mag_taramalar",JSON.stringify(sc.slice(-60)));ls.set("mag_gorulen",JSON.stringify(gor));
+ tara.res.forEach(p=>{const k=gKey(p);p.yeni=!gor[k]&&sc.some(s=>s.c&&hav(s.c.lat,s.c.lon,p.lat,p.lon)<=s.r&&inSekil(p,s.sekil)&&arr(s.sek).includes(p.sek));if(!gor[k])gor[k]=Date.now()});
+ sc.push({t:Date.now(),c:{lat:tara.c.lat,lon:tara.c.lon,ad:tara.c.ad||""},r:rKm,sek:ks,n:tara.res.length,...(tara.sekil?{sekil:tara.sekil}:{})});
+ ls.set("mag_taramalar",JSON.stringify(sc.slice(-200)));ls.set("mag_gorulen",JSON.stringify(gor));
 }
 
 /* --- satış bölgeleri --- */
@@ -1612,11 +1683,11 @@ let heatOn=false,histOn=true;
 const BCOL=["#7a5af8","#ee46bc","#0e9384","#f79009","#2e90fa","#d92d20"];
 function taraMapDraw(fit){
  if(!tmap)return;tLayer.clearLayers();
- if(histOn)arr(lsJ("mag_taramalar",[])).slice(-30).forEach(s=>{if(s.c)L.circle([s.c.lat,s.c.lon],{radius:s.r*1000,color:"#98a2b3",weight:1,dashArray:"4 4",fill:false}).addTo(tLayer)});
+ if(histOn)histDraw(tLayer,{color:"#98a2b3",weight:1,dashArray:"4 4",fillColor:"#98a2b3",fillOpacity:.08,interactive:false});
  bolgeler().forEach((b,i)=>L.circle([b.lat,b.lon],{radius:b.r*1000,color:BCOL[i%BCOL.length],weight:2,fillOpacity:.05}).bindPopup(`<b>${esc(b.ad)}</b><br>${esc(b.uad||"atanmadı")}`).addTo(tLayer));
  if(!tara.c)return;
- const r=+$("trad").value||tara.r,l=taraFiltered();
- L.circle([tara.c.lat,tara.c.lon],{radius:r*1000,color:"#1F3864",weight:1,fillOpacity:.04}).addTo(tLayer);
+ const r=tara.sekil?tara.sekil.r:(+$("trad").value||tara.r),l=taraFiltered();
+ if(tara.sekil)sekilYay(tara.sekil,tLayer,{color:"#1F3864",weight:2,fillOpacity:.05,interactive:false});else L.circle([tara.c.lat,tara.c.lon],{radius:r*1000,color:"#1F3864",weight:1,fillOpacity:.04}).addTo(tLayer);
  if(heatOn){
   const cs=Math.max(.15,r/12),dLa=cs/111,dLo=cs/(111*Math.cos(tara.c.lat*Math.PI/180)),g={};
   l.forEach(p=>{if(isRival(p))return;const k=Math.floor(p.lat/dLa)+":"+Math.floor(p.lon/dLo);g[k]=(g[k]||0)+tuk(p.sek)});
