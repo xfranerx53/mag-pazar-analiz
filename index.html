@@ -84,11 +84,16 @@ dialog.sheet[open]{display:flex}
 .selbar button{padding:6px 12px;font-size:14px}
 .selbar[hidden],[hidden]{display:none!important}#tres{padding-bottom:56px}
 details.more{margin-top:6px}details.more>summary{display:inline-block;border:1px solid var(--br);border-radius:8px;padding:5px 10px;font-size:13px;color:var(--tx)}
+.score{display:inline-block;min-width:30px;text-align:center;border-radius:6px;padding:1px 6px;font-weight:700;font-size:12px;color:#fff;margin-right:4px;vertical-align:1px}.s-hi{background:#067647}.s-mid{background:#b54708}.s-lo{background:#98a2b3}
+.tag.new{background:#fef0c7;color:#93370d;font-weight:700}.tag.rakip{background:#fee4e2;color:#b42318;font-weight:700}
+a.btn.p{background:var(--pr);color:var(--on);border-color:var(--pr)}
+#cqF button,#wbF button{padding:10px 6px;font-size:14px}
 details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 @media(max-width:620px){.g2,.g3{grid-template-columns:1fr}.kr{grid-template-columns:1fr 1fr 1fr}.kr .ku{grid-column:1/-1}.kh{display:none}}
 </style></head><body>
 <header><span>Mag Ambalaj • Pazar Analiz</span><span class="hb"><button id="cb" onclick="openCloud()">☁ Giriş yap</button></span></header>
 <main>
+<div id="offl" class="banner" hidden>📴 İnternet yok — kayıtların bu cihazda tutuluyor, bağlantı gelince otomatik eşitlenecek.</div>
 <div id="banner"></div>
 <div class="tabs" id="tabs">
 <button data-t="tara" class="on">🔍 Çevrede Tara</button>
@@ -126,32 +131,36 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <div class="mu" id="tstat" style="margin:8px 2px 12px"></div>
 <div class="seg" id="tview"><button data-v="l" class="on" onclick="setTView('l')">📋 Liste</button><button data-v="m" onclick="setTView('m')">🗺 Harita</button></div>
 <div class="stats" id="tst"></div>
-<details class="card" id="tfil"><summary>Filtrele / sırala / toplu işlem</summary>
-<div class="bar" style="margin-top:8px"><input id="tq" placeholder="Sonuçlarda ara"><select id="tfs"></select><select id="tso"><option value="k">Yakından uzağa</option><option value="a">A-Z</option><option value="p">En çok yorum alan</option></select></div>
-<div class="row"><label class="chip"><input type="checkbox" id="ttel"> Sadece telefonu olanlar</label><label class="chip"><input type="checkbox" id="tnew" checked> Listemde olmayanlar</label></div>
-<div class="row"><button onclick="taraSelAll()">Görünenlerin hepsini seç</button><button onclick="taraAddAll()">Görünen yenilerin hepsini listeye ekle</button><button onclick="taraCsv()">CSV indir</button></div>
+<input id="tq" placeholder="🔎 Sonuçlarda isim / adres ara" style="margin-bottom:8px">
+<details class="card" id="tfil"><summary>Filtrele ve sırala <span class="badge" id="tfN" hidden></span></summary>
+<div id="tfBox"></div>
+<div class="g2"><div><label>Sektör</label><select id="tfs"></select></div><div><label>Bölge (ilçe)</label><select id="tfb"></select></div>
+<div><label>En fazla uzaklık</label><select id="tfm"><option value="">Hepsi</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="3">3 km</option><option value="5">5 km</option><option value="10">10 km</option></select></div>
+<div><label>Sıralama</label><select id="tso"><option value="d">⭐ Aday puanı (en iyi önce)</option><option value="k">Yakından uzağa</option><option value="t">Telefonu olanlar önce</option><option value="r">En yüksek puan</option><option value="p">En çok yorum alan (büyük işletme)</option><option value="a">A'dan Z'ye</option><option value="s">Sektöre göre</option></select></div></div>
+<div class="row"><button onclick="tfReset()">Filtreleri sıfırla</button></div>
 </details>
+<details class="card"><summary>Toplu işlem</summary><div class="row"><button onclick="taraSelAll()">Görünenlerin hepsini seç</button><button onclick="taraAddAll()">Görünen yenilerin hepsini listeye ekle</button><button onclick="bolgeRaporu()">📄 Bölge pazar raporu (PDF)</button><button onclick="taraHideSel()">Seçilenleri gizle</button><button onclick="taraCsv()">CSV indir</button></div></details>
 <div id="tres"></div>
-<div class="card" id="tmapBox" hidden><div id="tmap"></div><div class="mu" id="tmapN">Kırmızı = merkez • yeşil = telefonu olan • mavi = telefonu bilinmeyen. Merkezi değiştirmek için haritaya dokun.</div></div>
-<div class="selbar" id="tselbar" hidden><b><span id="tselN">0</span> seçili</b><button onclick="taraAddSel()">+ Listeye ekle</button><button onclick="taraRoute()">🗺 Rota</button><button onclick="tSel.clear();renderTara()">Bırak</button></div>
+<div class="card" id="tmapBox" hidden><div class="row" style="margin:0 0 8px"><button onclick="heatOn=!heatOn;taraMapDraw();this.textContent=heatOn?'📍 Noktalara dön':'🔥 Yoğunluk haritası'">🔥 Yoğunluk haritası</button><button onclick="histOn=!histOn;taraMapDraw()">Taranan alanlar aç/kapa</button></div><div id="tmap"></div><div class="mu" id="tmapN">Kırmızı nokta = merkez • yeşil = telefonlu • mavi = telefonsuz • turuncu = yeni açılan • büyük kırmızı = rakip ambalajcı • kesikli gri = daha önce taranan alanlar • renkli daireler = satış bölgeleri. Merkezi değiştirmek için haritaya dokun.</div></div>
+<div class="selbar" id="tselbar" hidden><b><span id="tselN">0</span> seçili</b><button onclick="taraAddSel()">+ Listeye ekle</button><button onclick="wbStart(tara.res.filter(p=>tSel.has(p.id)).map(p=>({ad:p.ad,tel:p.tel})))">💬 WhatsApp</button><button onclick="taraRoute()">🗺 Rota</button><button onclick="tSel.clear();renderTara()">Bırak</button></div>
 </div>
 
 <div class="sec" id="s-liste">
 <div class="stats" id="stats"></div>
-<div class="bar"><input id="q" placeholder="🔎 Firma, şehir, telefon ara"><button class="p" onclick="openForm()">+ Yeni firma</button></div>
+<div class="bar"><input id="q" placeholder="🔎 Firma, şehir, telefon ara"><button class="p" onclick="openForm()">+ Yeni</button><button onclick="quickAdd()">📸 Sahadan</button><button onclick="$('so').value='y';myPos=null;render()">📍 Yakınımda</button></div>
 <details class="card"><summary>Filtrele / sırala</summary><div class="bar" style="margin:8px 0 0"><select id="fs"></select><select id="fd"></select><select id="fp"></select><select id="fo" hidden></select><select id="so"></select></div></details>
-<details class="card"><summary>Toplu işlem, içe / dışa aktar</summary><div class="row"><button onclick="selAll()">Görünenlerin hepsini seç</button><button onclick="$('f').click()">Excel/CSV içe aktar</button><button onclick="exportCsv()">CSV indir</button><button onclick="exportJson()">Tam yedek (JSON)</button><button onclick="$('fj').click()">Yedekten yükle</button></div>
+<details class="card"><summary>Toplu işlem, içe / dışa aktar</summary><div class="row"><button onclick="callStart(shown)">📞 Görünenleri sırayla ara</button><button onclick="wbStart(leadItems(shown))">💬 Görünenlere toplu WhatsApp</button><button onclick="selAll()">Görünenlerin hepsini seç</button><button onclick="$('f').click()">Excel/CSV içe aktar</button><button onclick="exportCsv()">CSV indir</button><button onclick="exportJson()">Tam yedek (JSON)</button><button onclick="$('fj').click()">Yedekten yükle</button></div>
 <input type="file" id="f" accept=".csv,.txt" hidden><input type="file" id="fj" accept=".json" hidden></details>
 <div id="bulk" class="card" hidden>
 <b><span id="bn">0</span> kayıt seçili</b> <span class="mu">— seçtiklerine toplu değişiklik yap</span>
 <div class="bar"><select id="bdur"></select><select id="bonc"></select><select id="bsek"></select><select id="bown" hidden></select><input id="bson" type="date" title="Sonraki arama tarihi"></div>
-<div class="row"><button class="p" onclick="bulkApply()">Uygula</button><button class="d" id="bdel" onclick="bulkDel()">Seçilenleri sil</button><button onclick="sel.clear();render()">Seçimi bırak</button></div>
+<div class="row"><button class="p" onclick="bulkApply()">Uygula</button><button onclick="callStart([...sel])">📞 Sırayla ara</button><button onclick="wbStart(leadItems([...sel]))">💬 WhatsApp</button><button class="d" id="bdel" onclick="bulkDel()">Seçilenleri sil</button><button onclick="sel.clear();render()">Seçimi bırak</button></div>
 </div>
 <div id="list"></div>
 </div>
 
 <div class="sec" id="s-bugun">
-<div class="bar"><button onclick="printList()">🖨 Arama listesini yazdır</button><button onclick="route()">🗺 Ziyaret rotası</button><button onclick="askNotify()">🔔 Bildirimleri aç</button></div>
+<div class="bar"><button class="p" onclick="callStart(todayCallIds())">📞 Arama modu</button><button onclick="route()">🗺 Ziyaret rotası (en kısa sıra)</button><button onclick="printList()">🖨 Arama listesini yazdır</button><button onclick="askNotify()">🔔 Bildirimleri aç</button></div>
 <div id="today"></div></div>
 
 <div class="sec" id="s-teklif"><div class="seg subnav"><button data-go="teklif">Teklifler</button><button data-go="siparis">Siparişler</button><button data-go="tahsilat">Tahsilat</button></div><div class="bar"><select id="ft"></select></div><div class="stats" id="tstats"></div><div id="tlist"></div></div>
@@ -189,18 +198,23 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <div class="sbody" id="slst"></div>
 <div class="sft"><button type="button" onclick="tSek.clear();renderSek()">Temizle</button><button type="button" class="p" onclick="sekDone()">Tamam (<span id="ssN">0</span> seçili)</button></div></dialog>
 
+<dialog id="dlgCall" class="sheet"><div class="shd"><div class="row" style="justify-content:space-between;margin:0"><b>📞 Arama modu</b><span><b id="cqP"></b> <button type="button" onclick="dlgCall.close()">Bitir</button></span></div></div><div class="sbody" id="cqB"></div><div class="sft" style="flex-wrap:wrap" id="cqF"></div></dialog>
+<dialog id="dlgWB" class="sheet"><div class="shd"><div class="row" style="justify-content:space-between;margin:0"><b>💬 Toplu WhatsApp</b><b id="wbP"></b></div><label>Mesaj şablonu</label><select id="wbT"></select></div><div class="sbody" id="wbB"></div><div class="sft" id="wbF"><button type="button" id="wbSk" onclick="wb.i++;renderWB()">⏭ Atla</button><button type="button" class="p" id="wbGo" onclick="wbGo()">WhatsApp'ta aç → sıradaki</button><button type="button" onclick="dlgWB.close()">Kapat</button></div></dialog>
+<dialog id="dlgR" class="sheet"><div class="shd"><b style="font-size:17px">🗺 Ziyaret rotası (en kısa sıra)</b></div><div class="sbody" id="rpB"></div><div class="sft"><button type="button" onclick="printRoute()">🖨 Yazdır</button><button type="button" class="p" onclick="dlgR.close()">Kapat</button></div></dialog>
+
 <dialog id="dlg"><form onsubmit="return false">
 <b id="dt">Kayıt</b>
 <label>Firma adı *</label><input id="firma"><div class="warn mu" id="dupw"></div>
 <div class="g2"><div><label>Yetkili kişi</label><input id="yetkili"></div><div><label>Sektör</label><select id="sektor"></select></div>
 <div><label>İl / İlçe</label><input id="il" placeholder="Örn: İstanbul / Kadıköy"></div><div><label>Telefon</label><input id="telefon" type="tel"></div></div>
-<label>Açık adres</label><input id="adres" placeholder="Mahalle, cadde, no...">
+<label>Açık adres</label><input id="adres" placeholder="Mahalle, cadde, no..."><div class="row"><button type="button" onclick="formGetPos()">📍 Şu anki konumumu ekle</button><span class="mu" id="fkon"></span></div>
 <div class="g2"><div><label>E-posta</label><input id="eposta" type="email"></div><div><label>Kaynak</label><input id="kaynak" placeholder="Google, tavsiye, ziyaret..."></div>
 <div><label>Durum</label><select id="durum"></select></div><div><label>Öncelik</label><select id="oncelik"></select></div>
 <div><label>Sonraki arama tarihi</label><input id="sonraki" type="date"></div>
 <div><label>Ticari ileti izni</label><select id="izin"><option>Yok</option><option>Var</option><option>Çıkış yaptı</option></select></div>
 <div><label>Mevcut tedarikçi (rakip)</label><input id="rakip" placeholder="Şu an kimden alıyor?"></div><div><label>Rakip fiyatı (₺/kg veya adet)</label><input id="rakipFiyat" type="number" step="0.01"></div>
 <div><label>Kayıp sebebi (İlgilenmiyor ise)</label><select id="kayip"></select></div><div id="ownBox" hidden><label>Sorumlu satışçı</label><select id="sahip"></select></div></div>
+<details style="margin-top:10px"><summary>Cari / fatura bilgileri</summary><div class="g2"><div><label>Ticari unvan</label><input id="unvan"></div><div><label>Vergi dairesi</label><input id="vergiDairesi"></div><div><label>Vergi no / TC</label><input id="vergiNo" inputmode="numeric"></div><div><label>Ödeme vadesi (gün)</label><input id="vade" type="number" min="0"></div></div><label>Fatura adresi</label><input id="faturaAdres"></details>
 <label>Not</label><textarea id="not" rows="2"></textarea>
 <label>📷 Kartvizit / fotoğraf</label><input type="file" id="ffoto" accept="image/*"><div class="row"><img id="fprev" style="max-height:80px;border-radius:6px" hidden><button type="button" id="fdel" hidden onclick="fotoState='del';$('fprev').hidden=true;this.hidden=true">Fotoğrafı kaldır</button></div>
 <div class="row"><button type="button" class="p" onclick="saveForm()">Kaydet</button><button type="button" onclick="dlg.close()">Vazgeç</button></div>
@@ -222,7 +236,7 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <b id="dTitle">Teklif</b> <span class="mu" id="dNo"></span>
 <div class="kr kh" style="margin-top:10px"><span class="ku">Ürün / açıklama</span><span>Miktar</span><span>Birim</span><span>Birim fiyat ₺</span><span>İsk. %</span><span class="kt">Tutar</span><span></span></div>
 <div id="dRows"></div>
-<button type="button" data-a="kadd">+ Kalem ekle</button>
+<button type="button" data-a="kadd">+ Kalem ekle</button> <button type="button" onclick="applyOner()">💡 Önerilen fiyatları uygula</button>
 <div class="g3"><div><label>KDV</label><select id="dkdv"><option value="0">KDV yok / dahil</option><option value="1">%1</option><option value="10">%10</option><option value="20">%20</option></select></div>
 <div><label>Tarih</label><input id="dtar" type="date"></div><div><label>Durum</label><select id="ddur"></select></div>
 <div id="dTesB"><label>Teslim tarihi</label><input id="dtes" type="date"></div></div>
@@ -273,6 +287,10 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <h4>Google Haritalar taraması</h4>
 <p class="mu">Anahtar yoksa tarama yalnızca ücretsiz OpenStreetMap ile yapılır. Anahtar alma adımları README.md içinde.</p>
 <div class="g2"><div><label>Geoapify anahtarı (ücretsiz, kart yok — önerilen)</label><input id="a_geo" placeholder="Geoapify API key"></div><div></div><div><label>Google API anahtarı</label><input id="a_gkey" placeholder="AIza..."></div><div><label>Aylık Google sorgu sınırı</label><input id="a_glim" type="number" min="0"></div></div>
+<h4>Satış ve pazar hesapları</h4>
+<div class="g3"><div><label>Ort. poşet satış fiyatı (₺/kg)</label><input id="a_kgf" type="number" step="0.01"></div><div><label>Hedef kâr marjı (% satış fiyatı)</label><input id="a_marj" type="number"></div><div><label>Varsayılan sipariş aralığı (gün)</label><input id="a_sipa" type="number"></div>
+<div><label>Numune dönüş süresi (gün)</label><input id="a_numg" type="number"></div></div>
+<details><summary>Sektör başı tahmini poşet tüketimi (kg / ay)</summary><p class="mu">Başlangıç tahminleridir, tecrübene göre değiştir. Aday puanı, bölge raporu ve yoğunluk haritası bunu kullanır.</p><div id="tukBox" class="g3"></div></details>
 <h4>WhatsApp mesaj şablonları</h4>
 <p class="mu">{firma} ve {yetkili} yazdığın yere kaydın bilgisi otomatik gelir.</p>
 <div id="slist"></div><button type="button" data-a="sadd">+ Şablon ekle</button>
@@ -359,15 +377,15 @@ const TDUR=["Beklemede","Kabul","Red"];
 const SDUR=["Hazırlanıyor","Üretimde","Sevk edildi","Teslim edildi","İptal"];
 const KAYIP=["","Fiyat yüksek","Mevcut tedarikçiden memnun","Kalite","İhtiyacı yok","Ulaşılamadı","Ödeme koşulları","Diğer"];
 const BIRIM=["kg","adet","koli","paket","rulo"];
-const KEYS=["firma","yetkili","sektor","il","adres","telefon","eposta","durum","izin","oncelik","kaynak","sonraki","rakip","rakipFiyat","kayip","not"];
-const HEAD=["Firma","Yetkili","Sektör","İl/İlçe","Adres","Telefon","E-posta","Durum","İzin","Öncelik","Kaynak","Sonraki arama","Rakip","Rakip fiyatı","Kayıp sebebi","Not"];
+const KEYS=["firma","yetkili","sektor","il","adres","telefon","eposta","durum","izin","oncelik","kaynak","sonraki","rakip","rakipFiyat","kayip","unvan","vergiDairesi","vergiNo","vade","faturaAdres","not"];
+const HEAD=["Firma","Yetkili","Sektör","İl/İlçe","Adres","Telefon","E-posta","Durum","İzin","Öncelik","Kaynak","Sonraki arama","Rakip","Rakip fiyatı","Kayıp sebebi","Ticari unvan","Vergi dairesi","Vergi no","Vade (gün)","Fatura adresi","Not"];
 const ROLN={admin:"Yönetici",satis:"Satış",beklemede:"Onay bekliyor"};
 const IL={"Adana":[37,35.32],"Adıyaman":[37.76,38.28],"Afyonkarahisar":[38.76,30.54],"Ağrı":[39.72,43.05],"Amasya":[40.65,35.83],"Ankara":[39.93,32.86],"Antalya":[36.9,30.7],"Artvin":[41.18,41.82],"Aydın":[37.85,27.84],"Balıkesir":[39.65,27.88],"Bilecik":[40.14,29.98],"Bingöl":[38.88,40.5],"Bitlis":[38.4,42.11],"Bolu":[40.74,31.61],"Burdur":[37.72,30.29],"Bursa":[40.19,29.06],"Çanakkale":[40.15,26.41],"Çankırı":[40.6,33.62],"Çorum":[40.55,34.95],"Denizli":[37.78,29.09],"Diyarbakır":[37.91,40.24],"Edirne":[41.68,26.56],"Elazığ":[38.68,39.22],"Erzincan":[39.75,39.49],"Erzurum":[39.9,41.27],"Eskişehir":[39.78,30.52],"Gaziantep":[37.07,37.38],"Giresun":[40.91,38.39],"Gümüşhane":[40.46,39.48],"Hakkari":[37.58,43.74],"Hatay":[36.2,36.16],"Isparta":[37.76,30.55],"Mersin":[36.81,34.64],"İstanbul":[41.01,28.98],"İzmir":[38.42,27.14],"Kars":[40.6,43.1],"Kastamonu":[41.38,33.78],"Kayseri":[38.73,35.48],"Kırklareli":[41.74,27.22],"Kırşehir":[39.15,34.16],"Kocaeli":[40.77,29.92],"Konya":[37.87,32.48],"Kütahya":[39.42,29.98],"Malatya":[38.35,38.31],"Manisa":[38.61,27.43],"Kahramanmaraş":[37.58,36.94],"Mardin":[37.31,40.74],"Muğla":[37.22,28.36],"Muş":[38.75,41.51],"Nevşehir":[38.62,34.71],"Niğde":[37.97,34.68],"Ordu":[40.98,37.88],"Rize":[41.03,40.52],"Sakarya":[40.78,30.4],"Samsun":[41.29,36.33],"Siirt":[37.93,41.94],"Sinop":[42.03,35.15],"Sivas":[39.75,37.02],"Tekirdağ":[40.98,27.51],"Tokat":[40.31,36.55],"Trabzon":[41,39.72],"Tunceli":[39.11,39.55],"Şanlıurfa":[37.16,38.79],"Uşak":[38.68,29.41],"Van":[38.5,43.38],"Yozgat":[39.82,34.81],"Zonguldak":[41.45,31.79],"Aksaray":[38.37,34.03],"Bayburt":[40.26,40.23],"Karaman":[37.18,33.22],"Kırıkkale":[39.85,33.51],"Batman":[37.89,41.13],"Şırnak":[37.52,42.46],"Bartın":[41.64,32.34],"Ardahan":[41.11,42.7],"Iğdır":[39.92,44.04],"Yalova":[40.65,29.27],"Karabük":[41.2,32.62],"Kilis":[36.72,37.12],"Osmaniye":[37.07,36.25],"Düzce":[40.84,31.16]};
 const ILALIAS={afyon:"Afyonkarahisar",antep:"Gaziantep",içel:"Mersin",izmit:"Kocaeli",maraş:"Kahramanmaraş",kmaraş:"Kahramanmaraş",urfa:"Şanlıurfa",adapazarı:"Sakarya",hakkâri:"Hakkari"};
 
 /* ================= yardımcılar ================= */
 const $=id=>document.getElementById(id);
-const dlg=$("dlg"),dlgG=$("dlgG"),dlgC=$("dlgC"),dlgW=$("dlgW"),dlgA=$("dlgA"),dlgD=$("dlgD"),dlgP=$("dlgP"),dlgU=$("dlgU"),dlgI=$("dlgI");
+const dlgCall=$("dlgCall"),dlgWB=$("dlgWB"),dlgR=$("dlgR"),dlg=$("dlg"),dlgG=$("dlgG"),dlgC=$("dlgC"),dlgW=$("dlgW"),dlgA=$("dlgA"),dlgD=$("dlgD"),dlgP=$("dlgP"),dlgU=$("dlgU"),dlgI=$("dlgI");
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const arr=v=>Array.isArray(v)?v.filter(Boolean):(v&&typeof v==="object"?Object.values(v):[]);
 const pad=n=>String(n).padStart(2,"0");
@@ -431,7 +449,7 @@ applyTema();
 
 /* ---------- seçim listeleri ---------- */
 opts($("fs"),SEK,"Tüm sektörler");opts($("fd"),DUR,"Tüm durumlar");opts($("fp"),ONC.slice(1),"Tüm öncelikler");
-$("so").innerHTML='<option value="c">Yeni eklenen önce</option><option value="s">Sonraki arama tarihi</option><option value="a">Firma A-Z</option><option value="b">Bakiye (yüksek)</option>';
+$("so").innerHTML='<option value="c">Yeni eklenen önce</option><option value="s">Sonraki arama tarihi</option><option value="a">Firma A-Z</option><option value="b">Bakiye (yüksek)</option><option value="y">📍 Bana en yakın</option>';
 opts($("sektor"),SEK);opts($("durum"),DUR);opts($("gdur"),DUR);opts($("kayip"),KAYIP);opts($("gkay"),KAYIP);opts($("u_bir"),BIRIM);
 $("oncelik").innerHTML=ONC.map(x=>`<option value="${x}">${x||"—"}</option>`).join("");
 $("ft").innerHTML='<option value="">Tüm teklifler</option>'+TDUR.map(x=>`<option>${x}</option>`).join("");
@@ -459,14 +477,14 @@ function put(o,noLog){
  const i=data.findIndex(x=>x.id===o.id),old=i<0?null:data[i];
  stamp(o);if(i<0)data.unshift(o);else data[i]=o;
  localSave();
- if(ref)root.child("leads/"+o.id).set(clean(o)).catch(e=>alert("Buluta kaydedilemedi: "+e.message));
+ pendAdd([o.id]);if(ref)root.child("leads/"+o.id).set(clean(o)).then(()=>pendDel([o.id])).catch(e=>alert("Buluta kaydedilemedi: "+e.message));
  if(!noLog)logEv(diffLog(old,o),o.firma);
  render();
 }
 function putMany(list,msg){
  const up={};
  list.forEach(o=>{stamp(o);const i=data.findIndex(x=>x.id===o.id);if(i<0)data.push(o);else data[i]=o;up[o.id]=clean(o)});
- localSave();if(ref&&list.length)root.child("leads").update(up).catch(e=>alert("Buluta kaydedilemedi: "+e.message));
+ localSave();pendAdd(Object.keys(up));if(ref&&list.length)root.child("leads").update(up).then(()=>pendDel(Object.keys(up))).catch(e=>alert("Buluta kaydedilemedi: "+e.message));
  if(msg&&list.length)logEv(msg+" ("+list.length+" kayıt)");
  render();
 }
@@ -531,11 +549,11 @@ function hist(x){
 function card(x,ck){
  const od=x.sonraki&&x.sonraki<today(),wa=waNum(x.telefon),bk=bakiye(x);
  return `<div class="card"><h3>${ck?`<input type="checkbox" class="ck" data-sel="${x.id}" ${sel.has(x.id)?"checked":""}>`:""}${esc(x.firma)} ${x.oncelik?`<span class="pr ${esc(x.oncelik)}">${esc(x.oncelik)}</span>`:""}</h3>
- <span class="tag">${esc(x.sektor)}</span><span class="tag">${esc(x.durum)}</span>${x.izin==="Çıkış yaptı"?'<span class="tag warn">İzin: Çıkış yaptı</span>':x.izin==="Var"?'<span class="tag">İzin: Var</span>':""}${x.sonraki?`<span class="tag ${od?"warn":""}">📞 ${fd(x.sonraki)}${od?" (gecikti)":""}</span>`:""}${bk>0.5?`<span class="tag warn">Bakiye ${TL(bk)}</span>`:""}${cloudOn()&&isAdmin()&&x.sahipAd?`<span class="tag">👤 ${esc(x.sahipAd)}</span>`:""}${x.kayip?`<span class="tag">Kayıp: ${esc(x.kayip)}</span>`:""}${x.mesafe!=null?`<span class="tag">📍 ${x.mesafe} km</span>`:""}${x.puan?`<span class="tag">★ ${x.puan}</span>`:""}
+ <span class="tag">${esc(x.sektor)}</span><span class="tag">${esc(x.durum)}</span>${x.izin==="Çıkış yaptı"?'<span class="tag warn">İzin: Çıkış yaptı</span>':x.izin==="Var"?'<span class="tag">İzin: Var</span>':""}${x.sonraki?`<span class="tag ${od?"warn":""}">📞 ${fd(x.sonraki)}${od?" (gecikti)":""}</span>`:""}${bk>0.5?`<span class="tag warn">Bakiye ${TL(bk)}</span>`:""}${cloudOn()&&isAdmin()&&x.sahipAd?`<span class="tag">👤 ${esc(x.sahipAd)}</span>`:""}${x.kayip?`<span class="tag">Kayıp: ${esc(x.kayip)}</span>`:""}${x.mesafe!=null?`<span class="tag">📍 ${x.mesafe} km</span>`:""}${x.puan?`<span class="tag">★ ${x.puan}</span>`:""}${x.numune&&!numuneDone(x)?`<span class="tag">🎁 Numune ${fd(x.numune.tar)}</span>`:""}${uzMap.has(x.id)?`<span class="tag ok">Sana ${kmTxt(uzMap.get(x.id))}</span>`:""}${x.vade?`<span class="tag">Vade ${esc(x.vade)} gün</span>`:""}
  <div class="mu">${[x.yetkili,x.il,x.telefon,x.eposta].filter(Boolean).map(esc).join(" • ")}</div>
  ${x.adres?`<div class="mu">📍 ${esc(x.adres)}</div>`:""}${x.rakip?`<div class="mu">Rakip: ${esc(x.rakip)}${x.rakipFiyat?" • "+TL2(x.rakipFiyat):""}</div>`:""}${x.not?`<div class="mu">${esc(x.not)}</div>`:""}
  <div class="row">${digits(x.telefon)?`<a class="btn" href="tel:${digits(x.telefon)}">Ara</a>`:""}${wa?`<button data-a="wa" data-id="${x.id}">WhatsApp</button>`:""}${addr(x)||x.konum?`<a class="btn" target="_blank" rel="noopener" href="${x.konum?"https://www.google.com/maps/search/?api=1&query="+x.konum.lat+","+x.konum.lon:mapUrl(x)}">Harita</a>`:""}${/^https?:/i.test(x.web||"")?`<a class="btn" target="_blank" rel="noopener" href="${esc(x.web)}">Web</a>`:""}${x.foto?`<button data-a="foto" data-id="${x.id}">📷</button>`:""}
- <button data-a="gor" data-id="${x.id}">+ Görüşme</button></div><details class="more"><summary>⋯ Diğer işlemler</summary><div class="row"><button data-a="tek" data-id="${x.id}">+ Teklif</button><button data-a="sip" data-id="${x.id}">+ Sipariş</button>${arr(x.siparis).length?`<button data-a="pay" data-id="${x.id}">+ Ödeme</button>`:""}<button data-a="edit" data-id="${x.id}">Düzenle</button>${isAdmin()?`<button data-a="del" data-id="${x.id}">Sil</button>`:""}</div></details>${hist(x)}</div>`;
+ <button data-a="gor" data-id="${x.id}">+ Görüşme</button></div><details class="more"><summary>⋯ Diğer işlemler</summary><div class="row"><button data-a="tek" data-id="${x.id}">+ Teklif</button><button data-a="sip" data-id="${x.id}">+ Sipariş</button>${arr(x.siparis).length?`<button data-a="pay" data-id="${x.id}">+ Ödeme</button>`:""}<button data-a="ziy" data-id="${x.id}">📍 Buradayım (ziyaret)</button><button data-a="num" data-id="${x.id}">🎁 Numune bıraktım</button><button data-a="edit" data-id="${x.id}">Düzenle</button>${isAdmin()?`<button data-a="del" data-id="${x.id}">Sil</button>`:""}</div></details>${hist(x)}</div>`;
 }
 
 /* ================= ekranlar ================= */
@@ -548,7 +566,9 @@ function render(){
   const cb=$("bown").value;$("bown").innerHTML='<option value="">— Satışçıya devret —</option>'+ul.map(([k,u])=>`<option value="${k}">${esc(u.ad||u.email)}</option>`).join("");$("bown").value=cb}
  const q=$("q").value.toLocaleLowerCase("tr"),s=$("fs").value,d=$("fd").value,p=$("fp").value,so=$("so").value,ow=showOwn?$("fo").value:"";
  let r=data.filter(x=>(!s||x.sektor===s)&&(!d||x.durum===d)&&(!p||x.oncelik===p)&&(!ow||(ow==="-"?!x.sahip:x.sahip===ow))&&(!q||KEYS.some(k=>String(x[k]||"").toLocaleLowerCase("tr").includes(q))));
- if(so==="a")r.sort((a,b)=>a.firma.localeCompare(b.firma,"tr"));
+ if(so!=="y")uzMap.clear();
+ else{if(!myPos){getPos(()=>render(),()=>{$("so").value="c";render()})}uzMap.clear();if(myPos)r.forEach(x=>{if(x.konum)uzMap.set(x.id,hav(myPos.lat,myPos.lon,x.konum.lat,x.konum.lon))});r.sort((a,b)=>(uzMap.get(a.id)??1e9)-(uzMap.get(b.id)??1e9))}
+ if(so==="y"){}else if(so==="a")r.sort((a,b)=>a.firma.localeCompare(b.firma,"tr"));
  else if(so==="s")r.sort((a,b)=>(a.sonraki||"9999").localeCompare(b.sonraki||"9999"));
  else if(so==="b")r.sort((a,b)=>bakiye(b)-bakiye(a));
  else r.sort((a,b)=>(b.c||0)-(a.c||0));
@@ -575,6 +595,9 @@ function renderToday(){
  const sec=(h,l,cls)=>l.length?`<h4 class="${cls||""}">${h} (${l.length})</h4>`+l.map(x=>card(x)).join(""):"";
  let h=sec("Geciken aramalar",a,"warn")+sec("Bugün aranacaklar",b)+sec("Önümüzdeki 7 gün",c);
  if(lo.length)h+=`<h4 class="warn">Teslimi geciken siparişler (${lo.length})</h4>`+lo.map(o=>`<div class="card"><b>${esc(o.x.firma)}</b> • ${esc(o.s.no||"")} • teslim ${fd(o.s.teslim)} • <b>${esc(o.s.durum)}</b></div>`).join("");
+ const nm=numuneList(),ro=reorderList();
+ if(nm.length)h+=`<h4>🎁 Numune dönüşü bekleyenler (${nm.length})</h4>`+nm.map(x=>card(x)).join("");
+ if(ro.length)h+=`<h4>🔁 Sipariş zamanı gelen müşteriler (${ro.length})</h4>`+ro.map(o=>`<div class="card"><h3>${esc(o.x.firma)}</h3><div class="mu">Son sipariş ${fd(o.son)} • ortalama ${o.ort} günde bir • beklenen ${fd(o.bek)} (${o.kalan>=0?o.kalan+" gün kaldı":(-o.kalan)+" gün geçti"})</div><div class="row">${digits(o.x.telefon)?`<a class="btn" href="tel:${digits(o.x.telefon)}">Ara</a>`:""}${waNum(o.x.telefon)?`<button data-a="wa" data-id="${o.x.id}">WhatsApp</button>`:""}<button data-a="sip" data-id="${o.x.id}">+ Sipariş</button></div></div>`).join("");
  if(sl.length)h+=`<h4>Uyuyan müşteriler — ${ayar.uyku} gündür sipariş yok (${sl.length})</h4>`+sl.map(o=>`<div class="card"><h3>${esc(o.x.firma)}</h3><div class="mu">Son alım: ${fd(o.l)} (${daysSince(o.l)} gün önce) • ${esc(o.x.telefon||"")}</div><div class="row">${digits(o.x.telefon)?`<a class="btn" href="tel:${digits(o.x.telefon)}">Ara</a>`:""}${waNum(o.x.telefon)?`<button data-a="wa" data-id="${o.x.id}">WhatsApp</button>`:""}<button data-a="gor" data-id="${o.x.id}">+ Görüşme</button></div></div>`).join("");
  $("today").innerHTML=h||`<div class="empty">Planlı arama yok. Bir kayıtta "Sonraki arama tarihi" seçince burada görünür.</div>`;
 }
@@ -601,7 +624,7 @@ function renderTahsilat(){
  $("plist").innerHTML=l.length?`<div class="card tw"><table class="tb"><tr><th>Firma</th><th class="n">Sipariş toplamı</th><th class="n">Ödenen</th><th class="n">Bakiye</th><th></th></tr>`+l.map(o=>`<tr><td><b>${esc(o.x.firma)}</b><br><span class="mu">${esc(o.x.telefon||"")}</span></td><td class="n">${TL2(o.c)}</td><td class="n">${TL2(o.o)}</td><td class="n ${o.b>0.5?"warn":"ok"}"><b>${TL2(o.b)}</b></td><td><button data-a="pay" data-id="${o.x.id}">+ Ödeme</button> ${waNum(o.x.telefon)&&o.b>0.5?`<button data-a="hatir" data-id="${o.x.id}">Hatırlat</button>`:""}</td></tr>`).join("")+`</table></div>`:`<div class="empty">Henüz sipariş veya ödeme yok.</div>`;
 }
 function renderUrun(){
- $("ulist").innerHTML=katalog.length?`<div class="card tw"><table class="tb"><tr><th>Ürün</th><th>Tür</th><th>Ebat</th><th>Mikron</th><th>Birim</th><th class="n">Fiyat</th><th class="n">Maliyet</th><th class="n">Marj</th><th></th></tr>`+katalog.map((u,i)=>`<tr><td><b>${esc(u.ad)}</b></td><td>${esc(u.tip)}</td><td>${esc(u.ebat)}</td><td>${esc(u.kal||"")}</td><td>${esc(u.birim)}</td><td class="n">${TL2(u.fiyat)}</td><td class="n">${u.maliyet?TL2(u.maliyet):"—"}</td><td class="n">${u.maliyet&&u.fiyat?"%"+Math.round((u.fiyat-u.maliyet)/u.fiyat*100):"—"}</td><td>${isAdmin()?`<button data-a="uedit" data-i="${i}">✎</button> <button data-a="udel" data-i="${i}">x</button>`:""}</td></tr>`).join("")+`</table></div>`:`<div class="empty">Ürün kataloğu boş. ${isAdmin()?'"+ Ürün ekle" ile poşet çeşitlerini ve fiyatlarını gir; tekliflerde seçince fiyat otomatik gelir.':"Yönetici ürün ekleyince burada görünür."}</div>`;
+ $("ulist").innerHTML=katalog.length?`<div class="card tw"><table class="tb"><tr><th>Ürün</th><th>Tür</th><th>Ebat</th><th>Mikron</th><th>Birim</th><th class="n">Fiyat</th><th class="n">Maliyet</th><th class="n">Marj</th><th class="n">Önerilen</th><th></th></tr>`+katalog.map((u,i)=>`<tr><td><b>${esc(u.ad)}</b></td><td>${esc(u.tip)}</td><td>${esc(u.ebat)}</td><td>${esc(u.kal||"")}</td><td>${esc(u.birim)}</td><td class="n">${TL2(u.fiyat)}</td><td class="n">${u.maliyet?TL2(u.maliyet):"—"}</td><td class="n">${u.maliyet&&u.fiyat?"%"+Math.round((u.fiyat-u.maliyet)/u.fiyat*100):"—"}</td><td class="n">${u.maliyet?TL2(oner(u.maliyet)):"—"}</td><td>${isAdmin()?`<button data-a="uedit" data-i="${i}">✎</button> <button data-a="udel" data-i="${i}">x</button>`:""}</td></tr>`).join("")+`</table></div>`:`<div class="empty">Ürün kataloğu boş. ${isAdmin()?'"+ Ürün ekle" ile poşet çeşitlerini ve fiyatlarını gir; tekliflerde seçince fiyat otomatik gelir.':"Yönetici ürün ekleyince burada görünür."}</div>`;
 }
 function bars(title,rows,fmtN){
  const m=Math.max(1,...rows.map(r=>r[1]));
@@ -652,7 +675,7 @@ function renderAnaliz(){
  const tiles=[["Toplam aday",n],["Müşteri",m],["Dönüşüm",n?Math.round(m/n*100)+"%":"0%"],["Son 7 gün görüşme",gw],["Bekleyen teklif",TL(sum("Beklemede"))],["Kabul edilen",TL(sum("Kabul"))]];
  const cnt=(f)=>{const o={};data.forEach(x=>{const k=f(x)||"(boş)";o[k]=o[k]||[0,0];o[k][0]++;if(x.durum==="Müşteri")o[k][1]++});return Object.entries(o).sort((a,b)=>b[1][0]-a[1][0])};
  $("analiz").innerHTML=hedefHtml()+`<div class="stats">${tiles.map(a=>`<div class="st"><b>${a[1]}</b><span>${a[0]}</span></div>`).join("")}</div>`+funnel()+monthTable();
- $("analiz2").innerHTML=sectorTable()+
+ $("analiz2").innerHTML=perfHtml()+sectorTable()+
  bars("Kayıp sebepleri (İlgilenmiyor)",cnt(x=>x.durum==="İlgilenmiyor"?x.kayip||"(sebep girilmemiş)":null).filter(([k])=>k!=="(boş)").map(([k,v])=>[k,v[0]]))+
  rakipHtml()+
  bars("Duruma göre",DUR.map(d=>[d,data.filter(x=>x.durum===d).length]))+
@@ -681,6 +704,7 @@ async function renderYonetim(){
   h+=`<div class="card tw"><h3>Kullanıcılar</h3><div class="mu">Yeni personel siteye girip "İlk kez: hesap oluştur" der; burada rolünü "Satış" yaparsın. Satış personeli yalnızca kendi firmalarını görür ve silemez.</div><table class="tb"><tr><th>Ad</th><th>E-posta</th><th>Rol</th><th class="n">Firma</th></tr>`+
   ul.map(([k,u])=>`<tr><td><input data-uad="${k}" value="${esc(u.ad||"")}" style="min-width:140px"></td><td>${esc(u.email||"")}</td><td><select data-urol="${k}" style="width:auto">${Object.keys(ROLN).map(r=>`<option value="${r}" ${u.rol===r?"selected":""}>${ROLN[r]}</option>`).join("")}</select></td><td class="n">${data.filter(x=>x.sahip===k).length}</td></tr>`).join("")+`</table></div>`;
  }
+ h+=bolgeHtml();
  const cl=Object.entries(cop).sort((a,b)=>b[1].st-a[1].st);
  h+=`<div class="card"><h3>Çöp kutusu (${cl.length})</h3><div class="mu">Silinen kayıtlar 30 gün burada durur.</div>`+(cl.length?cl.map(([k,x])=>`<div class="hl"><span><b>${esc(x.firma)}</b> • ${fdt(x.st)}${x.silen?" • silen: "+esc(x.silen):""} • ${30-Math.floor((Date.now()-x.st)/864e5)} gün kaldı</span><button data-a="crest" data-i="${k}">Geri al</button><button data-a="cdel" data-i="${k}">Kalıcı sil</button></div>`).join(""):'<div class="mu">Boş</div>')+`</div>`;
  h+=`<div class="card"><h3>Yedekler</h3><div class="mu">${cloudOn()?"Bulutta haftada bir otomatik yedek alınır (son 4 yedek saklanır).":"Bulut kapalıyken yedek için 'Tam yedek (JSON)' düğmesini kullan."}</div><div id="yedekL"></div>${cloudOn()?'<div class="row"><button onclick="backupNow(true)">Şimdi yedek al</button></div>':""}</div>`;
@@ -720,7 +744,7 @@ $("ffoto").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{fotoDat
 function openForm(id){
  editId=id||null;const x=data.find(v=>v.id===id)||{sektor:SEK[0],durum:DUR[0],izin:"Yok"};
  $("dt").textContent=id?"Kaydı düzenle":"Yeni kayıt";KEYS.forEach(k=>$(k).value=x[k]??"");$("dupw").textContent="";
- fotoState=null;fotoData=null;$("ffoto").value="";$("fprev").hidden=true;$("fdel").hidden=!x.foto;
+ fKon=x.konum||null;$("fkon").textContent=fKon?"📍 Konum kayıtlı":"";fotoState=null;fotoData=null;$("ffoto").value="";$("fprev").hidden=true;$("fdel").hidden=!x.foto;
  if(x.foto)mediaGet("f_"+x.id).then(v=>{if(v&&editId===x.id){$("fprev").src=v;$("fprev").hidden=false}}).catch(()=>{});
  const so=cloudOn()&&isAdmin()&&Object.keys(users).length;$("ownBox").hidden=!so;
  if(so){$("sahip").innerHTML=Object.entries(users).filter(([,u])=>u.rol!=="beklemede").map(([k,u])=>`<option value="${k}">${esc(u.ad||u.email)}</option>`).join("");$("sahip").value=x.sahip||me.uid}
@@ -731,7 +755,7 @@ async function saveForm(){
  const d=findDup({firma:$("firma").value,telefon:$("telefon").value},editId);
  if(d&&!confirm("Bu firma zaten kayıtlı olabilir:\n"+d.firma+(d.telefon?" ("+d.telefon+")":"")+"\n\nYine de kaydedilsin mi?"))return;
  const o=editId?{...data.find(v=>v.id===editId)}:{id:uid_(),c:Date.now()};
- KEYS.forEach(k=>o[k]=$(k).value.trim());if(o.durum!=="İlgilenmiyor")o.kayip="";
+ KEYS.forEach(k=>o[k]=$(k).value.trim());if(o.durum!=="İlgilenmiyor")o.kayip="";if(fKon)o.konum=fKon;
  if(!$("ownBox").hidden){o.sahip=$("sahip").value;o.sahipAd=(users[o.sahip]||{}).ad||""}
  try{if(fotoState==="new"){await mediaPut("f_"+o.id,fotoData);o.foto=1}else if(fotoState==="del"){mediaDel("f_"+o.id);delete o.foto}}catch(e){alert("Fotoğraf kaydedilemedi: "+e.message)}
  put(o);dlg.close();
@@ -749,7 +773,7 @@ function bulkDel(){if(confirm(sel.size+" kayıt çöp kutusuna taşınsın mı?"
 let rec=null,recChunks=[],recData=null,recTimer=null;
 function setG(n){$("gson").value=plus(n)}
 $("gdur").onchange=()=>{$("gkayB").hidden=$("gdur").value!=="İlgilenmiyor"};
-function openG(id){const x=data.find(v=>v.id===id);gId=id;$("gt").textContent="Görüşme: "+x.firma;$("gnot").value="";$("gdur").value=x.durum;$("gkay").value=x.kayip||"";$("gkayB").hidden=x.durum!=="İlgilenmiyor";$("gson").value=x.sonraki||"";$("gtip").value="Arama";recData=null;$("grs").textContent="";$("grec").textContent="🎤 Sesli not kaydet";dlgG.showModal()}
+function openG(id,tip){gPos=null;const x=data.find(v=>v.id===id);gId=id;$("gt").textContent="Görüşme: "+x.firma;$("gnot").value="";$("gdur").value=x.durum;$("gkay").value=x.kayip||"";$("gkayB").hidden=x.durum!=="İlgilenmiyor";$("gson").value=x.sonraki||"";recData=null;$("grs").textContent="";$("gtip").value=tip||"Arama";if(tip==="Ziyaret"){$("grs").textContent="📍 Konum alınıyor…";getPos(p=>{gPos=p;const x2=data.find(v=>v.id===gId),uz=x2&&x2.konum?hav(p.lat,p.lon,x2.konum.lat,x2.konum.lon):null;$("grs").textContent="📍 Konum alındı (±"+Math.round(p.acc||0)+" m)"+(uz!=null?" • firmaya "+kmTxt(uz):"")},()=>{$("grs").textContent="Konum alınamadı (yine de kaydedebilirsin)"})}$("grec").textContent="🎤 Sesli not kaydet";dlgG.showModal()}
 async function recToggle(){
  if(rec&&rec.state==="recording"){recStop();return}
  if(!navigator.mediaDevices||!window.MediaRecorder){alert("Bu tarayıcı ses kaydını desteklemiyor.");return}
@@ -765,6 +789,7 @@ async function saveG(){
  const x={...data.find(v=>v.id===gId)};x.gorus=arr(x.gorus);
  const g={t:Date.now(),tip:$("gtip").value,not:$("gnot").value.trim(),kim:me.ad||""};
  if(recData){try{const k="s_"+uid_();await mediaPut(k,recData);g.ses=k}catch(e){alert("Ses kaydedilemedi: "+e.message)}}
+ if(gPos&&g.tip==="Ziyaret"){g.konum={lat:gPos.lat,lon:gPos.lon};if(!x.konum)x.konum={lat:gPos.lat,lon:gPos.lon}}
  x.gorus.push(g);x.durum=$("gdur").value;x.kayip=x.durum==="İlgilenmiyor"?$("gkay").value:"";x.sonraki=$("gson").value;put(x);dlgG.close();
 }
 /* ================= teklif / sipariş editörü ================= */
@@ -777,7 +802,7 @@ function openDoc(kind,id,i){
  renderRows();dlgD.showModal();
 }
 function renderRows(){
- $("dRows").innerHTML=dk.kalemler.map((k,i)=>`<div class="kr"><input class="ku" list="urunDL" data-k="${i}" data-f="urun" value="${esc(k.urun)}" placeholder="Ürün seç veya yaz"><input type="number" step="any" data-k="${i}" data-f="mik" value="${esc(k.mik)}" placeholder="Miktar"><select data-k="${i}" data-f="birim">${["",...BIRIM].map(b=>`<option ${b===k.birim?"selected":""}>${b}</option>`).join("")}</select><input type="number" step="any" data-k="${i}" data-f="fiyat" value="${esc(k.fiyat)}" placeholder="Fiyat"><input type="number" step="any" data-k="${i}" data-f="isk" value="${esc(k.isk)}" placeholder="İsk %"><span class="kt" id="kt${i}"></span><button type="button" data-a="kdel" data-i="${i}">x</button></div>`).join("");
+ $("dRows").innerHTML=dk.kalemler.map((k,i)=>`<div class="kr"><input class="ku" list="urunDL" data-k="${i}" data-f="urun" value="${esc(k.urun)}" placeholder="Ürün seç veya yaz"><input type="number" step="any" data-k="${i}" data-f="mik" value="${esc(k.mik)}" placeholder="Miktar"><select data-k="${i}" data-f="birim">${["",...BIRIM].map(b=>`<option ${b===k.birim?"selected":""}>${b}</option>`).join("")}</select><input type="number" step="any" data-k="${i}" data-f="fiyat" value="${esc(k.fiyat)}" placeholder="${+k.maliyet?"Öneri "+oner(k.maliyet):"Fiyat"}"><input type="number" step="any" data-k="${i}" data-f="isk" value="${esc(k.isk)}" placeholder="İsk %"><span class="kt" id="kt${i}"></span><button type="button" data-a="kdel" data-i="${i}">x</button></div>`).join("");
  calcRows();
 }
 function calcRows(){
@@ -787,14 +812,14 @@ function calcRows(){
 }
 $("dkdv").onchange=calcRows;
 document.addEventListener("input",e=>{const d=e.target.dataset||{};
- if(d.k!=null&&dk){dk.kalemler[+d.k][d.f]=e.target.value;if(d.f==="urun"){const u=katalog.find(u=>u.ad===e.target.value);if(u){Object.assign(dk.kalemler[+d.k],{urun:u.ad,birim:u.birim,fiyat:u.fiyat,maliyet:u.maliyet||0,urunId:u.id});renderRows();const n=document.querySelector(`[data-k="${d.k}"][data-f="mik"]`);n&&n.focus();return}else delete dk.kalemler[+d.k].maliyet}calcRows()}
+ if(d.k!=null&&dk){dk.kalemler[+d.k][d.f]=e.target.value;if(d.f==="urun"){const u=katalog.find(u=>u.ad===e.target.value);if(u){Object.assign(dk.kalemler[+d.k],{urun:u.ad,birim:u.birim,fiyat:u.fiyat||(+u.maliyet?oner(u.maliyet):""),maliyet:u.maliyet||0,urunId:u.id});renderRows();const n=document.querySelector(`[data-k="${d.k}"][data-f="mik"]`);n&&n.focus();return}else delete dk.kalemler[+d.k].maliyet}calcRows()}
  if(d.si!=null)sw[+d.si][d.sf]=e.target.value;
 });
 async function saveDoc(pr){
  const ks=dk.kalemler.filter(k=>String(k.urun).trim()).map(k=>{const o={urun:String(k.urun).trim(),mik:+k.mik||0,birim:k.birim||"",fiyat:+k.fiyat||0,isk:+k.isk||0};if(+k.maliyet)o.maliyet=+k.maliyet;if(k.urunId)o.urunId=k.urunId;return o});
  if(!ks.length){alert("En az bir kalem (ürün) gir.");return}
  const x={...data.find(v=>v.id===dk.id)},list=arr(x[dk.kind]);
- const doc={kalemler:ks,kdv:+$("dkdv").value,tar:$("dtar").value||today(),durum:$("ddur").value,not:$("dnot").value.trim()};
+ const doc={kim:me.ad||"",kalemler:ks,kdv:+$("dkdv").value,tar:$("dtar").value||today(),durum:$("ddur").value,not:$("dnot").value.trim()};
  if(dk.kind==="siparis")doc.teslim=$("dtes").value;
  if(dk.extra.sNo)doc.sNo=dk.extra.sNo;if(dk.extra.tNo)doc.tNo=dk.extra.tNo;
  const c=calc(doc);doc.ara=Math.round(c.ara*100)/100;doc.tut=Math.round(c.top*100)/100;
@@ -839,11 +864,11 @@ function printDoc(kind,id,i){
  const x=data.find(v=>v.id===id),raw=x&&arr(x[kind])[+i];if(!raw)return;const t=toDoc(raw),c=calc(t),F=ayar.firma,isT=kind==="teklif";
  const rows=t.kalemler.map((k,j)=>{const b=(+k.mik||0)*(+k.fiyat||0);return `<tr><td>${j+1}</td><td>${esc(k.urun)}</td><td class="num">${k.birim?NUM(k.mik)+" "+esc(k.birim):""}</td><td class="num">${k.birim?TL2(k.fiyat):""}</td><td class="num">${+k.isk?"%"+k.isk:""}</td><td class="num">${TL2(b-b*(+k.isk||0)/100)}</td></tr>`}).join("");
  printHtml((isT?"Teklif ":"Siparis ")+(t.no||"")+" "+x.firma,docHead(F,isT?"FİYAT TEKLİFİ":"SİPARİŞ FORMU",t.no,t.tar)+
- `<div class="to"><b>Sayın ${esc(x.firma)}</b>${x.yetkili?"<br>"+esc(x.yetkili):""}${addr(x)?"<br>"+esc(addr(x)):""}${x.telefon?"<br>"+esc(x.telefon):""}</div>
+ `<div class="to"><b>Sayın ${esc(x.unvan||x.firma)}</b>${x.yetkili?"<br>"+esc(x.yetkili):""}${(x.faturaAdres||addr(x))?"<br>"+esc(x.faturaAdres||addr(x)):""}${x.vergiNo||x.vergiDairesi?"<br>"+[x.vergiDairesi?"V.D.: "+esc(x.vergiDairesi):"",x.vergiNo?"VKN/TCKN: "+esc(x.vergiNo):""].filter(Boolean).join(" • "):""}${x.telefon?"<br>"+esc(x.telefon):""}</div>
  <p>${isT?"Talebiniz doğrultusunda hazırladığımız fiyat teklifimiz aşağıdadır.":"Siparişinizin detayları aşağıdadır."+(t.teslim?" Planlanan teslim tarihi: <b>"+fd(t.teslim)+"</b>.":"")}</p>
  <table><tr><th>#</th><th>Ürün / Açıklama</th><th class="num">Miktar</th><th class="num">Birim fiyat</th><th class="num">İsk.</th><th class="num">Tutar</th></tr>${rows}
  <tr class="tt"><td colspan="5" class="num">Ara toplam</td><td class="num">${TL2(c.ara)}</td></tr>${t.kdv?`<tr><td colspan="5" class="num">KDV %${t.kdv}</td><td class="num">${TL2(c.kdv)}</td></tr>`:""}<tr class="tt"><td colspan="5" class="num">Genel toplam</td><td class="num">${TL2(c.top)}</td></tr></table>
- ${t.not?`<p><b>${isT?"Koşullar":"Not"}:</b> ${esc(t.not)}</p>`:""}${isT&&F.alt?`<p>${esc(F.alt)}</p>`:""}
+ ${t.not?`<p><b>${isT?"Koşullar":"Not"}:</b> ${esc(t.not)}</p>`:""}${x.vade?`<p>Ödeme vadesi: ${esc(x.vade)} gün</p>`:""}${isT&&F.alt?`<p>${esc(F.alt)}</p>`:""}
  <div class="sig"><div>Saygılarımızla,<br><b>${esc(F.ad)}</b></div>${isT?"":"<div>Teslim alan (ad, imza)<br><br>.............................</div>"}</div>`);
 }
 function printList(){
@@ -852,7 +877,7 @@ function printList(){
  <table><tr><th>#</th><th>Firma</th><th>Yetkili</th><th>Telefon</th><th>İl / İlçe</th><th>Son görüşme</th><th class="son">Sonuç</th></tr>`+
  l.map((x,k)=>{const g=arr(x.gorus).slice(-1)[0];return `<tr><td>${k+1}</td><td><b>${esc(x.firma)}</b><br><span class="mu">${esc(x.durum)}${x.sonraki<today()?" • gecikti":""}</span></td><td>${esc(x.yetkili)}</td><td>${esc(x.telefon)}</td><td>${esc(x.il)}</td><td>${g?fd(tsDay(g.t))+" "+esc(g.not):""}</td><td></td></tr>`}).join("")+`</table>`);
 }
-function route(){
+function route_eski(){
  const{a,b}=todayLists(),l=[...a,...b].filter(x=>addr(x));
  if(!l.length){alert("Bugün/geciken listesinde adresi olan firma yok. Kayıtlara 'Açık adres' veya 'İl / İlçe' gir.");return}
  if(l.length===1){window.open(mapUrl(l[0]),"_blank");return}
@@ -904,7 +929,7 @@ function openAyar(){
  $("aAdm").hidden=!isAdmin();$("aSat").hidden=isAdmin();
  Object.entries(AF).forEach(([k,v])=>$(k).value=ayar.firma[v]||"");ayarLogo=ayar.firma.logo||"";$("a_lp").src=ayarLogo;$("a_lp").hidden=!ayarLogo;$("a_ld").hidden=!ayarLogo;$("a_logo").value="";
  $("h_g").value=ayar.hedef.gorusme||0;$("h_m").value=ayar.hedef.musteri||0;$("h_t").value=ayar.hedef.teklif||0;$("a_uyku").value=ayar.uyku||60;
- $("a_gkey").value=ayar.googleKey||"";$("a_geo").value=ayar.geoKey||"";$("a_glim").value=ayar.gLimit||900;
+ $("a_kgf").value=ayar.kgFiyat||"";$("a_marj").value=ayar.hedefMarj??25;$("a_sipa").value=ayar.sipAralik||30;$("a_numg").value=ayar.numuneGun||7;$("tukBox").innerHTML=TSEK.map(s=>`<div><label>${esc(s.ad)}</label><input type="number" min="0" data-tk="${s.k}" value="${tuk(s.k)}"></div>`).join("");$("a_gkey").value=ayar.googleKey||"";$("a_geo").value=ayar.geoKey||"";$("a_glim").value=ayar.gLimit||900;
  sw=clean(ayar.sablon);renderSl();dlgA.showModal();
 }
 function saveAyarForm(){
@@ -912,7 +937,7 @@ function saveAyarForm(){
  Object.entries(AF).forEach(([k,v])=>ayar.firma[v]=$(k).value.trim());ayar.firma.logo=ayarLogo;
  ayar.hedef={gorusme:+$("h_g").value||0,musteri:+$("h_m").value||0,teklif:+$("h_t").value||0};ayar.uyku=Math.max(7,+$("a_uyku").value||60);
  ayar.sablon=sw.filter(s=>s.ad.trim()||s.metin.trim()).map(s=>({ad:s.ad.trim()||"Şablon",metin:s.metin.trim()}));
- const nk=$("a_gkey").value.trim(),kc=nk!==(ayar.googleKey||"");ayar.googleKey=nk;ayar.geoKey=$("a_geo").value.trim();ayar.gLimit=Math.max(0,+$("a_glim").value||0);
+ const nk=$("a_gkey").value.trim(),kc=nk!==(ayar.googleKey||"");ayar.googleKey=nk;ayar.geoKey=$("a_geo").value.trim();ayar.kgFiyat=+$("a_kgf").value||0;ayar.hedefMarj=$("a_marj").value===""?25:+$("a_marj").value;ayar.sipAralik=+$("a_sipa").value||30;ayar.numuneGun=+$("a_numg").value||7;{const tk={};document.querySelectorAll("[data-tk]").forEach(i=>{if(i.value!==""&&+i.value!==TUK_DEF[i.dataset.tk])tk[i.dataset.tk]=+i.value});ayar.tuketim=tk}ayar.gLimit=Math.max(0,+$("a_glim").value||0);
  saveAyar();logEv("Ayarlar güncellendi");dlgA.close();if(kc&&window.google&&window.google.maps&&confirm("Google anahtarı değişti. Geçerli olması için sayfa yenilensin mi?"))location.reload();
 }
 
@@ -1054,8 +1079,9 @@ async function startSync(u){
   const remote=Object.values(snap.val()||{}),rm=new Map(remote.map(x=>[x.id,x])),up={};
   const had=ls.get(SYNCK)==="1";
   if(first){first=false;
-   data.forEach(l=>{const r=rm.get(l.id);if((!r&&!had)||(r&&(l.u||0)>(r.u||0))){const o={...l};if(!o.sahip){o.sahip=u.uid;o.sahipAd=me.ad}if(isAdmin()||o.sahip===u.uid){up[o.id]=clean(o);rm.set(o.id,o)}}});
-   if(Object.keys(up).length)R.child("leads").update(up).catch(e=>cloudErr(e.message));
+   const pend=pendGet();
+   data.forEach(l=>{const r=rm.get(l.id);if((!r&&(!had||pend.has(l.id)))||(r&&(l.u||0)>(r.u||0))){const o={...l};if(!o.sahip){o.sahip=u.uid;o.sahipAd=me.ad}if(isAdmin()||o.sahip===u.uid){up[o.id]=clean(o);rm.set(o.id,o)}}});
+   if(Object.keys(up).length)R.child("leads").update(up).then(()=>pendDel(Object.keys(up))).catch(e=>cloudErr(e.message));else pendDel([...pend]);
    data=[...rm.values()];
    if(isAdmin()&&(!ayar.sonYedek||Date.now()-ayar.sonYedek>7*864e5))setTimeout(()=>backupNow().catch(()=>{}),3000);
    setTimeout(()=>notifyToday(),2000);
@@ -1132,7 +1158,7 @@ async function taraMapInit(){
   tLayer=L.layerGroup().addTo(tmap);tmap.on("click",e=>{if(confirm("Tarama merkezi haritada dokunduğun yere taşınsın mı?"))setCenter(e.latlng.lat,e.latlng.lng,"Haritada seçilen nokta")})}
  setTimeout(()=>tmap.invalidateSize(),60);taraMapDraw();
 }
-function taraMapDraw(fit){
+function taraMapDraw_eski(fit){
  if(!tmap)return;tLayer.clearLayers();if(!tara.c)return;
  const r=+$("trad").value||tara.r;
  L.circle([tara.c.lat,tara.c.lon],{radius:r*1000,color:"#1F3864",weight:1,fillOpacity:.04}).addTo(tLayer);
@@ -1247,40 +1273,91 @@ async function doScan(){
   if(ayar.geoKey){const gs=secs.filter(s=>(s.geo||[]).length);if(gs.length){try{all.push(...await geoapifySearch(tara.c,rKm,gs));rest=secs.filter(s=>!(s.geo||[]).length)}catch(e){hata.push("Geoapify: "+e.message+" — yedek sunucu denendi")}}}
   if(rest.length||kw){try{$("tstat").textContent="OpenStreetMap'te aranıyor…";all.push(...await osmSearch(tara.c,rKm,rest,kw))}catch(e){hata.push("OpenStreetMap: "+e.message)}}}
  all.forEach(p=>p.km=hav(tara.c.lat,tara.c.lon,p.lat,p.lon));
- tara.res=mergeRes(all.filter(p=>p.km<=rKm*1.02)).sort((a,b)=>a.km-b.km);tara.t=Date.now();tSel.clear();saveTara();
+ tara.res=mergeRes(all.filter(p=>p.km<=rKm*1.02)).sort((a,b)=>a.km-b.km);markNew(ks,rKm);tara.t=Date.now();tSel.clear();saveTara();
  $("tbtn").disabled=false;
  $("tstat").textContent=(hata.length&&!tara.res.length?"⚠ Tarama yapılamadı. ":`✔ ${tara.res.length} işletme bulundu (${kmTxt(rKm)} içinde)`)+(gLimitHit?" • Google aylık sınırına ulaşıldı":"")+(hata.length?" • Sorun: "+hata.join(" | "):"");
  logEv(`Tarama: ${kmTxt(rKm)}, ${tara.res.length} sonuç`,tara.c.ad||"");renderTaraG();renderTara();taraMapDraw();if(tara.res.length)$("tview").scrollIntoView({behavior:"smooth"});
 }
 const inList=p=>findDup({firma:p.ad,telefon:p.tel},null);
-function taraFiltered(){
- const f=$("tfs").value,tel=$("ttel").checked,nw=$("tnew").checked,q=$("tq").value.toLocaleLowerCase("tr"),so=$("tso").value;
- const l=(tara.res||[]).filter(p=>(!f||p.sek===f)&&(!tel||p.tel)&&(!nw||!inList(p))&&(!q||(p.ad+" "+p.adres+" "+p.il).toLocaleLowerCase("tr").includes(q)));
- if(so==="a")l.sort((a,b)=>a.ad.localeCompare(b.ad,"tr"));else if(so==="p")l.sort((a,b)=>(b.puanN||0)-(a.puanN||0));else l.sort((a,b)=>a.km-b.km);
- return l;
+/* --- sonuç filtreleri --- */
+const TFDEF={tel:"all",liste:"yeni",web:"all",adres:"all",zincir:"goster",puan:"0",yorum:"0",kaynak:"all",yeni:"all",rakip:"goster",bolge:"all",gizli:"gizle"};
+let tf={...TFDEF,...lsJ("mag_tfil",{})};
+let gizli=new Set(arr(lsJ("mag_gizli",[])));
+const TFG=[
+ ["tel","Telefon",[["all","Hepsi"],["var","Telefonu olan"],["cep","Cep (WhatsApp)"],["sabit","Sabit hat"],["yok","Numarasız"]]],
+ ["liste","Müşteri listem",[["all","Hepsi"],["yeni","Listemde olmayan"],["var","Listemde olan"]]],
+ ["web","Web sitesi",[["all","Hepsi"],["var","Var"],["yok","Yok"]]],
+ ["adres","Adres",[["all","Hepsi"],["var","Adresi olan"]]],
+ ["zincir","Zincir mağazalar (BİM, A101, Migros, Opet…)",[["goster","Göster"],["gizle","Gizle"],["sadece","Sadece zincir"]]],
+ ["puan","Google puanı",[["0","Hepsi"],["3","3+"],["4","4+"],["4.5","4,5+"]]],
+ ["yorum","Yorum sayısı (işletme büyüklüğü)",[["0","Hepsi"],["10","10+"],["50","50+"],["200","200+"]]],
+ ["kaynak","Kaynak",[["all","Hepsi"],["Google","Google"],["OSM","OpenStreetMap"],["iki","İkisinde de var"]]],
+ ["yeni","Yeni açılanlar (önceki taramada olmayan)",[["all","Hepsi"],["sadece","Sadece yeni"]]],
+ ["rakip","Rakip ambalajcılar",[["goster","Göster"],["gizle","Gizle"],["sadece","Sadece rakipler"]]],
+ ["bolge","Satış bölgesi",[["all","Hepsi"],["benim","Benim bölgem"],["bos","Bölgesi olmayan"]]],
+ ["gizli","Gizlediklerim",[["gizle","Gösterme"],["goster","Göster"],["sadece","Sadece gizlenenler"]]]];
+const ZINCIR=["bim","a101","a-101","şok","migros","macrocenter","carrefour","carrefoursa","metro gross","metro market","file market","hakmar","bizim toptan","tarım kredi","onur market","happy center","mopaş","gimsa","özdilek","altunbilekler","opet","shell","bp","petrol ofisi","totalenergies","total enerji","aytemiz","lukoil","türkiye petrolleri","moil","alpet","sunpet","mcdonald's","mcdonalds","burger king","domino's","dominos","kfc","popeyes","starbucks","simit sarayı","little caesars","pizza hut","sbarro","arby's","tavuk dünyası","usta dönerci","komagene","baydöner","gratis","watsons","rossmann","lc waikiki","lcw","koton","defacto","boyner","teknosa","mediamarkt","media markt","vatan bilgisayar","english home","madame coco","karaca","koçtaş","bauhaus","tekzen","decathlon","penti","ikea","gloria jean's","espressolab","kahve dünyası","caribou","ptt","aras kargo","yurtiçi kargo","mng kargo","sürat kargo","halkbank","ziraat bankası","garanti bbva","akbank","yapı kredi","iş bankası","vakıfbank"];
+const zRe=new RegExp("^("+ZINCIR.map(z=>z.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")+")($|[\\s'’.,-])","i");
+const isChain=p=>zRe.test(String(p.ad||"").toLocaleLowerCase("tr"));
+const isMobile=t=>waNum(t).startsWith("905");
+const gKey=p=>normF(p.ad)+"@"+(+p.lat).toFixed(3)+","+(+p.lon).toFixed(3);
+const ilce=p=>(String(p.il||"").split("/")[0]||"").trim();
+function tfSave(){ls.set("mag_tfil",JSON.stringify(tf))}
+function tfActive(){return Object.keys(TFDEF).filter(k=>tf[k]!==TFDEF[k]).length+($("tfs").value?1:0)+($("tfb").value?1:0)+($("tfm").value?1:0)}
+function renderTF(){
+ $("tfBox").innerHTML=TFG.filter(g=>g[0]!=="bolge"||bolgeler().length).map(([k,lab,o])=>`<label>${lab}</label><div class="seg" style="margin-bottom:4px">${o.map(([v,t])=>`<button type="button" data-tfk="${k}" data-tfv="${v}" class="${tf[k]===v?"on":""}">${t}</button>`).join("")}</div>`).join("");
+ const n=tfActive();$("tfN").hidden=!n;$("tfN").textContent=n+" filtre";
 }
+function tfReset(){tf={...TFDEF};["tfs","tfb","tfm"].forEach(i=>$(i).value="");$("tq").value="";tfSave();renderTF();renderTara();taraMapDraw()}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-tfk]");if(!b)return;tf[b.dataset.tfk]=b.dataset.tfv;tfSave();renderTF();renderTara();taraMapDraw()});
+function taraFiltered(){
+ const f=$("tfs").value,bl=$("tfb").value,mx=+$("tfm").value||0,q=$("tq").value.toLocaleLowerCase("tr"),so=$("tso").value;
+ const l=(tara.res||[]).filter(p=>{
+  if(f&&p.sek!==f)return false;if(bl&&ilce(p)!==bl)return false;if(mx&&p.km>mx)return false;
+  if(q&&!(p.ad+" "+p.adres+" "+p.il).toLocaleLowerCase("tr").includes(q))return false;
+  const t=tf.tel;if(t==="var"&&!p.tel)return false;if(t==="yok"&&p.tel)return false;if(t==="cep"&&!isMobile(p.tel))return false;if(t==="sabit"&&(!p.tel||isMobile(p.tel)))return false;
+  if(tf.liste!=="all"){const d=!!inList(p);if(tf.liste==="yeni"&&d)return false;if(tf.liste==="var"&&!d)return false}
+  if(tf.web==="var"&&!p.web)return false;if(tf.web==="yok"&&p.web)return false;
+  if(tf.adres==="var"&&!(p.adres||"").trim())return false;
+  if(tf.zincir!=="goster"){const z=isChain(p);if(tf.zincir==="gizle"&&z)return false;if(tf.zincir==="sadece"&&!z)return false}
+  if(+tf.puan&&!((p.puan||0)>=+tf.puan))return false;if(+tf.yorum&&!((p.puanN||0)>=+tf.yorum))return false;
+  if(tf.kaynak==="iki"){if(p.src.length<2)return false}else if(tf.kaynak!=="all"&&!p.src.includes(tf.kaynak))return false;
+  if(tf.yeni==="sadece"&&!p.yeni)return false;
+  if(tf.rakip!=="goster"){const rv=isRival(p);if(tf.rakip==="gizle"&&rv)return false;if(tf.rakip==="sadece"&&!rv)return false}
+  if(tf.bolge!=="all"){const bo=bolgeOf(p.lat,p.lon);if(tf.bolge==="bos"&&bo)return false;if(tf.bolge==="benim"&&!(bo&&(!cloudOn()||!bo.uid||bo.uid===me.uid)))return false}
+  const g=gizli.has(gKey(p));if(tf.gizli==="gizle"&&g)return false;if(tf.gizli==="sadece"&&!g)return false;
+  return true});
+ const by={d:(a,b)=>adayPuan(b)-adayPuan(a)||a.km-b.km,a:(a,b)=>a.ad.localeCompare(b.ad,"tr"),p:(a,b)=>(b.puanN||0)-(a.puanN||0),r:(a,b)=>(b.puan||0)-(a.puan||0)||(b.puanN||0)-(a.puanN||0),t:(a,b)=>(!!b.tel-!!a.tel)||a.km-b.km,s:(a,b)=>secAd(a.sek).localeCompare(secAd(b.sek),"tr")||a.km-b.km,k:(a,b)=>a.km-b.km};
+ l.sort(by[so]||by.k);return l;
+}
+function taraHide(id,on){const p=tara.res.find(x=>x.id===id);if(!p)return;const k=gKey(p);on?gizli.add(k):gizli.delete(k);tSel.delete(id);ls.set("mag_gizli",JSON.stringify([...gizli]));renderTara();taraMapDraw()}
+function taraHideSel(){const l=tara.res.filter(p=>tSel.has(p.id));if(!l.length){alert("Önce gizlenecek kartlara dokunarak seç.");return}l.forEach(p=>gizli.add(gKey(p)));tSel.clear();ls.set("mag_gizli",JSON.stringify([...gizli]));renderTara();taraMapDraw()}
+A.thide=(id,i)=>taraHide(i,true);A.tunhide=(id,i)=>taraHide(i,false);
 function renderTara(){
  const res=tara.res||[],cur=$("tfs").value,ks=[...new Set(res.map(p=>p.sek))];
  $("tfs").innerHTML='<option value="">Tüm sektörler</option>'+ks.map(k=>`<option value="${k}">${esc(secAd(k))} (${res.filter(p=>p.sek===k).length})</option>`).join("");$("tfs").value=ks.includes(cur)?cur:"";
+ const cb=$("tfb").value,ils=[...new Set(res.map(ilce).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"tr"));
+ $("tfb").innerHTML='<option value="">Tüm bölgeler</option>'+ils.map(x=>`<option ${x===cb?"selected":""}>${esc(x)}</option>`).join("");
+ renderTF();
  const l=taraFiltered();
- $("tst").innerHTML=res.length?[["Bulunan",res.length],["Telefonu olan",res.filter(p=>p.tel).length],["Zaten listede",res.filter(p=>inList(p)).length],["Gösterilen",l.length]].map(a=>`<div class="st"><b>${a[1]}</b><span>${a[0]}</span></div>`).join(""):"";
+ $("tst").innerHTML=res.length?[["Bulunan",res.length],["Telefonu olan",res.filter(p=>p.tel).length],["Cep telefonu",res.filter(p=>isMobile(p.tel)).length],["Zaten listede",res.filter(p=>inList(p)).length],["Filtreden geçen",l.length],["Tahmini poşet ihtiyacı",pazarTxt(l)]].map(a=>`<div class="st"><b>${a[1]}</b><span>${a[0]}</span></div>`).join(""):"";
  $("tres").innerHTML=!res.length?`<div class="empty">${tara.t?"Bu alanda seçilen sektörlerde işletme bulunamadı. Mesafeyi büyüt veya başka sektör seç.":"1-2-3 adımlarını seç, sonra 🔍 Tara'ya bas."}</div>`:
-  `<div class="mu" style="margin:0 2px 8px">Seçmek için karta dokun; seçilenleri alttaki çubuktan listene ekle.</div>`+
+  (l.length?`<div class="mu" style="margin:0 2px 8px">Seçmek için karta dokun; seçilenleri alttaki çubuktan listene ekle.</div>`:`<div class="empty">Filtrelere uyan işletme yok. <button onclick="tfReset()">Filtreleri sıfırla</button></div>`)+
   l.slice(0,400).map(p=>{const d=inList(p),mu=p.gUrl&&/^https:/.test(p.gUrl)?p.gUrl:"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(p.ad+" "+p.lat+","+p.lon);
-  return `<div class="card ${d?"":"rcard"} ${tSel.has(p.id)?"sel":""}" ${d?"":`data-rsel="${esc(p.id)}"`}><div class="rhd"><b>${esc(p.ad)}</b><span class="rkm">${kmTxt(p.km)}</span></div>
-  <div class="mu">${esc(secAd(p.sek))}${p.tel?" • "+esc(p.tel):""}${p.puan?" • ★ "+p.puan+" ("+p.puanN+")":""}</div>
+  return `<div class="card ${d?"":"rcard"} ${tSel.has(p.id)?"sel":""}" ${d?"":`data-rsel="${esc(p.id)}"`}><div class="rhd"><b>${scoreB(p)}${esc(p.ad)}</b><span class="rkm">${kmTxt(p.km)}</span></div>
+  <div class="mu">${isChain(p)?'<span class="tag">Zincir</span>':""}${isMobile(p.tel)?'<span class="tag ok">Cep</span>':""}${esc(secAd(p.sek))}${p.tel?" • "+esc(p.tel):""}${p.puan?" • ★ "+p.puan+" ("+p.puanN+")":""}</div>
   <div class="mu">${esc([p.adres,p.il].filter(Boolean).join(", "))}</div>
-  ${d?`<span class="tag ok">✔ Listende: ${esc(d.firma)}</span>`:""}${tSel.has(p.id)?'<span class="tag" style="background:var(--pr);color:var(--on)">SEÇİLDİ</span>':""}
-  <div class="row">${p.tel?`<a class="btn" href="tel:${digits(p.tel)}">📞 Ara</a>`:'<span class="mu">Telefon bilinmiyor</span>'}${/^https?:/i.test(p.web)?`<a class="btn" target="_blank" rel="noopener" href="${esc(p.web)}">Web</a>`:""}<a class="btn" target="_blank" rel="noopener" href="${esc(mu)}">Haritada</a>${d?"":`<button class="p" data-a="tadd" data-i="${esc(p.id)}">+ Ekle</button>`}</div></div>`}).join("")+(l.length>400?`<div class="mu">İlk 400 gösteriliyor; filtreleri daralt.</div>`:"");
+  ${p.yeni?'<span class="tag new">YENİ AÇILAN</span>':""}${isRival(p)?'<span class="tag rakip">Rakip ambalajcı</span>':""}${(b=>b?`<span class="tag">🗺 ${esc(b.ad)}${b.uad?" – "+esc(b.uad):""}</span>`:"")(bolgeOf(p.lat,p.lon))}${d?`<span class="tag ok">✔ Listende: ${esc(d.firma)}</span>`:""}${tSel.has(p.id)?'<span class="tag" style="background:var(--pr);color:var(--on)">SEÇİLDİ</span>':""}
+  <div class="row">${p.tel?`<a class="btn" href="tel:${digits(p.tel)}">📞 Ara</a>`:'<span class="mu">Telefon bilinmiyor</span>'}${/^https?:/i.test(p.web)?`<a class="btn" target="_blank" rel="noopener" href="${esc(p.web)}">Web</a>`:""}<a class="btn" target="_blank" rel="noopener" href="${esc(mu)}">Haritada</a>${d?"":`<button class="p" data-a="tadd" data-i="${esc(p.id)}">+ Ekle</button>`}${gizli.has(gKey(p))?`<button data-a="tunhide" data-i="${esc(p.id)}">Gizlemeyi kaldır</button>`:`<button data-a="thide" data-i="${esc(p.id)}" title="Bu işletmeyi bir daha gösterme">Gizle</button>`}</div></div>`}).join("")+(l.length>400?`<div class="mu">İlk 400 gösteriliyor; filtreleri daralt.</div>`:"");
  $("tselN").textContent=tSel.size;$("tselbar").hidden=!(tSel.size&&tab==="tara");
 }
-["tfs","ttel","tnew","tq","tso"].forEach(i=>$(i).addEventListener("input",()=>{renderTara();taraMapDraw()}));
-function toLead(p){const s=TSEK.find(s=>s.k===p.sek);return{id:uid_(),c:Date.now(),firma:p.ad,yetkili:"",sektor:s?s.ad:"Diğer",il:p.il||"",adres:p.adres||"",telefon:p.tel||"",eposta:"",web:p.web||"",durum:"Yeni",izin:"Yok",oncelik:"",kaynak:"Tarama ("+p.src.join("+")+")",konum:{lat:p.lat,lon:p.lon},mesafe:Math.round(p.km*100)/100,puan:p.puan||null,sonraki:"",not:""}}
-A.tadd=(id,i)=>{const p=tara.res.find(x=>x.id===i);if(p){put(toLead(p));renderTara();taraMapDraw()}};
+["tfs","tfb","tfm","tq","tso"].forEach(i=>$(i).addEventListener("input",()=>{renderTF();renderTara();taraMapDraw()}));
+function toLead(p){const s=TSEK.find(s=>s.k===p.sek),bo=bolgeOf(p.lat,p.lon),own=bo&&bo.uid&&isAdmin()&&cloudOn()?{sahip:bo.uid,sahipAd:bo.uad||""}:{};return{...own,aday:adayPuan(p),id:uid_(),c:Date.now(),firma:p.ad,yetkili:"",sektor:s?s.ad:"Diğer",il:p.il||"",adres:p.adres||"",telefon:p.tel||"",eposta:"",web:p.web||"",durum:"Yeni",izin:"Yok",oncelik:"",kaynak:"Tarama ("+p.src.join("+")+")",konum:{lat:p.lat,lon:p.lon},mesafe:Math.round(p.km*100)/100,puan:p.puan||null,sonraki:"",not:""}}
+A.tadd=(id,i)=>{const p=tara.res.find(x=>x.id===i);if(p&&regionOk([p])){put(toLead(p));renderTara();taraMapDraw()}};
 function taraSelAll(){taraFiltered().filter(p=>!inList(p)).forEach(p=>tSel.add(p.id));renderTara()}
-function taraAddSel(){const l=tara.res.filter(p=>tSel.has(p.id)&&!inList(p));if(!l.length){alert("Seçili yeni firma yok. Kartlardaki kutucukları işaretle.");return}putMany(l.map(toLead),"Taramadan listeye eklendi");tSel.clear();renderTara();taraMapDraw();alert(l.length+" firma müşteri listene eklendi.")}
-function taraAddAll(){const l=taraFiltered().filter(p=>!inList(p));if(!l.length){alert("Eklenecek yeni firma yok.");return}if(!confirm(l.length+" yeni firma müşteri listene eklensin mi?"))return;putMany(l.map(toLead),"Taramadan listeye eklendi");renderTara();taraMapDraw()}
-function taraRoute(){
+function taraAddSel(){const l=tara.res.filter(p=>tSel.has(p.id)&&!inList(p));if(!l.length){alert("Seçili yeni firma yok. Kartlara dokunarak seç.");return}if(!regionOk(l))return;putMany(l.map(toLead),"Taramadan listeye eklendi");tSel.clear();renderTara();taraMapDraw();alert(l.length+" firma müşteri listene eklendi.")}
+function taraAddAll(){const l=taraFiltered().filter(p=>!inList(p));if(!l.length){alert("Eklenecek yeni firma yok.");return}if(!confirm(l.length+" yeni firma müşteri listene eklensin mi?"))return;if(!regionOk(l))return;putMany(l.map(toLead),"Taramadan listeye eklendi");renderTara();taraMapDraw()}
+function taraRoute_eski(){
  const l=tara.res.filter(p=>tSel.has(p.id)).sort((a,b)=>a.km-b.km);if(!l.length){alert("Önce rotaya eklenecek firmaları kutucukla seç.");return}
  const s=l.slice(0,10),dest=s.pop(),ll=p=>p.lat+","+p.lon;if(l.length>10)alert("Google Haritalar en fazla 10 durak alıyor; en yakın 10 firma eklendi.");
  window.open("https://www.google.com/maps/dir/?api=1&travelmode=driving"+(tara.c?"&origin="+tara.c.lat+","+tara.c.lon:"")+"&destination="+ll(dest)+(s.length?"&waypoints="+encodeURIComponent(s.map(ll).join("|")):""),"_blank");
@@ -1291,6 +1368,239 @@ function taraCsv(){
  download("mag-tarama-"+today()+".csv","\ufeff"+t,"text/csv;charset=utf-8");
 }
 taraInitUI();
+
+/* ================= v7: saha, pazar analizi, ekip ================= */
+/* --- konum yardımcıları --- */
+let myPos=null,gPos=null,fKon=null;const uzMap=new Map();
+function getPos(ok,fail){
+ if(!navigator.geolocation){if(!fail)alert("Bu cihaz konum vermiyor.");fail&&fail();return}
+ navigator.geolocation.getCurrentPosition(p=>{myPos={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,t:Date.now()};ok&&ok(myPos)},
+  e=>{if(!fail)alert("Konum alınamadı: "+(e.code===1?"izin verilmedi":e.message));fail&&fail(e)},{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+}
+function formGetPos(){
+ $("fkon").textContent="📍 Konum alınıyor…";
+ getPos(async p=>{fKon={lat:p.lat,lon:p.lon};$("fkon").textContent="📍 Konum eklendi (±"+Math.round(p.acc||0)+" m)";
+  try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${p.lat}&lon=${p.lon}&accept-language=tr`);const j=await r.json(),a=j.address||{};
+   if(!$("adres").value.trim())$("adres").value=[a.neighbourhood||a.suburb||a.quarter,[a.road,a.house_number].filter(Boolean).join(" No:")].filter(Boolean).join(", ");
+   if(!$("il").value.trim())$("il").value=[a.town||a.county||a.district||a.city_district,a.province||a.state||a.city].filter((v,i,x)=>v&&x.indexOf(v)===i).join(" / ")}catch(e){}},
+  ()=>{$("fkon").textContent="Konum alınamadı"});
+}
+function quickAdd(){openForm();formGetPos();try{$("ffoto").click()}catch(e){}}
+
+/* --- poşet tüketimi, aday puanı, rakip --- */
+const TUK_DEF={market:60,manav:40,kasap:30,balik:20,firin:25,pastane:20,kuruyemis:25,sarkuteri:20,aktar:10,icecek:5,dondurma:10,pazar:50,durum:25,pide:20,restoran:20,kafe:8,bar:5,otel:10,bufe:8,giyim:15,ayakkabi:10,kozmetik:8,eczane:12,kirtasiye:6,hediye:6,kuyumcu:2,elektronik:5,mobilya:10,zuccaciye:8,cicek:6,pet:8,spor:8,avm:100,fabrika:150,atolye:20,toptan:80,depo:50,ambalaj:0,matbaa:10,hirdavat:15,tarim:15,oto:8,akaryakit:10,kuafor:3,temizleme:15,saglik:10,veteriner:5,egitim:5,ofis:3,ozel:10};
+const tuk=k=>{const v=(ayar.tuketim||{})[k];return v!=null&&v!==""?+v:(TUK_DEF[k]??10)};
+const isRival=p=>p.sek==="ambalaj"||/(ambalaj|poşet|naylon|plastik)/.test(String(p.ad||"").toLocaleLowerCase("tr"));
+function adayPuan(p){
+ if(isRival(p))return 0;
+ let s=35*Math.min(1,Math.sqrt(tuk(p.sek)/60));
+ if(p.tel)s+=isMobile(p.tel)?25:20;
+ s+=Math.min(20,Math.log10((p.puanN||0)+1)*8);
+ s+=15*Math.max(0,1-(p.km||0)/(+tara.r||5));
+ if(p.web)s+=3;if((p.puan||0)>=4)s+=2;if(isChain(p))s-=35;
+ return Math.max(0,Math.min(100,Math.round(s)));
+}
+const scoreB=p=>{const v=adayPuan(p);return `<span class="score ${v>=60?"s-hi":v>=35?"s-mid":"s-lo"}" title="Aday puanı (0-100)">${v}</span>`};
+function pazar(l){const x=l.filter(p=>!isRival(p)),kg=x.reduce((s,p)=>s+tuk(p.sek),0);return{kg,tl:kg*(+ayar.kgFiyat||0),n:x.length}}
+function pazarTxt(l){const z=pazar(l);return NUM(Math.round(z.kg))+" kg/ay"+(z.tl?`<br><small>≈ ${TL(z.tl)}/ay</small>`:"")}
+const oner=m=>{const k=Math.min(95,Math.max(0,ayar.hedefMarj??25));return Math.round((+m)/(1-k/100)*100)/100};
+function applyOner(){let n=0;dk.kalemler.forEach(k=>{if(+k.maliyet){k.fiyat=oner(k.maliyet);n++}});if(!n){alert("Önerilen fiyat için ürünün katalogda maliyeti girilmiş olmalı (Diğer → Ürünler).");return}renderRows()}
+
+/* --- yeni açılan işletmeler, taranan alanlar --- */
+function markNew(ks,rKm){
+ const sc=arr(lsJ("mag_taramalar",[])),gor=lsJ("mag_gorulen",{})||{};
+ tara.res.forEach(p=>{const k=gKey(p);p.yeni=!gor[k]&&sc.some(s=>s.c&&hav(s.c.lat,s.c.lon,p.lat,p.lon)<=s.r&&arr(s.sek).includes(p.sek));if(!gor[k])gor[k]=Date.now()});
+ sc.push({t:Date.now(),c:{lat:tara.c.lat,lon:tara.c.lon,ad:tara.c.ad||""},r:rKm,sek:ks,n:tara.res.length});
+ ls.set("mag_taramalar",JSON.stringify(sc.slice(-60)));ls.set("mag_gorulen",JSON.stringify(gor));
+}
+
+/* --- satış bölgeleri --- */
+const bolgeler=()=>arr(ayar.bolgeler);
+function bolgeOf(lat,lon){return bolgeler().find(b=>hav(b.lat,b.lon,lat,lon)<=b.r)||null}
+function regionOk(l){
+ if(isAdmin()||!cloudOn())return true;
+ const o=l.map(p=>bolgeOf(p.lat,p.lon)).filter(b=>b&&b.uid&&b.uid!==me.uid);
+ return !o.length||confirm(o.length+" firma başka satışçının bölgesinde ("+[...new Set(o.map(b=>b.ad+" – "+(b.uad||"")))].join(", ")+"). Yine de eklensin mi?");
+}
+function bolgeHtml(){
+ const ul=Object.entries(users).filter(([,u])=>u.rol!=="beklemede");
+ return `<div class="card"><h3>Satış bölgeleri</h3><div class="mu">Bölge = bir merkezin çevresindeki daire. Satışçıya atanırsa taramadan eklenen firmalar otomatik o satışçıya gider; başka satışçı eklerken uyarı alır. Haritada renkli daire olarak görünür.</div>`+
+ (bolgeler().length?bolgeler().map((b,i)=>`<div class="hl"><span><b>${esc(b.ad)}</b> • ${kmTxt(b.r)} • ${esc(b.uad||"atanmadı")}</span><button data-a="bgdel" data-i="${i}">Sil</button></div>`).join(""):'<div class="mu" style="margin-top:6px">Henüz bölge yok.</div>')+
+ `<div class="g3"><div><label>Bölge adı</label><input id="bgAd" placeholder="Örn: Bağcılar"></div><div><label>Satışçı</label><select id="bgU"><option value="">— atanmadı —</option>${ul.map(([k,u])=>`<option value="${k}">${esc(u.ad||u.email)}</option>`).join("")}</select></div><div><label>Yarıçap</label><select id="bgR">${[1,2,3,5,10,15,25].map(r=>`<option value="${r}" ${r===5?"selected":""}>${r} km</option>`).join("")}</select></div></div>
+ <div class="row"><button class="p" onclick="bolgeEkle()">Tarama merkezine bölge ekle</button><span class="mu">Merkez: ${tara.c?esc(tara.c.ad||"seçili nokta"):"önce Tara ekranında merkez seç"}</span></div></div>`;
+}
+function bolgeEkle(){
+ if(!tara.c){alert("Önce Tara ekranında merkez seç.");return}const ad=$("bgAd").value.trim();if(!ad){alert("Bölge adı yaz.");return}
+ const uid=$("bgU").value;ayar.bolgeler=[...bolgeler(),{id:uid_(),ad,uid,uad:uid?((users[uid]||{}).ad||""):"",lat:tara.c.lat,lon:tara.c.lon,r:+$("bgR").value}];
+ saveAyar();logEv("Bölge eklendi: "+ad);renderYonetim();
+}
+A.bgdel=(id,i)=>{if(!confirm("Bölge silinsin mi?"))return;const l=bolgeler();l.splice(+i,1);ayar.bolgeler=l;saveAyar();renderYonetim()};
+
+/* --- harita: noktalar, yoğunluk, rakipler, taranan alanlar, bölgeler --- */
+let heatOn=false,histOn=true;
+const BCOL=["#7a5af8","#ee46bc","#0e9384","#f79009","#2e90fa","#d92d20"];
+function taraMapDraw(fit){
+ if(!tmap)return;tLayer.clearLayers();
+ if(histOn)arr(lsJ("mag_taramalar",[])).slice(-30).forEach(s=>{if(s.c)L.circle([s.c.lat,s.c.lon],{radius:s.r*1000,color:"#98a2b3",weight:1,dashArray:"4 4",fill:false}).addTo(tLayer)});
+ bolgeler().forEach((b,i)=>L.circle([b.lat,b.lon],{radius:b.r*1000,color:BCOL[i%BCOL.length],weight:2,fillOpacity:.05}).bindPopup(`<b>${esc(b.ad)}</b><br>${esc(b.uad||"atanmadı")}`).addTo(tLayer));
+ if(!tara.c)return;
+ const r=+$("trad").value||tara.r,l=taraFiltered();
+ L.circle([tara.c.lat,tara.c.lon],{radius:r*1000,color:"#1F3864",weight:1,fillOpacity:.04}).addTo(tLayer);
+ if(heatOn){
+  const cs=Math.max(.15,r/12),dLa=cs/111,dLo=cs/(111*Math.cos(tara.c.lat*Math.PI/180)),g={};
+  l.forEach(p=>{if(isRival(p))return;const k=Math.floor(p.lat/dLa)+":"+Math.floor(p.lon/dLo);g[k]=(g[k]||0)+tuk(p.sek)});
+  const mx=Math.max(1,...Object.values(g));
+  Object.entries(g).forEach(([k,v])=>{const[a,b]=k.split(":").map(Number),t=v/mx;L.rectangle([[a*dLa,b*dLo],[(a+1)*dLa,(b+1)*dLo]],{weight:0,fillColor:t>.66?"#d92d20":t>.33?"#f79009":"#fdb022",fillOpacity:.25+.5*t}).bindPopup("Tahmini "+Math.round(v)+" kg/ay poşet").addTo(tLayer)});
+  l.filter(isRival).forEach(p=>L.circleMarker([p.lat,p.lon],{radius:8,color:"#b42318",fillColor:"#f04438",fillOpacity:.9,weight:2}).bindPopup(`<b>${esc(p.ad)}</b> (rakip)`).addTo(tLayer));
+ }else l.slice(0,1000).forEach(p=>{const rv=isRival(p);L.circleMarker([p.lat,p.lon],{radius:rv?8:6,color:rv?"#b42318":p.yeni?"#b54708":p.tel?"#067647":"#2e5aac",fillColor:rv?"#f04438":p.yeni?"#fdb022":p.tel?"#12b76a":"#4f75c2",fillOpacity:.8,weight:rv?2:1}).bindPopup(`<b>${esc(p.ad)}</b>${rv?" (rakip)":""}${p.yeni?" (YENİ)":""}<br>${esc(secAd(p.sek))} • ${kmTxt(p.km)} • aday puanı ${adayPuan(p)}<br>${esc(p.tel||"telefon yok")}`).addTo(tLayer)});
+ L.circleMarker([tara.c.lat,tara.c.lon],{radius:8,color:"#fff",fillColor:"#d92d20",fillOpacity:1,weight:2}).addTo(tLayer);
+ if(fit)tmap.setView([tara.c.lat,tara.c.lon],zoomFor(r));
+}
+
+/* --- bölge pazar raporu --- */
+function bolgeRaporu(){
+ const all=tara.res||[],l=taraFiltered();if(!all.length){alert("Önce tarama yap.");return}
+ const z=pazar(l),bySek={};l.forEach(p=>{const k=secAd(p.sek);bySek[k]=bySek[k]||{n:0,t:0,kg:0};bySek[k].n++;if(p.tel)bySek[k].t++;if(!isRival(p))bySek[k].kg+=tuk(p.sek)});
+ const top=l.filter(p=>!isRival(p)&&!inList(p)).sort((a,b)=>adayPuan(b)-adayPuan(a)).slice(0,25),rv=l.filter(isRival),ch=l.filter(isChain).length,yn=l.filter(p=>p.yeni).length;
+ printHtml("Bolge raporu "+(tara.c.ad||"")+" "+fd(today()),`<h2>Bölge Pazar Raporu</h2><div class="mu">${esc(tara.c.ad||"")} (${tara.c.lat.toFixed(4)}, ${tara.c.lon.toFixed(4)}) • ${kmTxt(tara.r)} yarıçap • ${fd(today())}${tfActive()?" • filtre uygulanmış":""} • ${esc(ayar.firma.ad||"")}</div>
+ <table><tr><th>İşletme</th><th>Telefonlu</th><th>Zincir</th><th>Rakip ambalajcı</th><th>Yeni açılan</th><th>Listemde</th><th>Tahmini poşet ihtiyacı</th></tr><tr><td>${l.length}</td><td>${l.filter(p=>p.tel).length}</td><td>${ch}</td><td>${rv.length}</td><td>${yn}</td><td>${l.filter(p=>inList(p)).length}</td><td>${NUM(Math.round(z.kg))} kg/ay${z.tl?"<br>≈ "+TL(z.tl)+"/ay":""}</td></tr></table>
+ <h3>Sektörlere göre</h3><table><tr><th>Sektör</th><th class="num">İşletme</th><th class="num">Telefonlu</th><th class="num">Tahmini kg/ay</th></tr>${Object.entries(bySek).sort((a,b)=>b[1].kg-a[1].kg).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="num">${v.n}</td><td class="num">${v.t}</td><td class="num">${NUM(Math.round(v.kg))}</td></tr>`).join("")}</table>
+ <h3>En iyi 25 aday (listende olmayan)</h3><table><tr><th>#</th><th>Firma</th><th>Sektör</th><th class="num">Puan</th><th class="num">Uzaklık</th><th>Telefon</th></tr>${top.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.ad)}${p.yeni?" (yeni)":""}</td><td>${esc(secAd(p.sek))}</td><td class="num">${adayPuan(p)}</td><td class="num">${kmTxt(p.km)}</td><td>${esc(p.tel||"")}</td></tr>`).join("")}</table>
+ ${rv.length?`<h3>Bölgedeki rakip ambalajcılar</h3><table><tr><th>Firma</th><th class="num">Uzaklık</th><th>Telefon</th></tr>${rv.map(p=>`<tr><td>${esc(p.ad)}</td><td class="num">${kmTxt(p.km)}</td><td>${esc(p.tel||"")}</td></tr>`).join("")}</table>`:""}
+ <p class="mu">Tahmini poşet ihtiyacı Ayarlar'daki sektör başı kg/ay değerlerinden hesaplanır; gerçek tüketim değildir. Veri: ${[...new Set(all.flatMap(p=>p.src))].join(", ")}.</p>`);
+}
+
+/* --- akıllı rota (en yakın komşu + 2-opt) --- */
+function optOrder(pts,start){
+ if(pts.length<2)return pts.slice();const D=(a,b)=>hav(a.lat,a.lon,b.lat,b.lon),left=pts.slice(),out=[];let cur=start;
+ if(!cur){cur=left.shift();out.push(cur)}
+ while(left.length){let bi=0,bd=1e9;left.forEach((p,i)=>{const d=D(cur,p);if(d<bd){bd=d;bi=i}});cur=left.splice(bi,1)[0];out.push(cur)}
+ const P=start?[start,...out]:out;let imp=true,it=0;
+ while(imp&&it<60){imp=false;it++;for(let i=1;i<P.length-2;i++)for(let k=i+1;k<P.length-1;k++){if(D(P[i-1],P[i])+D(P[k],P[k+1])>D(P[i-1],P[k])+D(P[i],P[k+1])+1e-9){const seg=P.slice(i,k+1).reverse();P.splice(i,k-i+1,...seg);imp=true}}}
+ return start?P.slice(1):P;
+}
+let rp=null;
+function planRoute(pts,start,rest){
+ const o=optOrder(pts.map(p=>({...p})),start),stops=[...o,...(rest||[])];if(!stops.length){alert("Rota için konumu veya adresi olan firma yok.");return}
+ let tot=0,prev=start;o.forEach(p=>{if(prev)tot+=hav(prev.lat,prev.lon,p.lat,p.lon);p._d=tot;prev=p});
+ rp={stops,start,tot};
+ const loc=p=>p.lat!=null?p.lat+","+p.lon:p.adres,parts=[];for(let i=0;i<stops.length;i+=10)parts.push(stops.slice(i,i+10));
+ const links=parts.map((ch,j)=>{const org=j===0?(start?start.lat+","+start.lon:""):loc(parts[j-1][parts[j-1].length-1]),dest=ch[ch.length-1],wp=ch.slice(0,-1);
+  return "https://www.google.com/maps/dir/?api=1&travelmode=driving"+(org?"&origin="+encodeURIComponent(org):"")+"&destination="+encodeURIComponent(loc(dest))+(wp.length?"&waypoints="+encodeURIComponent(wp.map(loc).join("|")):"")});
+ $("rpB").innerHTML=`<p class="mu">${stops.length} durak • yaklaşık ${kmTxt(tot*1.3)} yol (kuş uçuşu ${kmTxt(tot)})${rest&&rest.length?" • "+rest.length+" firmanın haritada konumu olmadığı için sona eklendi":""}</p>`+
+  links.map((u,j)=>`<a class="btn p" style="display:block;text-align:center;margin-bottom:6px" target="_blank" rel="noopener" href="${esc(u)}">🗺 Google Haritalar'da başlat${links.length>1?` — ${j+1}. bölüm (${j*10+1}-${Math.min(stops.length,(j+1)*10)}. duraklar)`:""}</a>`).join("")+
+  stops.map((p,i)=>`<div class="hl"><span><b>${i+1}.</b> ${esc(p.ad)}${p.tel?` • <a href="tel:${digits(p.tel)}">${esc(p.tel)}</a>`:""}<br><small class="mu">${esc(p.adres||"")}${p._d!=null?" • başlangıçtan "+kmTxt(p._d):""}</small></span></div>`).join("");
+ dlgR.showModal();
+}
+function printRoute(){if(!rp)return;printHtml("Ziyaret plani "+fd(today()),`<h2>Ziyaret Planı — ${fd(today())}</h2><div class="mu">${rp.stops.length} durak • yaklaşık ${kmTxt(rp.tot*1.3)}${me.ad?" • "+esc(me.ad):""}</div><table><tr><th>#</th><th>Firma</th><th>Adres</th><th>Telefon</th><th class="son">Not / sonuç</th></tr>${rp.stops.map((p,i)=>`<tr><td>${i+1}</td><td><b>${esc(p.ad)}</b></td><td>${esc(p.adres||"")}</td><td>${esc(p.tel||"")}</td><td></td></tr>`).join("")}</table>`)}
+function taraRoute(){const l=tara.res.filter(p=>tSel.has(p.id));if(!l.length){alert("Önce rotaya eklenecek firmalara dokunarak seç.");return}planRoute(l.map(p=>({ad:p.ad,lat:p.lat,lon:p.lon,tel:p.tel,adres:[p.adres,p.il].filter(Boolean).join(", ")})),tara.c)}
+function route(){
+ const{a,b}=todayLists(),l=[...a,...b];if(!l.length){alert("Bugün aranacak veya geciken firma yok.");return}
+ const pts=l.filter(x=>x.konum).map(x=>({ad:x.firma,lat:x.konum.lat,lon:x.konum.lon,tel:x.telefon,adres:addr(x)})),rest=l.filter(x=>!x.konum&&addr(x)).map(x=>({ad:x.firma,adres:addr(x),tel:x.telefon}));
+ if(!pts.length&&!rest.length){alert("Bu firmaların konumu veya adresi yok.");return}
+ getPos(p=>planRoute(pts,p,rest),()=>planRoute(pts,null,rest));
+}
+
+/* --- arama modu --- */
+let cq={ids:[],i:0,sonuc:{}};
+function todayCallIds(){const{a,b}=todayLists();return[...a,...b].map(x=>x.id)}
+function callStart(ids){
+ const l=ids.filter(i=>{const x=data.find(v=>v.id===i);return x&&digits(x.telefon)&&x.durum!=="İlgilenmiyor"});
+ if(!l.length){alert("Aranacak (telefonu olan) firma yok.");return}
+ cq={ids:l,i:0,sonuc:{}};renderCall();dlgCall.showModal();
+}
+const CALLR=[["ulasilamadi","📵 Ulaşılamadı","yarın tekrar"],["tekrar","🔁 Sonra ara","1 hafta sonra"],["ilgileniyor","👍 İlgileniyor","3 gün sonra"],["teklif","📄 Teklif istedi","yarın"],["numune","🎁 Numune istedi","2 gün sonra"],["siparis","✅ Sipariş verdi",""],["ilgilenmiyor","👎 İlgilenmiyor",""]];
+function renderCall(){
+ if(cq.i>=cq.ids.length){const s=cq.sonuc;$("cqP").textContent="";
+  $("cqB").innerHTML=`<h3>Arama listesi bitti 🎉</h3>${Object.entries(s).map(([k,v])=>`<div class="hl"><span>${(CALLR.find(c=>c[0]===k)||[k,k])[1]}</span><b>${v}</b></div>`).join("")||'<p class="mu">Sonuç girilmedi.</p>'}`;
+  $("cqF").innerHTML='<button type="button" class="p" onclick="dlgCall.close()">Kapat</button>';return}
+ const x=data.find(v=>v.id===cq.ids[cq.i]);if(!x){cq.i++;return renderCall()}
+ const g=arr(x.gorus).slice(-3).reverse();
+ $("cqP").textContent=`${cq.i+1} / ${cq.ids.length}`;
+ $("cqB").innerHTML=`<h2 style="margin:12px 0 2px">${esc(x.firma)}</h2><div class="mu">${esc([x.sektor,x.yetkili,x.il].filter(Boolean).join(" • "))}</div>
+ <a class="btn p big" style="display:block;text-align:center;margin-top:10px" href="tel:${digits(x.telefon)}">📞 ${esc(x.telefon)}</a>
+ <div class="row">${waNum(x.telefon)?`<a class="btn" target="_blank" rel="noopener" href="https://wa.me/${waNum(x.telefon)}">WhatsApp</a>`:""}<span class="tag">${esc(x.durum)}</span>${x.numune&&!numuneDone(x)?'<span class="tag">🎁 Numune bırakıldı</span>':""}</div>
+ ${x.not?`<div class="mu" style="margin-top:6px">Not: ${esc(x.not)}</div>`:""}
+ ${g.length?`<div class="mu" style="margin-top:8px"><b>Son görüşmeler</b>${g.map(v=>`<div>${fdt(v.t)} • ${esc(v.tip)}${v.not?" — "+esc(v.not):""}</div>`).join("")}</div>`:""}
+ <label>Görüşme notu (isteğe bağlı)</label><textarea id="cqNot" rows="2"></textarea>
+ <label>Kayıp sebebi (ilgilenmiyorsa)</label><select id="cqK">${KAYIP.map(k=>`<option value="${esc(k)}">${esc(k)||"—"}</option>`).join("")}</select><div style="height:8px"></div>`;
+ $("cqF").innerHTML=CALLR.map(([k,t,s])=>`<button type="button" data-cr="${k}" style="flex:1 1 45%">${t}${s?`<br><small class="mu">${s}</small>`:""}</button>`).join("")+`<button type="button" data-cr="atla" style="flex:1 1 45%">⏭ Atla</button>`;
+}
+function callResult(k){
+ if(k==="atla"){cq.i++;renderCall();return}
+ const x={...data.find(v=>v.id===cq.ids[cq.i])},nt=$("cqNot").value.trim(),lab=((CALLR.find(c=>c[0]===k)||[])[1]||k).replace(/^\S+\s/,"");
+ x.gorus=[...arr(x.gorus),{t:Date.now(),tip:"Arama",not:lab+(nt?" — "+nt:""),kim:me.ad||""}];
+ const up=s=>{if(x.durum==="Yeni")x.durum=s||"İletişim kuruldu";else if(s&&x.durum!=="İlgilenmiyor"&&DUR.indexOf(s)>DUR.indexOf(x.durum))x.durum=s};
+ if(k==="ulasilamadi")x.sonraki=plus(1);
+ if(k==="tekrar"){x.sonraki=plus(7);up()}
+ if(k==="ilgileniyor"){x.sonraki=plus(3);up("İlgileniyor")}
+ if(k==="teklif"){x.sonraki=plus(1);up("İlgileniyor")}
+ if(k==="numune"){x.sonraki=plus(2);up("İlgileniyor")}
+ if(k==="siparis"){x.durum="Müşteri";x.sonraki=""}
+ if(k==="ilgilenmiyor"){x.durum="İlgilenmiyor";x.kayip=$("cqK").value;x.sonraki=""}
+ put(x);cq.sonuc[k]=(cq.sonuc[k]||0)+1;cq.i++;
+ if((k==="siparis"||k==="teklif")&&confirm(k==="siparis"?"Siparişi şimdi girmek ister misin?":"Teklifi şimdi hazırlamak ister misin?")){dlgCall.close();openDoc(k==="siparis"?"siparis":"teklif",x.id);return}
+ renderCall();
+}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-cr]");if(b)callResult(b.dataset.cr)});
+
+/* --- toplu WhatsApp --- */
+let wb={l:[],i:0,n:0,sk:0};
+function leadItems(ids){return ids.map(i=>data.find(v=>v.id===i)).filter(Boolean).map(x=>({ad:x.firma,yetkili:x.yetkili,tel:x.telefon,id:x.id,izin:x.izin}))}
+function wbStart(items){
+ const l=items.filter(o=>waNum(o.tel)&&o.izin!=="Çıkış yaptı"),sk=items.length-l.length;
+ if(!l.length){alert("WhatsApp'a uygun (cep numaralı ve izni olan) firma yok.");return}
+ wb={l,i:0,n:0,sk};$("wbT").innerHTML='<option value="">— Boş mesaj —</option>'+ayar.sablon.map((s,i)=>`<option value="${i}">${esc(s.ad)}</option>`).join("");if(ayar.sablon.length)$("wbT").value="0";
+ renderWB();dlgWB.showModal();
+}
+const wbText=o=>{const v=$("wbT").value,s=v!==""?ayar.sablon[+v]:null;return s?fillT(s.metin,{firma:o.ad,yetkili:o.yetkili||""}):""};
+function renderWB(){
+ if(wb.i>=wb.l.length){$("wbP").textContent="";$("wbB").innerHTML=`<h3>Bitti 🎉</h3><p>${wb.n} firmaya WhatsApp açıldı.${wb.sk?" "+wb.sk+" firma cep numarası olmadığı veya izin vermediği için atlandı.":""}</p>`;$("wbGo").hidden=true;$("wbSk").hidden=true;return}
+ const o=wb.l[wb.i],txt=wbText(o);$("wbP").textContent=`${wb.i+1} / ${wb.l.length}`;$("wbGo").hidden=false;$("wbSk").hidden=false;
+ $("wbB").innerHTML=`<h3 style="margin:10px 0 2px">${esc(o.ad)}</h3><div class="mu">${esc(o.tel)}</div><div class="card" style="margin-top:8px;white-space:pre-wrap">${txt?esc(txt):'<span class="mu">(boş mesaj)</span>'}</div><p class="mu">WhatsApp kuralları gereği mesaj otomatik gönderilemez: WhatsApp açılır, "Gönder"e sen basarsın, sonra buraya dönüp sıradakine geçersin.</p>`;
+}
+$("wbT").onchange=renderWB;
+function wbGo(){
+ const o=wb.l[wb.i],txt=wbText(o),v=$("wbT").value;window.open("https://wa.me/"+waNum(o.tel)+(txt?"?text="+encodeURIComponent(txt):""),"_blank");
+ if(o.id){const x={...data.find(d=>d.id===o.id)};x.gorus=[...arr(x.gorus),{t:Date.now(),tip:"WhatsApp",not:"Toplu mesaj"+(v!==""?": "+ayar.sablon[+v].ad:""),kim:me.ad||""}];if(x.durum==="Yeni")x.durum="İletişim kuruldu";put(x,true)}
+ wb.n++;wb.i++;renderWB();
+}
+
+/* --- numune, ziyaret, tekrar sipariş --- */
+const numuneDone=x=>!x.numune||arr(x.gorus).some(g=>g.t>(x.numune.t||0)+36e5&&g.tip!=="Numune");
+function numuneList(){return data.filter(x=>x.numune&&!numuneDone(x)&&daysSince(x.numune.tar)>=(+ayar.numuneGun||7))}
+A.num=id=>{const n=prompt("Hangi numuneyi bıraktın? (isteğe bağlı)","");if(n===null)return;const x={...data.find(v=>v.id===id)};
+ x.gorus=[...arr(x.gorus),{t:Date.now(),tip:"Numune",not:"Numune bırakıldı"+(n?": "+n:""),kim:me.ad||""}];x.numune={tar:today(),t:Date.now(),not:n||""};x.sonraki=plus(+ayar.numuneGun||7);
+ if(["Yeni","İletişim kuruldu"].includes(x.durum))x.durum="İlgileniyor";put(x)};
+A.ziy=id=>openG(id,"Ziyaret");
+function reorderList(){
+ const out=[];data.forEach(x=>{const t=arr(x.siparis).filter(sipAktif).map(s=>s.tar).filter(Boolean).sort();if(!t.length)return;
+  let ort=+ayar.sipAralik||30;if(t.length>=2){const d=[];for(let i=1;i<t.length;i++)d.push(daysSince(t[i-1])-daysSince(t[i]));const m=d.reduce((a,b)=>a+b,0)/d.length;if(m>=3)ort=Math.round(m)}
+  const son=t[t.length-1],bek=fmt(new Date(new Date(son+"T00:00:00").getTime()+ort*864e5)),kalan=-daysSince(bek);
+  if(kalan<=5)out.push({x,son,ort,bek,kalan})});
+ return out.sort((a,b)=>a.kalan-b.kalan);
+}
+
+/* --- personel performansı --- */
+function perfHtml(){
+ const m=ym(today()),P={},g=n=>{n=n||me.ad||"Ben";return P[n]=P[n]||{f:0,g:0,z:0,nu:0,t:0,tt:0,s:0,st:0,o:0}};
+ data.forEach(x=>{if(ym(tsDay(x.c||0))===m)g(x.sahipAd).f++;
+  arr(x.gorus).forEach(v=>{if(ym(tsDay(v.t))!==m)return;const p=g(v.kim||x.sahipAd);p.g++;if(v.tip==="Ziyaret")p.z++;if(v.tip==="Numune")p.nu++});
+  arr(x.teklif).forEach(v=>{if(ym(v.tar)!==m)return;const p=g(v.kim||x.sahipAd);p.t++;p.tt+=docTop(v)});
+  arr(x.siparis).filter(sipAktif).forEach(v=>{if(ym(v.tar)!==m)return;const p=g(v.kim||x.sahipAd);p.s++;p.st+=docTop(v)});
+  arr(x.odeme).forEach(v=>{if(ym(v.tar)!==m)return;g(v.kim||x.sahipAd).o+=+v.tutar||0})});
+ const l=Object.entries(P).sort((a,b)=>b[1].st-a[1].st||b[1].g-a[1].g);
+ return `<div class="card tw"><h3>Personel performansı — ${new Date().toLocaleDateString("tr-TR",{month:"long",year:"numeric"})}</h3>`+
+ (l.length?`<table class="tb"><tr><th>Kişi</th><th class="n">Yeni firma</th><th class="n">Görüşme</th><th class="n">Ziyaret</th><th class="n">Numune</th><th class="n">Teklif</th><th class="n">Sipariş</th><th class="n">Tahsilat</th></tr>${l.map(([k,v])=>`<tr><td><b>${esc(k)}</b></td><td class="n">${v.f}</td><td class="n">${v.g}</td><td class="n">${v.z}</td><td class="n">${v.nu}</td><td class="n">${v.t} / ${TL(v.tt)}</td><td class="n">${v.s} / ${TL(v.st)}</td><td class="n">${TL(v.o)}</td></tr>`).join("")}</table>`:'<div class="mu">Bu ay henüz işlem yok.</div>')+
+ `<div class="mu">Bu ay yapılan tarama: ${arr(lsJ("mag_taramalar",[])).filter(s=>ym(tsDay(s.t))===m).length} (bu cihazda)</div></div>`;
+}
+
+/* --- çevrimdışı kayıt takibi --- */
+const pendGet=()=>new Set(arr(lsJ("mag_pend",[])));
+function pendAdd(ids){if(ls.get(SYNCK)!=="1")return;const s=pendGet();ids.forEach(i=>s.add(i));ls.set("mag_pend",JSON.stringify([...s]))}
+function pendDel(ids){const s=pendGet();ids.forEach(i=>s.delete(i));ls.set("mag_pend",JSON.stringify([...s]))}
+function offUi(){$("offl").hidden=navigator.onLine!==false}
+window.addEventListener("online",offUi);window.addEventListener("offline",offUi);offUi();
 
 /* ================= açılış ================= */
 document.querySelectorAll("dialog").forEach(d=>{let dn=false;

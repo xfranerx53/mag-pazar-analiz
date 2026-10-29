@@ -61,6 +61,15 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
   - Müşteri listesinde filtreler ve içe/dışa aktarma katlanır menüde; kartta az kullanılanlar "⋯ Diğer işlemler" altında.
   - Geoapify geçersiz kategori hatasında kategorileri tek tek dener; Geoapify'da olmayan sektörler (Ambalaj, Akaryakıt) ve ek kelime OpenStreetMap yedek sunucusundan aranır.
 
+- **v6.1 (29.10.2026) — sonuç filtreleri:** Telefon (hepsi / telefonu olan / cep-WhatsApp / sabit hat / numarasız), müşteri listem (olmayan / olan), web sitesi, adres, zincir mağazalar (göster / gizle / sadece; BİM, A101, Migros, Opet, McDonald's vb. — isim başına bakar), Google puanı (3+/4+/4,5+), yorum sayısı (10+/50+/200+ = işletme büyüklüğü), kaynak (Google / OSM / ikisinde de), bölge (ilçe), en fazla uzaklık, gizlenenler. Sıralama: yakınlık, telefonlu önce, puan, yorum, A-Z, sektör. Kartta "Gizle" (bir daha gösterme, cihazda saklanır), toplu gizleme, aktif filtre sayısı rozeti, filtreler cihazda hatırlanır.
+
+- **v7 (29.10.2026) — saha, pazar analizi, ekip**
+  - Saha: 📞 Arama modu (sırayla arama, tek dokunuşla sonuç: ulaşılamadı / sonra ara / ilgileniyor / teklif istedi / numune istedi / sipariş verdi / ilgilenmiyor → durum ve sonraki arama tarihi otomatik), 🗺 akıllı rota (en kısa sıra, 10'arlı Google Haritalar bölümleri, yazdırılabilir plan), 📍 Yakınımda (listeyi sana olan uzaklığa göre sıralar), 📍 Buradayım (ziyaret kaydına GPS konumu), 📸 Sahadan ekle (konum + adres otomatik + fotoğraf), çevrimdışı çalışma (bekleyen kayıtlar internet gelince eşitlenir; Firebase/harita kütüphaneleri önbellekte).
+  - Pazar: ⭐ Aday puanı 0-100 (sektörün poşet tüketimi, telefon/cep, yorum sayısı, yakınlık, zincir cezası), sektör başı tahmini poşet tüketimi (Ayarlar'dan düzenlenir) ve ₺/kg ile bölge pazar büyüklüğü, 📄 Bölge pazar raporu (PDF), 🔥 yoğunluk haritası, rakip ambalajcı tespiti (isimde ambalaj/poşet/naylon/plastik), yeni açılan işletmeler (önceki taramada olmayan) + taranan alanların haritada gösterimi.
+  - Satış: 💬 Toplu WhatsApp (sırayla, şablonlu, izinsizleri atlar), 🎁 Numune takibi (N gün sonra Bugün'de hatırlatma), 🔁 Tekrar sipariş hatırlatması (müşterinin ortalama sipariş aralığına göre), 💡 Önerilen fiyat (maliyet + hedef kâr marjı), cari/fatura bilgileri (unvan, VD, VKN, vade, fatura adresi) teklif/sipariş çıktısında.
+  - Ekip: personel performansı (aylık yeni firma, görüşme, ziyaret, numune, teklif, sipariş, tahsilat), satış bölgeleri (Yönetim → bölge ekle; taramadan eklenen firma bölge sahibine atanır, başkasına uyarı).
+  - Henüz yok: Sevkiyat programına doğrudan sipariş aktarımı (sevkiyat programının veri yapısı gerekiyor; şimdilik "📤 Sevkiyata bildir" WhatsApp metni).
+
 ## Google Haritalar anahtarı nasıl alınır (isteğe bağlı)
 1. console.cloud.google.com → yeni proje (veya mevcut `mag-pazar` Firebase projesi).
 2. Faturalandırma hesabı bağla (kart ister; aylık ücretsiz kota aşılmadıkça ücret çıkmaz). Places "Enterprise" alanları (telefon, web, puan) için ayda yaklaşık 1.000 sorgu ücretsiz; her sorgu en çok 20 işletme getirir.
