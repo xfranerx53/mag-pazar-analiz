@@ -45,6 +45,14 @@ Güvenlik kuralı sitede ☁ → giriş → "Kuralı kopyala" ile alınır; sahi
   - Tek tıkla veya toplu "listeye ekle" (sektör, il, adres, telefon, konum, mesafe, kaynak otomatik dolar), seçilenlere Google Haritalar rotası, CSV indir.
   - Google aylık sorgu sayacı (cihaz + bulut), sınır dolunca Google durur, OSM devam eder. Son tarama cihazda saklanır.
 
+## Geoapify anahtarı nasıl alınır (ücretsiz, kart yok — önerilen)
+Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mobil operatörlerin ortak IP'si yüzünden sık sık cevap vermiyor ("Failed to fetch"). Geoapify aynı OSM verisini güvenilir sunucudan verir; günde 3.000 kredi ücretsiz, kredi kartı istemez.
+1. geoapify.com → Sign up (Google hesabıyla girilebilir).
+2. "My projects" → "Create project" (ad: mag) → oluşan **API key**'i kopyala.
+3. Sitede ⚙ Ayarlar → "Geoapify anahtarı" alanına yapıştır → Kaydet.
+4. Tarama artık önce Geoapify'ı kullanır; hata olursa otomatik yedek sunuculara geçer.
+- v5.1 (29.10.2026): Overpass için 4 yedek sunucu + 35 sn zaman aşımı + açık hata mesajı; Geoapify desteği; haritaya dokununca merkez değişmeden önce onay; GPS hassasiyeti gösterimi.
+
 ## Google Haritalar anahtarı nasıl alınır (isteğe bağlı)
 1. console.cloud.google.com → yeni proje (veya mevcut `mag-pazar` Firebase projesi).
 2. Faturalandırma hesabı bağla (kart ister; aylık ücretsiz kota aşılmadıkça ücret çıkmaz). Places "Enterprise" alanları (telefon, web, puan) için ayda yaklaşık 1.000 sorgu ücretsiz; her sorgu en çok 20 işletme getirir.

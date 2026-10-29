@@ -83,7 +83,7 @@ label.chip input{width:auto!important;flex:none!important;margin:0;accent-color:
 <div class="row"><button class="p" onclick="geoMe()">📍 Konumumu kullan</button><input id="tadr" placeholder="veya adres / semt yaz (örn: Bağcılar, İstanbul)" style="flex:1 1 220px;width:auto"><button onclick="geoAddr()">Bul</button></div>
 <div class="mu" style="margin-top:6px">Merkez: <b id="tcen"></b> — haritaya tıklayarak da seçebilirsin.</div>
 <div class="g3"><div><label>Mesafe (yarıçap)</label><select id="trad"><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="3">3 km</option><option value="5">5 km</option><option value="10">10 km</option><option value="15">15 km</option><option value="25">25 km</option></select></div>
-<div><label>Kaynak</label><label class="chip"><input type="checkbox" id="tosm" checked> OpenStreetMap (ücretsiz)</label><label class="chip"><input type="checkbox" id="tgoo"> Google Haritalar</label></div>
+<div><label>Kaynak</label><label class="chip"><input type="checkbox" id="tosm" checked> <span id="tosmL">OpenStreetMap (ücretsiz)</span></label><label class="chip"><input type="checkbox" id="tgoo"> Google Haritalar</label></div>
 <div><label>Seçenek</label><label class="chip"><input type="checkbox" id="tdet"> Detaylı Google taraması (4 kat sorgu)</label></div></div>
 <div class="mu" id="tgooN"></div>
 <label>Sektörler — <a href="#" onclick="tAll(event)">tümünü seç / kaldır</a></label><div id="tsek" class="chips"></div>
@@ -231,7 +231,7 @@ label.chip input{width:auto!important;flex:none!important;margin:0;accent-color:
 <div class="g2"><div><label>"Uyuyan müşteri" sınırı (gün)</label><input id="a_uyku" type="number" min="7"></div></div>
 <h4>Google Haritalar taraması</h4>
 <p class="mu">Anahtar yoksa tarama yalnızca ücretsiz OpenStreetMap ile yapılır. Anahtar alma adımları README.md içinde.</p>
-<div class="g2"><div><label>Google API anahtarı</label><input id="a_gkey" placeholder="AIza..."></div><div><label>Aylık Google sorgu sınırı</label><input id="a_glim" type="number" min="0"></div></div>
+<div class="g2"><div><label>Geoapify anahtarı (ücretsiz, kart yok — önerilen)</label><input id="a_geo" placeholder="Geoapify API key"></div><div></div><div><label>Google API anahtarı</label><input id="a_gkey" placeholder="AIza..."></div><div><label>Aylık Google sorgu sınırı</label><input id="a_glim" type="number" min="0"></div></div>
 <h4>WhatsApp mesaj şablonları</h4>
 <p class="mu">{firma} ve {yetkili} yazdığın yere kaydın bilgisi otomatik gelir.</p>
 <div id="slist"></div><button type="button" data-a="sadd">+ Şablon ekle</button>
@@ -806,7 +806,7 @@ function openAyar(){
  $("aAdm").hidden=!isAdmin();$("aSat").hidden=isAdmin();
  Object.entries(AF).forEach(([k,v])=>$(k).value=ayar.firma[v]||"");ayarLogo=ayar.firma.logo||"";$("a_lp").src=ayarLogo;$("a_lp").hidden=!ayarLogo;$("a_ld").hidden=!ayarLogo;$("a_logo").value="";
  $("h_g").value=ayar.hedef.gorusme||0;$("h_m").value=ayar.hedef.musteri||0;$("h_t").value=ayar.hedef.teklif||0;$("a_uyku").value=ayar.uyku||60;
- $("a_gkey").value=ayar.googleKey||"";$("a_glim").value=ayar.gLimit||900;
+ $("a_gkey").value=ayar.googleKey||"";$("a_geo").value=ayar.geoKey||"";$("a_glim").value=ayar.gLimit||900;
  sw=clean(ayar.sablon);renderSl();dlgA.showModal();
 }
 function saveAyarForm(){
@@ -814,7 +814,7 @@ function saveAyarForm(){
  Object.entries(AF).forEach(([k,v])=>ayar.firma[v]=$(k).value.trim());ayar.firma.logo=ayarLogo;
  ayar.hedef={gorusme:+$("h_g").value||0,musteri:+$("h_m").value||0,teklif:+$("h_t").value||0};ayar.uyku=Math.max(7,+$("a_uyku").value||60);
  ayar.sablon=sw.filter(s=>s.ad.trim()||s.metin.trim()).map(s=>({ad:s.ad.trim()||"Şablon",metin:s.metin.trim()}));
- const nk=$("a_gkey").value.trim(),kc=nk!==(ayar.googleKey||"");ayar.googleKey=nk;ayar.gLimit=Math.max(0,+$("a_glim").value||0);
+ const nk=$("a_gkey").value.trim(),kc=nk!==(ayar.googleKey||"");ayar.googleKey=nk;ayar.geoKey=$("a_geo").value.trim();ayar.gLimit=Math.max(0,+$("a_glim").value||0);
  saveAyar();logEv("Ayarlar güncellendi");dlgA.close();if(kc&&window.google&&window.google.maps&&confirm("Google anahtarı değişti. Geçerli olması için sayfa yenilensin mi?"))location.reload();
 }
 
@@ -1005,14 +1005,15 @@ function taraInitUI(){
 }
 function renderTaraG(){
  const k=!!ayar.googleKey;$("tgoo").disabled=!k;if(!k)$("tgoo").checked=false;else if(!$("tgoo").dataset.init){$("tgoo").checked=true;$("tgoo").dataset.init=1}
- $("tgooN").textContent=k?`Google: bu ay ${gUsed()} / ${+ayar.gLimit||900} sorgu kullanıldı.`:"Google Haritalar kapalı: ⚙ Ayarlar'a Google API anahtarı girilince açılır (daha çok telefon numarası verir).";
+ $("tosmL").textContent=ayar.geoKey?"OpenStreetMap (Geoapify, ücretsiz)":"OpenStreetMap (ücretsiz, yavaş olabilir)";
+ $("tgooN").textContent=(ayar.geoKey?"":"İpucu: ⚙ Ayarlar'a ücretsiz Geoapify anahtarı girersen tarama çok daha güvenilir çalışır. ")+(k?`Google: bu ay ${gUsed()} / ${+ayar.gLimit||900} sorgu kullanıldı.`:"Google Haritalar kapalı (anahtar girilince açılır, daha çok telefon verir).");
 }
 function tAll(e){e.preventDefault();const b=[...$("tsek").querySelectorAll("input")],on=b.some(i=>!i.checked);b.forEach(i=>i.checked=on)}
 function setCenter(lat,lon,ad){tara.c={lat,lon,ad:ad||""};saveTara();taraInitUI();taraMapDraw(true)}
 function geoMe(){
  if(!navigator.geolocation){alert("Bu cihaz konum vermiyor. Adres yaz veya haritaya tıkla.");return}
  $("tstat").textContent="Konum alınıyor…";
- navigator.geolocation.getCurrentPosition(p=>{setCenter(p.coords.latitude,p.coords.longitude,"Bulunduğum yer");$("tstat").textContent=""},
+ navigator.geolocation.getCurrentPosition(p=>{const ac=Math.round(p.coords.accuracy||0);setCenter(p.coords.latitude,p.coords.longitude,"Bulunduğum yer"+(ac?" (±"+(ac>=1000?(ac/1000).toFixed(1)+" km":ac+" m")+")":""));$("tstat").textContent=ac>1500?"⚠ Konum hassasiyeti düşük (±"+(ac/1000).toFixed(1)+" km). Telefonun Konum/GPS ayarını aç veya adres yaz.":""},
   e=>{$("tstat").textContent="Konum alınamadı: "+(e.code===1?"izin verilmedi (tarayıcı adres çubuğundan konum iznini aç)":e.message)},{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
 }
 async function geoAddr(){
@@ -1028,7 +1029,7 @@ async function taraMapInit(){
  try{loadCss(LCSS);await loadScript(LJS)}catch(e){$("tmapN").textContent=e.message;return}
  if(!tmap){tmap=L.map("tmap").setView(tara.c?[tara.c.lat,tara.c.lon]:[39,35],tara.c?zoomFor(tara.r):6);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(tmap);
-  tLayer=L.layerGroup().addTo(tmap);tmap.on("click",e=>setCenter(e.latlng.lat,e.latlng.lng,"Haritada seçilen nokta"))}
+  tLayer=L.layerGroup().addTo(tmap);tmap.on("click",e=>{if(confirm("Tarama merkezi haritada dokunduğun yere taşınsın mı?"))setCenter(e.latlng.lat,e.latlng.lng,"Haritada seçilen nokta")})}
  setTimeout(()=>tmap.invalidateSize(),60);taraMapDraw();
 }
 function taraMapDraw(fit){
@@ -1038,6 +1039,28 @@ function taraMapDraw(fit){
  taraFiltered().slice(0,1000).forEach(p=>L.circleMarker([p.lat,p.lon],{radius:6,color:p.tel?"#067647":"#2e5aac",fillColor:p.tel?"#12b76a":"#4f75c2",fillOpacity:.75,weight:1}).bindPopup(`<b>${esc(p.ad)}</b><br>${esc(secAd(p.sek))} • ${kmTxt(p.km)}<br>${esc(p.tel||"telefon yok")}`).addTo(tLayer));
  L.circleMarker([tara.c.lat,tara.c.lon],{radius:8,color:"#fff",fillColor:"#d92d20",fillOpacity:1,weight:2}).addTo(tLayer);
  if(fit)tmap.setView([tara.c.lat,tara.c.lon],zoomFor(r));
+}
+/* --- Geoapify (OpenStreetMap verisi, ücretsiz anahtar) --- */
+const GEO={market:["commercial.supermarket","commercial.convenience"],manav:["commercial.food_and_drink.fruit_and_vegetable"],kasap:["commercial.food_and_drink.butcher"],firin:["commercial.food_and_drink.bakery","commercial.food_and_drink.confectionery"],durum:["catering.fast_food"],restoran:["catering.restaurant"],kafe:["catering.cafe"],kuruyemis:["commercial.food_and_drink.nuts","commercial.food_and_drink.deli"],eczane:["healthcare.pharmacy"],bufe:["commercial.kiosk"],giyim:["commercial.clothing"],hirdavat:["commercial.houseware_and_hardware.hardware_and_tools","commercial.houseware_and_hardware.doityourself"]};
+async function geoapifySearch(c,rKm,secs){
+ const cats=[...new Set(secs.flatMap(s=>GEO[s.k]||[]))];if(!cats.length)return[];
+ const out=[];
+ for(let off=0;off<1000;off+=200){
+  $("tstat").textContent=`Geoapify'da aranıyor… (${out.length})`;
+  const u=`https://api.geoapify.com/v2/places?categories=${cats.join(",")}&filter=circle:${c.lon},${c.lat},${Math.round(rKm*1000)}&bias=proximity:${c.lon},${c.lat}&limit=200&offset=${off}&lang=tr&apiKey=${encodeURIComponent(ayar.geoKey)}`;
+  const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),30000);let r;
+  try{r=await fetch(u,{signal:ac.signal})}catch(e){throw new Error(e.name==="AbortError"?"30 sn içinde yanıt vermedi":"bağlantı kurulamadı")}finally{clearTimeout(tm)}
+  if(!r.ok)throw new Error(r.status===401||r.status===403?"anahtar geçersiz veya izin yok":r.status===429?"günlük ücretsiz sınır doldu":"yanıt "+r.status);
+  const f=(await r.json()).features||[];
+  f.forEach(ft=>{const p=ft.properties||{},raw=(p.datasource&&p.datasource.raw)||{};if(!p.name)return;const cs=p.categories||[];
+   const s=secs.find(s=>(GEO[s.k]||[]).some(k=>cs.some(x=>x===k||x.startsWith(k+"."))));
+   out.push({id:"a"+(raw.osm_id||p.place_id),ad:p.name,sek:s?s.k:"ozel",lat:p.lat,lon:p.lon,
+    adres:[p.suburb,p.street&&(p.street+(p.housenumber?" No:"+p.housenumber:""))].filter(Boolean).join(", "),
+    il:[p.city||p.county||p.district,p.state].filter((v,i,a)=>v&&a.indexOf(v)===i).join(" / "),
+    tel:(p.contact&&p.contact.phone)||raw.phone||raw["contact:phone"]||raw["contact:mobile"]||"",web:p.website||raw.website||raw["contact:website"]||"",src:["OSM"]})});
+  if(f.length<200)break;
+ }
+ return out;
 }
 /* --- OpenStreetMap (Overpass) --- */
 async function ovFetch(ep,q,ms){
@@ -1121,7 +1144,9 @@ async function doScan(){
  tara.r=rKm;tara.sek=ks;tara.kw=kw;$("tbtn").disabled=true;
  const all=[],hata=[];
  if(useG&&gLeft()>0){try{$("tstat").textContent="Google'da aranıyor…";all.push(...await gSearch(tara.c,rKm,secs,kw,detay))}catch(e){hata.push("Google: "+(gAuthErr||e.message))}}
- if(useO){try{$("tstat").textContent="OpenStreetMap'te aranıyor… (büyük mesafede 30 sn sürebilir)";all.push(...await osmSearch(tara.c,rKm,secs,kw))}catch(e){hata.push("OpenStreetMap: "+e.message)}}
+ if(useO){let done=false;
+  if(ayar.geoKey){try{all.push(...await geoapifySearch(tara.c,rKm,secs));done=true;if(kw)hata.push("Ek kelime yalnızca Google ve yedek sunucuda aranır")}catch(e){hata.push("Geoapify: "+e.message+" — yedek sunucu deneniyor")}}
+  if(!done){try{$("tstat").textContent="OpenStreetMap'te aranıyor…";all.push(...await osmSearch(tara.c,rKm,secs,kw))}catch(e){hata.push("OpenStreetMap: "+e.message)}}}
  all.forEach(p=>p.km=hav(tara.c.lat,tara.c.lon,p.lat,p.lon));
  tara.res=mergeRes(all.filter(p=>p.km<=rKm*1.02)).sort((a,b)=>a.km-b.km);tara.t=Date.now();tSel.clear();saveTara();
  $("tbtn").disabled=false;
