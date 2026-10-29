@@ -60,9 +60,34 @@ details{margin-top:8px}summary{cursor:pointer;color:var(--mu);font-size:13px}
 label.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--br);border-radius:99px;padding:5px 11px;margin:0 6px 6px 0;font-size:14px;color:var(--tx);cursor:pointer;background:var(--card)}
 label.chip input{width:auto!important;flex:none!important;margin:0;accent-color:var(--pr)}.bar label.chip{flex:none;margin:0;white-space:nowrap}label.chip:has(input:checked){background:var(--ac);border-color:var(--pr)}
 #tmap{height:380px;border-radius:8px}.tag.ok{background:#d1fadf;color:#067647}
+body{padding-bottom:calc(66px + env(safe-area-inset-bottom))}
+#tabs{display:none}
+.bnav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--br);display:flex;z-index:20;padding-bottom:env(safe-area-inset-bottom)}
+.bnav button{flex:1;border:0;border-radius:0;background:none;padding:7px 2px 6px;font-size:12px;color:var(--mu);display:flex;flex-direction:column;align-items:center;gap:1px;position:relative}
+.bnav button b{font-size:21px;font-weight:400;line-height:1.1}.bnav button.on{color:var(--pr);font-weight:700}
+.bnav .badge{position:absolute;top:3px;left:55%;margin:0}
+.seg{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}.seg button{flex:1 1 auto;min-width:54px;padding:9px 6px}.seg button.on{background:var(--pr);color:var(--on);border-color:var(--pr);font-weight:600}
+.big{width:100%;font-size:17px;padding:13px;font-weight:600}
+.step{font-weight:700;margin:2px 0 8px;font-size:15px}.step i{font-style:normal;display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--pr);color:var(--on);text-align:center;line-height:22px;font-size:13px;margin-right:6px}
+.pick{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:12px}
+.pick small{color:var(--mu);display:block;font-size:13px;margin-top:2px}
+dialog.sheet{margin:auto auto 0;width:100%;max-width:640px;border-radius:16px 16px 0 0;max-height:88vh;padding:0;display:none;flex-direction:column}
+dialog.sheet[open]{display:flex}
+.shd{padding:14px 16px 8px;border-bottom:1px solid var(--br)}.sbody{overflow:auto;padding:0 16px;flex:1}.sft{padding:10px 16px;border-top:1px solid var(--br);display:flex;gap:8px}
+.sft button{flex:1}
+.srow{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;border:0;border-bottom:1px solid var(--br);border-radius:0;background:none;padding:13px 8px;font-size:15px}
+.srow.on{background:var(--ac);font-weight:600;border-left:4px solid var(--pr)}.srow .sv{font-size:12px;color:var(--pr);font-weight:700}
+.sgh{display:flex;justify-content:space-between;align-items:center;margin:16px 0 4px;font-weight:700;color:var(--mu);font-size:12px;text-transform:uppercase;letter-spacing:.04em}.sgh button{font-size:12px;padding:3px 9px;text-transform:none}
+.rcard{cursor:pointer}.rcard.sel{border:2px solid var(--pr);background:var(--ac)}.rhd{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.rhd b{font-size:16px}.rkm{white-space:nowrap;font-weight:700;color:var(--pr)}
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.menu-grid button{padding:20px 10px;font-size:15px;line-height:1.6}
+.selbar{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));z-index:15;background:var(--pr);color:var(--on);padding:9px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+.selbar button{padding:6px 12px;font-size:14px}
+.selbar[hidden],[hidden]{display:none!important}#tres{padding-bottom:56px}
+details.more{margin-top:6px}details.more>summary{display:inline-block;border:1px solid var(--br);border-radius:8px;padding:5px 10px;font-size:13px;color:var(--tx)}
+details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 @media(max-width:620px){.g2,.g3{grid-template-columns:1fr}.kr{grid-template-columns:1fr 1fr 1fr}.kr .ku{grid-column:1/-1}.kh{display:none}}
 </style></head><body>
-<header><span>Mag Ambalaj • Pazar Analiz</span><span class="hb"><button id="tb" onclick="nextTema()" title="Tema">◐</button><button onclick="openAyar()">⚙ Ayarlar</button><button id="cb" onclick="openCloud()">☁ Giriş yap</button></span></header>
+<header><span>Mag Ambalaj • Pazar Analiz</span><span class="hb"><button id="cb" onclick="openCloud()">☁ Giriş yap</button></span></header>
 <main>
 <div id="banner"></div>
 <div class="tabs" id="tabs">
@@ -79,39 +104,44 @@ label.chip input{width:auto!important;flex:none!important;margin:0;accent-color:
 
 <div class="sec on" id="s-tara">
 <div class="card">
-<h3>Çevredeki potansiyel müşterileri bul</h3>
-<div class="row"><button class="p" onclick="geoMe()">📍 Konumumu kullan</button><input id="tadr" placeholder="veya adres / semt yaz (örn: Bağcılar, İstanbul)" style="flex:1 1 220px;width:auto"><button onclick="geoAddr()">Bul</button></div>
-<div class="mu" style="margin-top:6px">Merkez: <b id="tcen"></b> — haritaya tıklayarak da seçebilirsin.</div>
-<div class="g3"><div><label>Mesafe (yarıçap)</label><select id="trad"><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="3">3 km</option><option value="5">5 km</option><option value="10">10 km</option><option value="15">15 km</option><option value="25">25 km</option></select></div>
-<div><label>Kaynak</label><label class="chip"><input type="checkbox" id="tosm" checked> <span id="tosmL">OpenStreetMap (ücretsiz)</span></label><label class="chip"><input type="checkbox" id="tgoo"> Google Haritalar</label></div>
-<div><label>Seçenek</label><label class="chip"><input type="checkbox" id="tdet"> Detaylı Google taraması (4 kat sorgu)</label></div></div>
-<div class="mu" id="tgooN"></div>
-<label>Sektörler — <a href="#" onclick="tAll(event)">tümünü seç / kaldır</a></label><div id="tsek" class="chips"></div>
-<label>Ek arama kelimesi (isteğe bağlı)</label><input id="tkw" placeholder="Örn: çiğköfte, tatlıcı, otel, kuaför">
-<div class="row"><button class="p" id="tbtn" onclick="doScan()" style="font-size:16px;padding:10px 22px">🔍 Tara</button><span class="mu" id="tstat"></span></div>
+<div class="step"><i>1</i>Nerede arayalım?</div>
+<div class="row" style="margin-top:0"><button class="p" onclick="geoMe()">📍 Konumum</button><input id="tadr" placeholder="veya semt / adres yaz" style="flex:1 1 160px;width:auto"><button onclick="geoAddr()">Ara</button></div>
+<div class="mu" style="margin-top:6px">Merkez: <b id="tcen"></b></div>
 </div>
-<div class="card"><div id="tmap"></div><div class="mu" id="tmapN">Kırmızı = merkez • yeşil = telefonu olan • mavi = telefonu bilinmeyen</div></div>
+<div class="card">
+<div class="step"><i>2</i>Ne kadar uzağa?</div>
+<div class="seg" id="trseg"><button data-r="0.5">500 m</button><button data-r="1">1 km</button><button data-r="2">2 km</button><button data-r="3">3 km</button><button data-r="5">5 km</button><button data-r="10">10 km</button><button data-r="15">15 km</button><button data-r="25">25 km</button></div>
+<select id="trad" hidden><option value="0.5">0.5</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="5">5</option><option value="10">10</option><option value="15">15</option><option value="25">25</option></select>
+</div>
+<div class="card">
+<div class="step"><i>3</i>Hangi işletmeler?</div>
+<button class="pick" onclick="openSek()"><span><b><span id="tsekN">0</span> sektör seçili</b><small id="tsekS"></small></span><span>Değiştir ›</span></button>
+<details style="margin-top:10px"><summary>Gelişmiş seçenekler</summary>
+<label>Ek arama kelimesi</label><input id="tkw" placeholder="Örn: çiğköfte, tatlıcı, kuaför">
+<label>Kaynak</label><label class="chip"><input type="checkbox" id="tosm" checked> <span id="tosmL">OpenStreetMap (ücretsiz)</span></label><label class="chip"><input type="checkbox" id="tgoo"> Google Haritalar</label><label class="chip"><input type="checkbox" id="tdet"> Detaylı Google (4 kat sorgu)</label>
+<div class="mu" id="tgooN"></div>
+</details>
+</div>
+<button class="p big" id="tbtn" onclick="doScan()">🔍 Tara</button>
+<div class="mu" id="tstat" style="margin:8px 2px 12px"></div>
+<div class="seg" id="tview"><button data-v="l" class="on" onclick="setTView('l')">📋 Liste</button><button data-v="m" onclick="setTView('m')">🗺 Harita</button></div>
 <div class="stats" id="tst"></div>
-<div class="bar"><input id="tq" placeholder="Sonuçlarda ara"><select id="tfs"></select><select id="tso"><option value="k">Yakından uzağa</option><option value="a">A-Z</option><option value="p">En çok yorum alan</option></select><label class="chip"><input type="checkbox" id="ttel"> Sadece telefonu olanlar</label><label class="chip"><input type="checkbox" id="tnew" checked> Listemde olmayanlar</label></div>
-<div class="bar"><button class="p" onclick="taraAddSel()">Seçilenleri listeye ekle (<span id="tselN">0</span>)</button><button onclick="taraSelAll()">☑ Görünenleri seç</button><button onclick="taraAddAll()">Görünen yenilerin hepsini ekle</button><button onclick="taraRoute()">🗺 Seçilenlere rota</button><button onclick="taraCsv()">CSV indir</button></div>
+<details class="card" id="tfil"><summary>Filtrele / sırala / toplu işlem</summary>
+<div class="bar" style="margin-top:8px"><input id="tq" placeholder="Sonuçlarda ara"><select id="tfs"></select><select id="tso"><option value="k">Yakından uzağa</option><option value="a">A-Z</option><option value="p">En çok yorum alan</option></select></div>
+<div class="row"><label class="chip"><input type="checkbox" id="ttel"> Sadece telefonu olanlar</label><label class="chip"><input type="checkbox" id="tnew" checked> Listemde olmayanlar</label></div>
+<div class="row"><button onclick="taraSelAll()">Görünenlerin hepsini seç</button><button onclick="taraAddAll()">Görünen yenilerin hepsini listeye ekle</button><button onclick="taraCsv()">CSV indir</button></div>
+</details>
 <div id="tres"></div>
+<div class="card" id="tmapBox" hidden><div id="tmap"></div><div class="mu" id="tmapN">Kırmızı = merkez • yeşil = telefonu olan • mavi = telefonu bilinmeyen. Merkezi değiştirmek için haritaya dokun.</div></div>
+<div class="selbar" id="tselbar" hidden><b><span id="tselN">0</span> seçili</b><button onclick="taraAddSel()">+ Listeye ekle</button><button onclick="taraRoute()">🗺 Rota</button><button onclick="tSel.clear();renderTara()">Bırak</button></div>
 </div>
 
 <div class="sec" id="s-liste">
 <div class="stats" id="stats"></div>
-<div class="bar">
-<input id="q" placeholder="Ara: firma, şehir, telefon, adres...">
-<select id="fs"></select><select id="fd"></select><select id="fp"></select><select id="fo" hidden></select><select id="so"></select>
-</div>
-<div class="bar">
-<button class="p" onclick="openForm()">+ Yeni kayıt</button>
-<button onclick="selAll()">☑ Görünenleri seç</button>
-<button onclick="$('f').click()">Excel/CSV içe aktar</button>
-<button onclick="exportCsv()">CSV indir</button>
-<button onclick="exportJson()">Tam yedek (JSON)</button>
-<button onclick="$('fj').click()">Yedekten yükle</button>
-<input type="file" id="f" accept=".csv,.txt" hidden><input type="file" id="fj" accept=".json" hidden>
-</div>
+<div class="bar"><input id="q" placeholder="🔎 Firma, şehir, telefon ara"><button class="p" onclick="openForm()">+ Yeni firma</button></div>
+<details class="card"><summary>Filtrele / sırala</summary><div class="bar" style="margin:8px 0 0"><select id="fs"></select><select id="fd"></select><select id="fp"></select><select id="fo" hidden></select><select id="so"></select></div></details>
+<details class="card"><summary>Toplu işlem, içe / dışa aktar</summary><div class="row"><button onclick="selAll()">Görünenlerin hepsini seç</button><button onclick="$('f').click()">Excel/CSV içe aktar</button><button onclick="exportCsv()">CSV indir</button><button onclick="exportJson()">Tam yedek (JSON)</button><button onclick="$('fj').click()">Yedekten yükle</button></div>
+<input type="file" id="f" accept=".csv,.txt" hidden><input type="file" id="fj" accept=".json" hidden></details>
 <div id="bulk" class="card" hidden>
 <b><span id="bn">0</span> kayıt seçili</b> <span class="mu">— seçtiklerine toplu değişiklik yap</span>
 <div class="bar"><select id="bdur"></select><select id="bonc"></select><select id="bsek"></select><select id="bown" hidden></select><input id="bson" type="date" title="Sonraki arama tarihi"></div>
@@ -124,11 +154,11 @@ label.chip input{width:auto!important;flex:none!important;margin:0;accent-color:
 <div class="bar"><button onclick="printList()">🖨 Arama listesini yazdır</button><button onclick="route()">🗺 Ziyaret rotası</button><button onclick="askNotify()">🔔 Bildirimleri aç</button></div>
 <div id="today"></div></div>
 
-<div class="sec" id="s-teklif"><div class="bar"><select id="ft"></select></div><div class="stats" id="tstats"></div><div id="tlist"></div></div>
+<div class="sec" id="s-teklif"><div class="seg subnav"><button data-go="teklif">Teklifler</button><button data-go="siparis">Siparişler</button><button data-go="tahsilat">Tahsilat</button></div><div class="bar"><select id="ft"></select></div><div class="stats" id="tstats"></div><div id="tlist"></div></div>
 
-<div class="sec" id="s-siparis"><div class="bar"><select id="fsp"></select></div><div class="stats" id="sstats"></div><div id="slist2"></div></div>
+<div class="sec" id="s-siparis"><div class="seg subnav"><button data-go="teklif">Teklifler</button><button data-go="siparis">Siparişler</button><button data-go="tahsilat">Tahsilat</button></div><div class="bar"><select id="fsp"></select></div><div class="stats" id="sstats"></div><div id="slist2"></div></div>
 
-<div class="sec" id="s-tahsilat"><div class="stats" id="pstats"></div><div id="plist"></div></div>
+<div class="sec" id="s-tahsilat"><div class="seg subnav"><button data-go="teklif">Teklifler</button><button data-go="siparis">Siparişler</button><button data-go="tahsilat">Tahsilat</button></div><div class="stats" id="pstats"></div><div id="plist"></div></div>
 
 <div class="sec" id="s-analiz">
 <div class="bar"><button class="p" onclick="excelReport()">📊 Excel raporu indir</button></div>
@@ -143,10 +173,21 @@ label.chip input{width:auto!important;flex:none!important;margin:0;accent-color:
 
 <div class="sec" id="s-yonetim"><div id="ylist"></div></div>
 
+<div class="sec" id="s-diger"><div class="menu-grid">
+<button data-go="analiz">📊<br>Analiz ve raporlar</button><button data-go="urun">📦<br>Ürünler ve fiyatlar</button>
+<button onclick="openAyar()">⚙<br>Ayarlar</button><button onclick="openCloud()">☁<br>Bulut / Giriş</button>
+<button data-go="yonetim" id="mY">🛡<br>Yönetim</button><button onclick="nextTema()" id="tb2">◐<br>Tema</button>
+</div></div>
+
 <p class="mu" id="foot"></p>
 </main>
+<nav class="bnav"><button data-go="tara" class="on"><b>🔍</b>Tara</button><button data-go="liste"><b>📋</b>Liste</button><button data-go="bugun"><b>📅</b>Bugün<span class="badge" id="bd2" hidden></span></button><button data-go="satis"><b>💼</b>Satış</button><button data-go="diger"><b>☰</b>Diğer</button></nav>
 
 <datalist id="urunDL"></datalist>
+
+<dialog id="dlgS" class="sheet"><div class="shd"><b style="font-size:17px">Hangi işletmeler aransın?</b><input id="ssq" placeholder="🔎 Sektör ara (örn: fabrika, kasap)" style="margin-top:8px"></div>
+<div class="sbody" id="slst"></div>
+<div class="sft"><button type="button" onclick="tSek.clear();renderSek()">Temizle</button><button type="button" class="p" onclick="sekDone()">Tamam (<span id="ssN">0</span> seçili)</button></div></dialog>
 
 <dialog id="dlg"><form onsubmit="return false">
 <b id="dt">Kayıt</b>
@@ -260,7 +301,58 @@ label.chip input{width:auto!important;flex:none!important;margin:0;accent-color:
 
 <script>
 /* ================= sabitler ================= */
-const SEK=["Market","Manav","Kasap","Fırın/Pastane","Dürümcü/Restoran","Kafe","Kuruyemiş/Şarküteri","Eczane","Büfe/Tekel","Hırdavat","Tekstil/Konfeksiyon","Mağaza","Depo/Lojistik","Toptancı","Diğer"];
+const TSEK=[
+ {gr:"Gıda perakende",k:"market",ad:"Market / Süpermarket",geo:["commercial.supermarket","commercial.convenience"],osm:[["shop","^(supermarket|convenience|grocery|general)$"]],g:["market"]},
+ {gr:"Gıda perakende",k:"manav",ad:"Manav",geo:["commercial.food_and_drink.fruit_and_vegetable"],osm:[["shop","^greengrocer$"]],g:["manav"]},
+ {gr:"Gıda perakende",k:"kasap",ad:"Kasap",geo:["commercial.food_and_drink.butcher"],osm:[["shop","^butcher$"]],g:["kasap"]},
+ {gr:"Gıda perakende",k:"balik",ad:"Balıkçı",geo:["commercial.food_and_drink.seafood"],osm:[["shop","^(seafood|fish)$"]],g:["balıkçı"]},
+ {gr:"Gıda perakende",k:"firin",ad:"Fırın / Ekmek",geo:["commercial.food_and_drink.bakery"],osm:[["shop","^bakery$"]],g:["fırın"]},
+ {gr:"Gıda perakende",k:"pastane",ad:"Pastane / Tatlıcı",geo:["commercial.food_and_drink.confectionery","commercial.food_and_drink.chocolate","catering.cafe.dessert","catering.cafe.cake"],osm:[["shop","^(pastry|confectionery|chocolate)$"]],g:["pastane tatlıcı"]},
+ {gr:"Gıda perakende",k:"kuruyemis",ad:"Kuruyemiş",geo:["commercial.food_and_drink.nuts"],osm:[["shop","^nuts$"]],g:["kuruyemiş"]},
+ {gr:"Gıda perakende",k:"sarkuteri",ad:"Şarküteri / Peynirci",geo:["commercial.food_and_drink.deli","commercial.food_and_drink.cheese_and_dairy"],osm:[["shop","^(deli|cheese|dairy)$"]],g:["şarküteri"]},
+ {gr:"Gıda perakende",k:"aktar",ad:"Aktar / Baharat / Kahve-çay",geo:["commercial.food_and_drink.spices","commercial.food_and_drink.coffee_and_tea","commercial.food_and_drink.honey","commercial.health_and_beauty.herbalist"],osm:[["shop","^(spices|tea|coffee|herbalist|honey)$"]],g:["aktar baharat"]},
+ {gr:"Gıda perakende",k:"icecek",ad:"Su / İçecek bayi",geo:["commercial.food_and_drink.drinks"],osm:[["shop","^(beverages|water)$"]],g:["su bayi"]},
+ {gr:"Gıda perakende",k:"dondurma",ad:"Dondurmacı",geo:["catering.ice_cream","commercial.food_and_drink.ice_cream"],osm:[["amenity","^ice_cream$"],["shop","^ice_cream$"]],g:["dondurmacı"]},
+ {gr:"Gıda perakende",k:"pazar",ad:"Pazar yeri / Hal",geo:["commercial.marketplace"],osm:[["amenity","^marketplace$"]],g:["hal pazar yeri"]},
+ {gr:"Yeme-içme",k:"durum",ad:"Dürüm / Kebap / Çiğköfte",geo:["catering.fast_food"],osm:[["amenity","^fast_food$"]],g:["dürüm kebap"]},
+ {gr:"Yeme-içme",k:"pide",ad:"Pide / Lahmacun / Pizza",geo:["catering.fast_food.pizza","catering.restaurant.pizza","catering.fast_food.pita","catering.restaurant.pita"],osm:[["cuisine","pizza|pide|lahmacun"]],g:["pide lahmacun"]},
+ {gr:"Yeme-içme",k:"restoran",ad:"Restoran / Lokanta",geo:["catering.restaurant"],osm:[["amenity","^restaurant$"]],g:["restoran lokanta"]},
+ {gr:"Yeme-içme",k:"kafe",ad:"Kafe / Kahveci",geo:["catering.cafe"],osm:[["amenity","^cafe$"]],g:["kafe"]},
+ {gr:"Yeme-içme",k:"bar",ad:"Bar / Pub",geo:["catering.bar","catering.pub"],osm:[["amenity","^(bar|pub)$"]],g:["bar"]},
+ {gr:"Yeme-içme",k:"otel",ad:"Otel / Pansiyon",geo:["accommodation.hotel","accommodation.guest_house","accommodation.motel","accommodation.hostel"],osm:[["tourism","^(hotel|guest_house|motel|hostel)$"]],g:["otel"]},
+ {gr:"Mağazalar",k:"bufe",ad:"Büfe / Tekel / Gazeteci",geo:["commercial.kiosk","commercial.newsagent","commercial.smoking"],osm:[["shop","^(kiosk|newsagent|tobacco|alcohol)$"]],g:["tekel büfe"]},
+ {gr:"Mağazalar",k:"giyim",ad:"Giyim / Butik",geo:["commercial.clothing"],osm:[["shop","^(clothes|boutique|fashion)$"]],g:["giyim mağazası"]},
+ {gr:"Mağazalar",k:"ayakkabi",ad:"Ayakkabı / Çanta",geo:["commercial.clothing.shoes","commercial.bag"],osm:[["shop","^(shoes|bag|leather)$"]],g:["ayakkabıcı"]},
+ {gr:"Mağazalar",k:"kozmetik",ad:"Kozmetik / Parfümeri",geo:["commercial.health_and_beauty.cosmetics","commercial.chemist"],osm:[["shop","^(cosmetics|perfumery|chemist|beauty)$"]],g:["kozmetik"]},
+ {gr:"Mağazalar",k:"eczane",ad:"Eczane",geo:["healthcare.pharmacy"],osm:[["amenity","^pharmacy$"]],g:["eczane"]},
+ {gr:"Mağazalar",k:"kirtasiye",ad:"Kırtasiye / Kitapçı",geo:["commercial.stationery","commercial.books"],osm:[["shop","^(stationery|books|copyshop)$"]],g:["kırtasiye"]},
+ {gr:"Mağazalar",k:"hediye",ad:"Oyuncak / Hediyelik",geo:["commercial.toy_and_game","commercial.gift_and_souvenir"],osm:[["shop","^(toys|gift)$"]],g:["hediyelik eşya"]},
+ {gr:"Mağazalar",k:"kuyumcu",ad:"Kuyumcu / Saatçi",geo:["commercial.jewelry","commercial.watches"],osm:[["shop","^(jewelry|watches)$"]],g:["kuyumcu"]},
+ {gr:"Mağazalar",k:"elektronik",ad:"Elektronik / Telefoncu",geo:["commercial.elektronics"],osm:[["shop","^(electronics|mobile_phone|computer|appliance)$"]],g:["telefoncu"]},
+ {gr:"Mağazalar",k:"mobilya",ad:"Mobilya / Ev tekstili",geo:["commercial.furniture_and_interior"],osm:[["shop","^(furniture|interior_decoration|curtain|carpet|bed|household_linen)$"]],g:["mobilya mağazası"]},
+ {gr:"Mağazalar",k:"zuccaciye",ad:"Züccaciye / Ev gereçleri",geo:["commercial.furniture_and_interior.kitchen"],osm:[["shop","^(houseware|kitchen)$"]],g:["züccaciye"]},
+ {gr:"Mağazalar",k:"cicek",ad:"Çiçekçi / Fidanlık",geo:["commercial.florist","commercial.garden"],osm:[["shop","^(florist|garden_centre)$"]],g:["çiçekçi"]},
+ {gr:"Mağazalar",k:"pet",ad:"Pet shop",geo:["pet.shop","commercial.pet"],osm:[["shop","^pet$"]],g:["pet shop"]},
+ {gr:"Mağazalar",k:"spor",ad:"Spor / Outdoor",geo:["commercial.outdoor_and_sport"],osm:[["shop","^(sports|outdoor)$"]],g:["spor mağazası"]},
+ {gr:"Mağazalar",k:"avm",ad:"AVM / Büyük mağaza",geo:["commercial.shopping_mall","commercial.department_store","commercial.discount_store"],osm:[["shop","^(mall|department_store|variety_store)$"]],g:["avm"]},
+ {gr:"Sanayi / Toptan",k:"fabrika",ad:"Fabrika / Üretim tesisi",geo:["production"],osm:[["man_made","^works$"],["industrial","."]],g:["fabrika"]},
+ {gr:"Sanayi / Toptan",k:"atolye",ad:"Atölye / İmalathane",geo:["service.carpenter","service.blacksmith"],osm:[["craft","."]],g:["atölye imalathane"]},
+ {gr:"Sanayi / Toptan",k:"toptan",ad:"Toptancı",geo:["commercial.trade"],osm:[["shop","^(wholesale|trade)$"]],g:["toptancı"]},
+ {gr:"Sanayi / Toptan",k:"depo",ad:"Depo / Lojistik / Kargo",geo:["office.logistics"],osm:[["industrial","^(warehouse|logistics)$"],["office","^(logistics|courier)$"]],g:["lojistik depo"]},
+ {gr:"Sanayi / Toptan",k:"ambalaj",ad:"Ambalaj / Plastik",geo:[],osm:[["shop","^packaging$"]],g:["ambalaj plastik"]},
+ {gr:"Sanayi / Toptan",k:"matbaa",ad:"Matbaa / Reklam",geo:["service.advertising","office.advertising_agency"],osm:[["craft","^printer$"],["shop","^copyshop$"]],g:["matbaa"]},
+ {gr:"Sanayi / Toptan",k:"hirdavat",ad:"Hırdavat / Nalbur / Yapı",geo:["commercial.houseware_and_hardware.hardware_and_tools","commercial.houseware_and_hardware.doityourself","commercial.houseware_and_hardware.building_materials"],osm:[["shop","^(hardware|doityourself|paint|tiles|building_materials)$"]],g:["nalbur"]},
+ {gr:"Sanayi / Toptan",k:"tarim",ad:"Tarım / Zirai",geo:["commercial.agrarian"],osm:[["shop","^agrarian$"]],g:["zirai ilaç"]},
+ {gr:"Sanayi / Toptan",k:"oto",ad:"Oto / Yedek parça / Servis",geo:["commercial.vehicle"],osm:[["shop","^(car_parts|car|car_repair|tyres)$"]],g:["oto yedek parça"]},
+ {gr:"Sanayi / Toptan",k:"akaryakit",ad:"Akaryakıt istasyonu",geo:[],osm:[["amenity","^fuel$"]],g:["benzin istasyonu"]},
+ {gr:"Hizmet",k:"kuafor",ad:"Kuaför / Güzellik",geo:["service.beauty"],osm:[["shop","^(hairdresser|beauty)$"]],g:["kuaför"]},
+ {gr:"Hizmet",k:"temizleme",ad:"Kuru temizleme / Çamaşırhane",geo:["service.cleaning"],osm:[["shop","^(dry_cleaning|laundry)$"]],g:["kuru temizleme"]},
+ {gr:"Hizmet",k:"saglik",ad:"Klinik / Hastane / Diş",geo:["healthcare.clinic_or_praxis","healthcare.dentist","healthcare.hospital"],osm:[["amenity","^(clinic|dentist|hospital|doctors)$"]],g:["klinik"]},
+ {gr:"Hizmet",k:"veteriner",ad:"Veteriner",geo:["pet.veterinary"],osm:[["amenity","^veterinary$"]],g:["veteriner"]},
+ {gr:"Hizmet",k:"egitim",ad:"Okul / Kurs",geo:["education"],osm:[["amenity","^(school|college|kindergarten|language_school|driving_school)$"]],g:["okul"]},
+ {gr:"Hizmet",k:"ofis",ad:"Şirket / Ofis",geo:["office.company"],osm:[["office","^company$"]],g:["şirket"]}
+];
+const SEK=[...new Set([...TSEK.map(s=>s.ad),"Market","Dürümcü/Restoran","Tekstil/Konfeksiyon","Mağaza","Depo/Lojistik","Toptancı","Diğer"])];
 const DUR=["Yeni","İletişim kuruldu","İlgileniyor","Teklif verildi","Müşteri","İlgilenmiyor"];
 const ONC=["","Sıcak","Ilık","Soğuk"];
 const TDUR=["Beklemede","Kabul","Red"];
@@ -333,7 +425,7 @@ function saveKatalog(){ls.set("mag_katalog",JSON.stringify(katalog));if(root&&is
 /* ---------- tema ---------- */
 const TH=["auto","light","dark"],THI={auto:"◐",light:"☀",dark:"☾"},THN={auto:"Otomatik (cihaza göre)",light:"Açık",dark:"Koyu"};
 let tema=ls.get("mag_tema")||"auto";
-function applyTema(){if(tema==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",tema);$("tb").textContent=THI[tema];$("tb").title="Tema: "+THN[tema]}
+function applyTema(){if(tema==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",tema);const tbE=$("tb2");if(tbE)tbE.innerHTML=THI[tema]+"<br>Tema: "+THN[tema]}
 function nextTema(){tema=TH[(TH.indexOf(tema)+1)%3];ls.set("mag_tema",tema);applyTema()}
 applyTema();
 
@@ -443,7 +535,7 @@ function card(x,ck){
  <div class="mu">${[x.yetkili,x.il,x.telefon,x.eposta].filter(Boolean).map(esc).join(" • ")}</div>
  ${x.adres?`<div class="mu">📍 ${esc(x.adres)}</div>`:""}${x.rakip?`<div class="mu">Rakip: ${esc(x.rakip)}${x.rakipFiyat?" • "+TL2(x.rakipFiyat):""}</div>`:""}${x.not?`<div class="mu">${esc(x.not)}</div>`:""}
  <div class="row">${digits(x.telefon)?`<a class="btn" href="tel:${digits(x.telefon)}">Ara</a>`:""}${wa?`<button data-a="wa" data-id="${x.id}">WhatsApp</button>`:""}${addr(x)||x.konum?`<a class="btn" target="_blank" rel="noopener" href="${x.konum?"https://www.google.com/maps/search/?api=1&query="+x.konum.lat+","+x.konum.lon:mapUrl(x)}">Harita</a>`:""}${/^https?:/i.test(x.web||"")?`<a class="btn" target="_blank" rel="noopener" href="${esc(x.web)}">Web</a>`:""}${x.foto?`<button data-a="foto" data-id="${x.id}">📷</button>`:""}
- <button data-a="gor" data-id="${x.id}">+ Görüşme</button><button data-a="tek" data-id="${x.id}">+ Teklif</button><button data-a="sip" data-id="${x.id}">+ Sipariş</button>${arr(x.siparis).length?`<button data-a="pay" data-id="${x.id}">+ Ödeme</button>`:""}<button data-a="edit" data-id="${x.id}">Düzenle</button>${isAdmin()?`<button data-a="del" data-id="${x.id}">Sil</button>`:""}</div>${hist(x)}</div>`;
+ <button data-a="gor" data-id="${x.id}">+ Görüşme</button></div><details class="more"><summary>⋯ Diğer işlemler</summary><div class="row"><button data-a="tek" data-id="${x.id}">+ Teklif</button><button data-a="sip" data-id="${x.id}">+ Sipariş</button>${arr(x.siparis).length?`<button data-a="pay" data-id="${x.id}">+ Ödeme</button>`:""}<button data-a="edit" data-id="${x.id}">Düzenle</button>${isAdmin()?`<button data-a="del" data-id="${x.id}">Sil</button>`:""}</div></details>${hist(x)}</div>`;
 }
 
 /* ================= ekranlar ================= */
@@ -463,7 +555,7 @@ function render(){
  shown=r.map(x=>x.id);
  [...sel].forEach(i=>{if(!data.some(x=>x.id===i))sel.delete(i)});
  $("list").innerHTML=r.length?r.map(x=>card(x,true)).join(""):`<div class="empty">Kayıt yok. "+ Yeni kayıt" ile ekleyin veya Excel/CSV içe aktarın.</div>`;
- $("tabY").hidden=!isAdmin();$("uadd").hidden=!isAdmin();$("bdel").hidden=!isAdmin();
+ $("tabY").hidden=!isAdmin();$("mY").hidden=!isAdmin();$("uadd").hidden=!isAdmin();$("bdel").hidden=!isAdmin();
  $("urunDL").innerHTML=katalog.map(u=>`<option value="${esc(u.ad)}">`).join("");
  renderBulk();renderTaraG();if(tab==="tara")renderTara();renderToday();renderTeklif();renderSiparis();renderTahsilat();renderUrun();
  if(tab==="analiz")renderAnaliz();if(tab==="yonetim")renderYonetim();
@@ -479,7 +571,7 @@ function sleepers(){const lim=+ayar.uyku||60;return data.filter(x=>x.durum==="M�
 function lateOrders(){const out=[];data.forEach(x=>arr(x.siparis).forEach((s,i)=>{if(s.teslim&&s.teslim<today()&&!["Teslim edildi","İptal"].includes(s.durum))out.push({x,s,i})}));return out}
 function renderToday(){
  const{a,b,c}=todayLists(),sl=sleepers(),lo=lateOrders();
- const n=a.length+b.length;$("bd").hidden=!n;$("bd").textContent=n;
+ const n=a.length+b.length;$("bd").hidden=!n;$("bd").textContent=n;$("bd2").hidden=!n;$("bd2").textContent=n;
  const sec=(h,l,cls)=>l.length?`<h4 class="${cls||""}">${h} (${l.length})</h4>`+l.map(x=>card(x)).join(""):"";
  let h=sec("Geciken aramalar",a,"warn")+sec("Bugün aranacaklar",b)+sec("Önümüzdeki 7 gün",c);
  if(lo.length)h+=`<h4 class="warn">Teslimi geciken siparişler (${lo.length})</h4>`+lo.map(o=>`<div class="card"><b>${esc(o.x.firma)}</b> • ${esc(o.s.no||"")} • teslim ${fd(o.s.teslim)} • <b>${esc(o.s.durum)}</b></div>`).join("");
@@ -608,10 +700,16 @@ async function backupNow(manual){
 }
 
 /* ================= sekmeler ================= */
-$("tabs").onclick=e=>{const b=e.target.closest("[data-t]");if(!b)return;tab=b.dataset.t;
- document.querySelectorAll("#tabs button").forEach(x=>x.classList.toggle("on",x===b));
- document.querySelectorAll(".sec").forEach(s=>s.classList.toggle("on",s.id==="s-"+tab));
- if(tab==="analiz")renderAnaliz();if(tab==="yonetim")renderYonetim();if(tab==="tara"){renderTara();taraMapInit()}};
+const NAVOF={tara:"tara",liste:"liste",bugun:"bugun",teklif:"satis",siparis:"satis",tahsilat:"satis",analiz:"diger",urun:"diger",yonetim:"diger",diger:"diger"};
+function go(t){
+ tab=t;document.querySelectorAll(".sec").forEach(s=>s.classList.toggle("on",s.id==="s-"+t));
+ document.querySelectorAll(".bnav button").forEach(b=>b.classList.toggle("on",b.dataset.go===NAVOF[t]));
+ document.querySelectorAll(".subnav button").forEach(b=>b.classList.toggle("on",b.dataset.go===t));
+ window.scrollTo(0,0);
+ if(t==="analiz")renderAnaliz();if(t==="yonetim")renderYonetim();if(t==="tara")renderTara();
+ $("tselbar").hidden=!(t==="tara"&&tSel.size);
+}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-t],[data-go]");if(!b)return;let t=b.dataset.go||b.dataset.t;if(t==="satis")t="teklif";go(t)});
 
 /* ================= kayıt formu ================= */
 let fotoState=null,fotoData=null;
@@ -976,30 +1074,16 @@ async function startSync(u){
 }
 
 /* ================= ÇEVREDE TARA ================= */
-const TSEK=[
- {k:"market",ad:"Market",sek:"Market",osm:[["shop","^(supermarket|convenience|grocery|general)$"]],g:["market"]},
- {k:"manav",ad:"Manav",sek:"Manav",osm:[["shop","^greengrocer$"]],g:["manav"]},
- {k:"kasap",ad:"Kasap",sek:"Kasap",osm:[["shop","^(butcher|seafood)$"]],g:["kasap"]},
- {k:"firin",ad:"Fırın / Pastane",sek:"Fırın/Pastane",osm:[["shop","^(bakery|pastry|confectionery)$"]],g:["fırın pastane"]},
- {k:"durum",ad:"Dürümcü / Kebap / Fast food",sek:"Dürümcü/Restoran",osm:[["amenity","^fast_food$"]],g:["dürüm kebap"]},
- {k:"restoran",ad:"Restoran / Lokanta",sek:"Dürümcü/Restoran",osm:[["amenity","^restaurant$"]],g:["restoran lokanta"]},
- {k:"kafe",ad:"Kafe",sek:"Kafe",osm:[["amenity","^cafe$"]],g:["kafe"]},
- {k:"kuruyemis",ad:"Kuruyemiş / Şarküteri",sek:"Kuruyemiş/Şarküteri",osm:[["shop","^(nuts|deli|cheese|spices|tea|coffee|dairy)$"]],g:["kuruyemiş şarküteri"]},
- {k:"eczane",ad:"Eczane",sek:"Eczane",osm:[["amenity","^pharmacy$"]],g:["eczane"]},
- {k:"bufe",ad:"Büfe / Tekel",sek:"Büfe/Tekel",osm:[["shop","^(kiosk|alcohol|tobacco|beverages)$"]],g:["tekel büfe"]},
- {k:"giyim",ad:"Giyim / Ayakkabı",sek:"Tekstil/Konfeksiyon",osm:[["shop","^(clothes|fabric|shoes|boutique|bag|textiles)$"]],g:["giyim mağazası"]},
- {k:"hirdavat",ad:"Hırdavat / Nalbur",sek:"Hırdavat",osm:[["shop","^(hardware|doityourself|trade)$"]],g:["nalbur hırdavat"]},
- {k:"toptan",ad:"Toptancı / Depo",sek:"Toptancı",osm:[["shop","^wholesale$"],["industrial","^warehouse$"]],g:["toptancı"]}
-];
 const LCSS="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",LJS="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
 let tara=lsJ("mag_tara",null)||{};tara={c:null,r:2,sek:["market","manav","kasap","durum"],res:[],...tara};
+let tSek=new Set(tara.sek),tview="l";
 let tmap=null,tLayer=null,tSel=new Set(),gAuthErr="",gLimitHit=false,gLib=null,gCloud=0;
 const hav=(a,b,c,d)=>{const t=Math.PI/180,x=Math.sin((c-a)*t/2)**2+Math.cos(a*t)*Math.cos(c*t)*Math.sin((d-b)*t/2)**2;return 12742*Math.asin(Math.sqrt(x))};
 const secAd=k=>(TSEK.find(s=>s.k===k)||{ad:"Ek arama"}).ad;
 const kmTxt=k=>k<1?Math.round(k*1000)+" m":k.toFixed(1).replace(".",",")+" km";
 function saveTara(){if(!ls.set("mag_tara",JSON.stringify(tara))){const t={...tara,res:tara.res.slice(0,300)};ls.set("mag_tara",JSON.stringify(t))}}
 function taraInitUI(){
- $("tsek").innerHTML=TSEK.map(s=>`<label class="chip"><input type="checkbox" value="${s.k}" ${tara.sek.includes(s.k)?"checked":""}> ${s.ad}</label>`).join("");
+ sekSummary();document.querySelectorAll("#trseg button").forEach(b=>b.classList.toggle("on",+b.dataset.r===+tara.r));
  $("trad").value=String(tara.r);$("tkw").value=tara.kw||"";
  $("tcen").textContent=tara.c?`${tara.c.ad||"Seçilen nokta"} (${tara.c.lat.toFixed(4)}, ${tara.c.lon.toFixed(4)})`:"henüz seçilmedi";
 }
@@ -1008,7 +1092,23 @@ function renderTaraG(){
  $("tosmL").textContent=ayar.geoKey?"OpenStreetMap (Geoapify, ücretsiz)":"OpenStreetMap (ücretsiz, yavaş olabilir)";
  $("tgooN").textContent=(ayar.geoKey?"":"İpucu: ⚙ Ayarlar'a ücretsiz Geoapify anahtarı girersen tarama çok daha güvenilir çalışır. ")+(k?`Google: bu ay ${gUsed()} / ${+ayar.gLimit||900} sorgu kullanıldı.`:"Google Haritalar kapalı (anahtar girilince açılır, daha çok telefon verir).");
 }
-function tAll(e){e.preventDefault();const b=[...$("tsek").querySelectorAll("input")],on=b.some(i=>!i.checked);b.forEach(i=>i.checked=on)}
+function sekSummary(){const l=TSEK.filter(s=>tSek.has(s.k)).map(s=>s.ad);$("tsekN").textContent=l.length;$("tsekS").textContent=l.length?l.slice(0,3).join(", ")+(l.length>3?" +"+(l.length-3)+" diğer":""):"Seçmek için dokun"}
+function openSek(){$("ssq").value="";renderSek();dlgS.showModal()}
+function renderSek(){
+ const q=$("ssq").value.toLocaleLowerCase("tr"),grs=[...new Set(TSEK.map(s=>s.gr))];
+ $("slst").innerHTML=grs.map(g=>{const l=TSEK.filter(s=>s.gr===g&&(!q||(s.ad+" "+s.gr).toLocaleLowerCase("tr").includes(q)));if(!l.length)return"";const all=l.every(s=>tSek.has(s.k));
+  return `<div class="sgh"><span>${esc(g)}</span><button type="button" data-sg="${esc(g)}">${all?"Grubu kaldır":"Grubun hepsi"}</button></div>`+l.map(s=>`<button type="button" class="srow ${tSek.has(s.k)?"on":""}" data-sk="${s.k}"><span>${esc(s.ad)}</span><span class="sv">${tSek.has(s.k)?"SEÇİLİ":""}</span></button>`).join("")}).join("")||'<p class="mu">Bulunamadı. Aradığını "Gelişmiş seçenekler → Ek arama kelimesi"ne yazabilirsin.</p>';
+ $("ssN").textContent=tSek.size;
+}
+$("ssq").oninput=renderSek;
+document.addEventListener("click",e=>{
+ const r=e.target.closest("[data-sk]");if(r){const k=r.dataset.sk;tSek.has(k)?tSek.delete(k):tSek.add(k);renderSek();return}
+ const g=e.target.closest("[data-sg]");if(g){const q=$("ssq").value.toLocaleLowerCase("tr"),l=TSEK.filter(s=>s.gr===g.dataset.sg&&(!q||(s.ad+" "+s.gr).toLocaleLowerCase("tr").includes(q))),all=l.every(s=>tSek.has(s.k));l.forEach(s=>all?tSek.delete(s.k):tSek.add(s.k));renderSek();return}
+ const c=e.target.closest("[data-rsel]");if(c&&!e.target.closest("a,button,input,select,summary,label")){const id=c.dataset.rsel;tSel.has(id)?tSel.delete(id):tSel.add(id);renderTara()}
+ const rb=e.target.closest("#trseg [data-r]");if(rb){$("trad").value=rb.dataset.r;tara.r=+rb.dataset.r;saveTara();taraInitUI();taraMapDraw(true)}
+});
+function sekDone(){tara.sek=[...tSek];saveTara();sekSummary();dlgS.close()}
+function setTView(v){tview=v;document.querySelectorAll("#tview button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));$("tres").hidden=v!=="l";$("tfil").hidden=v!=="l";$("tmapBox").hidden=v!=="m";if(v==="m")taraMapInit()}
 function setCenter(lat,lon,ad){tara.c={lat,lon,ad:ad||""};saveTara();taraInitUI();taraMapDraw(true)}
 function geoMe(){
  if(!navigator.geolocation){alert("Bu cihaz konum vermiyor. Adres yaz veya haritaya tıkla.");return}
@@ -1041,26 +1141,25 @@ function taraMapDraw(fit){
  if(fit)tmap.setView([tara.c.lat,tara.c.lon],zoomFor(r));
 }
 /* --- Geoapify (OpenStreetMap verisi, ücretsiz anahtar) --- */
-const GEO={market:["commercial.supermarket","commercial.convenience"],manav:["commercial.food_and_drink.fruit_and_vegetable"],kasap:["commercial.food_and_drink.butcher"],firin:["commercial.food_and_drink.bakery","commercial.food_and_drink.confectionery"],durum:["catering.fast_food"],restoran:["catering.restaurant"],kafe:["catering.cafe"],kuruyemis:["commercial.food_and_drink.nuts","commercial.food_and_drink.deli"],eczane:["healthcare.pharmacy"],bufe:["commercial.kiosk"],giyim:["commercial.clothing"],hirdavat:["commercial.houseware_and_hardware.hardware_and_tools","commercial.houseware_and_hardware.doityourself"]};
+const GEO_OLD={market:["commercial.supermarket","commercial.convenience"],manav:["commercial.food_and_drink.fruit_and_vegetable"],kasap:["commercial.food_and_drink.butcher"],firin:["commercial.food_and_drink.bakery","commercial.food_and_drink.confectionery"],durum:["catering.fast_food"],restoran:["catering.restaurant"],kafe:["catering.cafe"],kuruyemis:["commercial.food_and_drink.nuts","commercial.food_and_drink.deli"],eczane:["healthcare.pharmacy"],bufe:["commercial.kiosk"],giyim:["commercial.clothing"],hirdavat:["commercial.houseware_and_hardware.hardware_and_tools","commercial.houseware_and_hardware.doityourself"]};
+async function geoGet(cats,c,rKm,off){
+ const u=`https://api.geoapify.com/v2/places?categories=${cats.join(",")}&filter=circle:${c.lon},${c.lat},${Math.round(rKm*1000)}&bias=proximity:${c.lon},${c.lat}&limit=200&offset=${off}&lang=tr&apiKey=${encodeURIComponent(ayar.geoKey)}`;
+ const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),30000);let r;
+ try{r=await fetch(u,{signal:ac.signal})}catch(e){throw new Error(e.name==="AbortError"?"30 sn içinde yanıt vermedi":"bağlantı kurulamadı")}finally{clearTimeout(tm)}
+ if(!r.ok){const e=new Error(r.status===401||r.status===403?"anahtar geçersiz veya izin yok":r.status===429?"günlük ücretsiz sınır doldu":"yanıt "+r.status);e.status=r.status;throw e}
+ return(await r.json()).features||[];
+}
 async function geoapifySearch(c,rKm,secs){
- const cats=[...new Set(secs.flatMap(s=>GEO[s.k]||[]))];if(!cats.length)return[];
- const out=[];
- for(let off=0;off<1000;off+=200){
-  $("tstat").textContent=`Geoapify'da aranıyor… (${out.length})`;
-  const u=`https://api.geoapify.com/v2/places?categories=${cats.join(",")}&filter=circle:${c.lon},${c.lat},${Math.round(rKm*1000)}&bias=proximity:${c.lon},${c.lat}&limit=200&offset=${off}&lang=tr&apiKey=${encodeURIComponent(ayar.geoKey)}`;
-  const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),30000);let r;
-  try{r=await fetch(u,{signal:ac.signal})}catch(e){throw new Error(e.name==="AbortError"?"30 sn içinde yanıt vermedi":"bağlantı kurulamadı")}finally{clearTimeout(tm)}
-  if(!r.ok)throw new Error(r.status===401||r.status===403?"anahtar geçersiz veya izin yok":r.status===429?"günlük ücretsiz sınır doldu":"yanıt "+r.status);
-  const f=(await r.json()).features||[];
-  f.forEach(ft=>{const p=ft.properties||{},raw=(p.datasource&&p.datasource.raw)||{};if(!p.name)return;const cs=p.categories||[];
-   const s=secs.find(s=>(GEO[s.k]||[]).some(k=>cs.some(x=>x===k||x.startsWith(k+"."))));
-   out.push({id:"a"+(raw.osm_id||p.place_id),ad:p.name,sek:s?s.k:"ozel",lat:p.lat,lon:p.lon,
+ const cats=[...new Set(secs.flatMap(s=>s.geo||[]))];if(!cats.length)return[];
+ let feats=[];
+ const pull=async cs=>{const o=[];for(let off=0;off<1000;off+=200){const f=await geoGet(cs,c,rKm,off);o.push(...f);$("tstat").textContent=`Geoapify'da aranıyor… (${feats.length+o.length})`;if(f.length<200)break}return o};
+ try{feats=await pull(cats)}catch(e){if(e.status!==400)throw e;for(const ct of cats){try{feats.push(...await pull([ct]))}catch(e2){if(e2.status!==400)throw e2}}}
+ return feats.map(ft=>{const p=ft.properties||{},raw=(p.datasource&&p.datasource.raw)||{};if(!p.name)return null;const cs=p.categories||[];
+   const s=secs.find(s=>(s.geo||[]).some(k=>cs.some(x=>x===k||x.startsWith(k+"."))));
+   return{id:"a"+(raw.osm_id||p.place_id),ad:p.name,sek:s?s.k:"ozel",lat:p.lat,lon:p.lon,
     adres:[p.suburb,p.street&&(p.street+(p.housenumber?" No:"+p.housenumber:""))].filter(Boolean).join(", "),
     il:[p.city||p.county||p.district,p.state].filter((v,i,a)=>v&&a.indexOf(v)===i).join(" / "),
-    tel:(p.contact&&p.contact.phone)||raw.phone||raw["contact:phone"]||raw["contact:mobile"]||"",web:p.website||raw.website||raw["contact:website"]||"",src:["OSM"]})});
-  if(f.length<200)break;
- }
- return out;
+    tel:(p.contact&&p.contact.phone)||raw.phone||raw["contact:phone"]||raw["contact:mobile"]||"",web:p.website||raw.website||raw["contact:website"]||"",src:["OSM"]}}).filter(Boolean);
 }
 /* --- OpenStreetMap (Overpass) --- */
 async function ovFetch(ep,q,ms){
@@ -1133,8 +1232,8 @@ function mergeRes(list){
 }
 async function doScan(){
  if(!tara.c){alert("Önce merkez seç: 📍 Konumumu kullan, adres yaz ya da haritaya tıkla.");return}
- const ks=[...$("tsek").querySelectorAll("input:checked")].map(i=>i.value),secs=TSEK.filter(s=>ks.includes(s.k)),kw=$("tkw").value.trim();
- if(!secs.length&&!kw){alert("En az bir sektör seç veya ek arama kelimesi yaz.");return}
+ const ks=[...tSek],secs=TSEK.filter(s=>ks.includes(s.k)),kw=$("tkw").value.trim();
+ if(!secs.length&&!kw){alert("En az bir sektör seç (3. adım) veya gelişmiş seçeneklerden arama kelimesi yaz.");openSek();return}
  const rKm=+$("trad").value,useG=$("tgoo").checked&&!!ayar.googleKey,useO=$("tosm").checked,detay=$("tdet").checked;
  if(!useG&&!useO){alert("En az bir kaynak seç (OpenStreetMap veya Google).");return}
  gLimitHit=false;
@@ -1144,14 +1243,14 @@ async function doScan(){
  tara.r=rKm;tara.sek=ks;tara.kw=kw;$("tbtn").disabled=true;
  const all=[],hata=[];
  if(useG&&gLeft()>0){try{$("tstat").textContent="Google'da aranıyor…";all.push(...await gSearch(tara.c,rKm,secs,kw,detay))}catch(e){hata.push("Google: "+(gAuthErr||e.message))}}
- if(useO){let done=false;
-  if(ayar.geoKey){try{all.push(...await geoapifySearch(tara.c,rKm,secs));done=true;if(kw)hata.push("Ek kelime yalnızca Google ve yedek sunucuda aranır")}catch(e){hata.push("Geoapify: "+e.message+" — yedek sunucu deneniyor")}}
-  if(!done){try{$("tstat").textContent="OpenStreetMap'te aranıyor…";all.push(...await osmSearch(tara.c,rKm,secs,kw))}catch(e){hata.push("OpenStreetMap: "+e.message)}}}
+ if(useO){let rest=secs;
+  if(ayar.geoKey){const gs=secs.filter(s=>(s.geo||[]).length);if(gs.length){try{all.push(...await geoapifySearch(tara.c,rKm,gs));rest=secs.filter(s=>!(s.geo||[]).length)}catch(e){hata.push("Geoapify: "+e.message+" — yedek sunucu denendi")}}}
+  if(rest.length||kw){try{$("tstat").textContent="OpenStreetMap'te aranıyor…";all.push(...await osmSearch(tara.c,rKm,rest,kw))}catch(e){hata.push("OpenStreetMap: "+e.message)}}}
  all.forEach(p=>p.km=hav(tara.c.lat,tara.c.lon,p.lat,p.lon));
  tara.res=mergeRes(all.filter(p=>p.km<=rKm*1.02)).sort((a,b)=>a.km-b.km);tara.t=Date.now();tSel.clear();saveTara();
  $("tbtn").disabled=false;
  $("tstat").textContent=(hata.length&&!tara.res.length?"⚠ Tarama yapılamadı. ":`✔ ${tara.res.length} işletme bulundu (${kmTxt(rKm)} içinde)`)+(gLimitHit?" • Google aylık sınırına ulaşıldı":"")+(hata.length?" • Sorun: "+hata.join(" | "):"");
- logEv(`Tarama: ${kmTxt(rKm)}, ${tara.res.length} sonuç`,tara.c.ad||"");renderTaraG();renderTara();taraMapDraw();
+ logEv(`Tarama: ${kmTxt(rKm)}, ${tara.res.length} sonuç`,tara.c.ad||"");renderTaraG();renderTara();taraMapDraw();if(tara.res.length)$("tview").scrollIntoView({behavior:"smooth"});
 }
 const inList=p=>findDup({firma:p.ad,telefon:p.tel},null);
 function taraFiltered(){
@@ -1165,16 +1264,18 @@ function renderTara(){
  $("tfs").innerHTML='<option value="">Tüm sektörler</option>'+ks.map(k=>`<option value="${k}">${esc(secAd(k))} (${res.filter(p=>p.sek===k).length})</option>`).join("");$("tfs").value=ks.includes(cur)?cur:"";
  const l=taraFiltered();
  $("tst").innerHTML=res.length?[["Bulunan",res.length],["Telefonu olan",res.filter(p=>p.tel).length],["Zaten listede",res.filter(p=>inList(p)).length],["Gösterilen",l.length]].map(a=>`<div class="st"><b>${a[1]}</b><span>${a[0]}</span></div>`).join(""):"";
- $("tres").innerHTML=!res.length?`<div class="empty">${tara.t?"Bu alanda seçilen sektörlerde işletme bulunamadı. Mesafeyi büyüt veya başka sektör seç.":"Merkez seç, mesafe ve sektörleri belirle, sonra 🔍 Tara'ya bas."}</div>`:
+ $("tres").innerHTML=!res.length?`<div class="empty">${tara.t?"Bu alanda seçilen sektörlerde işletme bulunamadı. Mesafeyi büyüt veya başka sektör seç.":"1-2-3 adımlarını seç, sonra 🔍 Tara'ya bas."}</div>`:
+  `<div class="mu" style="margin:0 2px 8px">Seçmek için karta dokun; seçilenleri alttaki çubuktan listene ekle.</div>`+
   l.slice(0,400).map(p=>{const d=inList(p),mu=p.gUrl&&/^https:/.test(p.gUrl)?p.gUrl:"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(p.ad+" "+p.lat+","+p.lon);
-  return `<div class="card"><h3>${d?"":`<input type="checkbox" class="ck" data-tsel="${esc(p.id)}" ${tSel.has(p.id)?"checked":""}>`}${esc(p.ad)} <span class="mu">• ${kmTxt(p.km)}</span></h3>
-  <span class="tag">${esc(secAd(p.sek))}</span>${p.src.map(s=>`<span class="tag">${s}</span>`).join("")}${p.puan?`<span class="tag">★ ${p.puan} (${p.puanN} yorum)</span>`:""}${d?`<span class="tag ok">✔ Listende: ${esc(d.firma)}</span>`:""}
+  return `<div class="card ${d?"":"rcard"} ${tSel.has(p.id)?"sel":""}" ${d?"":`data-rsel="${esc(p.id)}"`}><div class="rhd"><b>${esc(p.ad)}</b><span class="rkm">${kmTxt(p.km)}</span></div>
+  <div class="mu">${esc(secAd(p.sek))}${p.tel?" • "+esc(p.tel):""}${p.puan?" • ★ "+p.puan+" ("+p.puanN+")":""}</div>
   <div class="mu">${esc([p.adres,p.il].filter(Boolean).join(", "))}</div>
-  <div class="row">${p.tel?`<a class="btn" href="tel:${digits(p.tel)}">📞 ${esc(p.tel)}</a>`:'<span class="mu">Telefon bilinmiyor</span>'}${/^https?:/i.test(p.web)?`<a class="btn" target="_blank" rel="noopener" href="${esc(p.web)}">Web</a>`:""}<a class="btn" target="_blank" rel="noopener" href="${esc(mu)}">Haritada</a>${d?"":`<button class="p" data-a="tadd" data-i="${esc(p.id)}">+ Listeye ekle</button>`}</div></div>`}).join("")+(l.length>400?`<div class="mu">İlk 400 gösteriliyor; filtreleri daralt.</div>`:"");
- $("tselN").textContent=tSel.size;
+  ${d?`<span class="tag ok">✔ Listende: ${esc(d.firma)}</span>`:""}${tSel.has(p.id)?'<span class="tag" style="background:var(--pr);color:var(--on)">SEÇİLDİ</span>':""}
+  <div class="row">${p.tel?`<a class="btn" href="tel:${digits(p.tel)}">📞 Ara</a>`:'<span class="mu">Telefon bilinmiyor</span>'}${/^https?:/i.test(p.web)?`<a class="btn" target="_blank" rel="noopener" href="${esc(p.web)}">Web</a>`:""}<a class="btn" target="_blank" rel="noopener" href="${esc(mu)}">Haritada</a>${d?"":`<button class="p" data-a="tadd" data-i="${esc(p.id)}">+ Ekle</button>`}</div></div>`}).join("")+(l.length>400?`<div class="mu">İlk 400 gösteriliyor; filtreleri daralt.</div>`:"");
+ $("tselN").textContent=tSel.size;$("tselbar").hidden=!(tSel.size&&tab==="tara");
 }
 ["tfs","ttel","tnew","tq","tso"].forEach(i=>$(i).addEventListener("input",()=>{renderTara();taraMapDraw()}));
-function toLead(p){const s=TSEK.find(s=>s.k===p.sek);return{id:uid_(),c:Date.now(),firma:p.ad,yetkili:"",sektor:s?s.sek:"Diğer",il:p.il||"",adres:p.adres||"",telefon:p.tel||"",eposta:"",web:p.web||"",durum:"Yeni",izin:"Yok",oncelik:"",kaynak:"Tarama ("+p.src.join("+")+")",konum:{lat:p.lat,lon:p.lon},mesafe:Math.round(p.km*100)/100,puan:p.puan||null,sonraki:"",not:""}}
+function toLead(p){const s=TSEK.find(s=>s.k===p.sek);return{id:uid_(),c:Date.now(),firma:p.ad,yetkili:"",sektor:s?s.ad:"Diğer",il:p.il||"",adres:p.adres||"",telefon:p.tel||"",eposta:"",web:p.web||"",durum:"Yeni",izin:"Yok",oncelik:"",kaynak:"Tarama ("+p.src.join("+")+")",konum:{lat:p.lat,lon:p.lon},mesafe:Math.round(p.km*100)/100,puan:p.puan||null,sonraki:"",not:""}}
 A.tadd=(id,i)=>{const p=tara.res.find(x=>x.id===i);if(p){put(toLead(p));renderTara();taraMapDraw()}};
 function taraSelAll(){taraFiltered().filter(p=>!inList(p)).forEach(p=>tSel.add(p.id));renderTara()}
 function taraAddSel(){const l=tara.res.filter(p=>tSel.has(p.id)&&!inList(p));if(!l.length){alert("Seçili yeni firma yok. Kartlardaki kutucukları işaretle.");return}putMany(l.map(toLead),"Taramadan listeye eklendi");tSel.clear();renderTara();taraMapDraw();alert(l.length+" firma müşteri listene eklendi.")}
@@ -1197,7 +1298,7 @@ document.querySelectorAll("dialog").forEach(d=>{let dn=false;
  d.addEventListener("mousedown",e=>{dn=e.target===d&&out(e)});
  d.addEventListener("click",e=>{if(dn&&e.target===d&&out(e)){if(d===dlgG)recStop(true);d.close()}dn=false});
 });
-render();taraMapInit();initCloud();
+render();initCloud();
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 setTimeout(()=>{if(!root)notifyToday()},2500);setInterval(()=>notifyToday(),36e5);
 </script></body></html>

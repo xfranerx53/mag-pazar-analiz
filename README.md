@@ -53,6 +53,14 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
 4. Tarama artık önce Geoapify'ı kullanır; hata olursa otomatik yedek sunuculara geçer.
 - v5.1 (29.10.2026): Overpass için 4 yedek sunucu + 35 sn zaman aşımı + açık hata mesajı; Geoapify desteği; haritaya dokununca merkez değişmeden önce onay; GPS hassasiyeti gösterimi.
 
+- **v6 (29.10.2026) — kullanım kolaylığı**
+  - Sektörler 6 grupta 49 başlık: Gıda perakende, Yeme-içme, Mağazalar, **Sanayi / Toptan (Fabrika, Atölye, Toptancı, Depo/Lojistik, Ambalaj, Matbaa, Hırdavat, Tarım, Oto, Akaryakıt)**, Hizmet. Seçim aranabilir liste penceresinde (tik kutusu yok), grup grup seçilebilir.
+  - Alt menü: Tara • Liste • Bugün • Satış (Teklif/Sipariş/Tahsilat) • Diğer (Analiz, Ürünler, Ayarlar, Bulut, Yönetim, Tema).
+  - Tarama 3 adım: Nerede? (konum/adres) → Ne kadar uzağa? (düğmeler) → Hangi işletmeler? (liste). Gelişmiş seçenekler katlanır.
+  - Sonuçlar: Liste / Harita geçişi, karta dokunarak seçme, alttaki çubukla toplu listeye ekleme / rota.
+  - Müşteri listesinde filtreler ve içe/dışa aktarma katlanır menüde; kartta az kullanılanlar "⋯ Diğer işlemler" altında.
+  - Geoapify geçersiz kategori hatasında kategorileri tek tek dener; Geoapify'da olmayan sektörler (Ambalaj, Akaryakıt) ve ek kelime OpenStreetMap yedek sunucusundan aranır.
+
 ## Google Haritalar anahtarı nasıl alınır (isteğe bağlı)
 1. console.cloud.google.com → yeni proje (veya mevcut `mag-pazar` Firebase projesi).
 2. Faturalandırma hesabı bağla (kart ister; aylık ücretsiz kota aşılmadıkça ücret çıkmaz). Places "Enterprise" alanları (telefon, web, puan) için ayda yaklaşık 1.000 sorgu ücretsiz; her sorgu en çok 20 işletme getirir.
