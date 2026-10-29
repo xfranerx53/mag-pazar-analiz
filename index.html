@@ -286,7 +286,7 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <div class="g2"><div><label>"Uyuyan müşteri" sınırı (gün)</label><input id="a_uyku" type="number" min="7"></div></div>
 <h4>Google Haritalar taraması</h4>
 <p class="mu">Anahtar yoksa tarama yalnızca ücretsiz OpenStreetMap ile yapılır. Anahtar alma adımları README.md içinde.</p>
-<div class="g2"><div><label>Geoapify anahtarı (ücretsiz, kart yok — önerilen)</label><input id="a_geo" placeholder="Geoapify API key"></div><div></div><div><label>Google API anahtarı</label><input id="a_gkey" placeholder="AIza..."></div><div><label>Aylık Google sorgu sınırı</label><input id="a_glim" type="number" min="0"></div></div>
+<div class="g2"><div><label>Geoapify anahtarı (ücretsiz, kart yok — önerilen)</label><input id="a_geo" placeholder="Geoapify API key"></div><div><label>&nbsp;</label><button type="button" onclick="geoTest()">Anahtarı test et</button> <span class="mu" id="geoT"></span></div><div><label>Google API anahtarı</label><input id="a_gkey" placeholder="AIza..."></div><div><label>Aylık Google sorgu sınırı</label><input id="a_glim" type="number" min="0"></div></div>
 <h4>Satış ve pazar hesapları</h4>
 <div class="g3"><div><label>Ort. poşet satış fiyatı (₺/kg)</label><input id="a_kgf" type="number" step="0.01"></div><div><label>Hedef kâr marjı (% satış fiyatı)</label><input id="a_marj" type="number"></div><div><label>Varsayılan sipariş aralığı (gün)</label><input id="a_sipa" type="number"></div>
 <div><label>Numune dönüş süresi (gün)</label><input id="a_numg" type="number"></div></div>
@@ -359,12 +359,12 @@ const TSEK=[
  {gr:"Sanayi / Toptan",k:"atolye",ad:"Atölye / İmalathane",geo:["service.carpenter","service.blacksmith"],osm:[["craft","."]],g:["atölye imalathane"]},
  {gr:"Sanayi / Toptan",k:"toptan",ad:"Toptancı",geo:["commercial.trade"],osm:[["shop","^(wholesale|trade)$"]],g:["toptancı"]},
  {gr:"Sanayi / Toptan",k:"depo",ad:"Depo / Lojistik / Kargo",geo:["office.logistics"],osm:[["industrial","^(warehouse|logistics)$"],["office","^(logistics|courier)$"]],g:["lojistik depo"]},
- {gr:"Sanayi / Toptan",k:"ambalaj",ad:"Ambalaj / Plastik",geo:[],osm:[["shop","^packaging$"]],g:["ambalaj plastik"]},
+ {gr:"Sanayi / Toptan",k:"ambalaj",ad:"Ambalaj / Plastik",geo:[],geoAd:["ambalaj","plastik","poşet"],osm:[["shop","^packaging$"]],g:["ambalaj plastik"]},
  {gr:"Sanayi / Toptan",k:"matbaa",ad:"Matbaa / Reklam",geo:["service.advertising","office.advertising_agency"],osm:[["craft","^printer$"],["shop","^copyshop$"]],g:["matbaa"]},
  {gr:"Sanayi / Toptan",k:"hirdavat",ad:"Hırdavat / Nalbur / Yapı",geo:["commercial.houseware_and_hardware.hardware_and_tools","commercial.houseware_and_hardware.doityourself","commercial.houseware_and_hardware.building_materials"],osm:[["shop","^(hardware|doityourself|paint|tiles|building_materials)$"]],g:["nalbur"]},
  {gr:"Sanayi / Toptan",k:"tarim",ad:"Tarım / Zirai",geo:["commercial.agrarian"],osm:[["shop","^agrarian$"]],g:["zirai ilaç"]},
  {gr:"Sanayi / Toptan",k:"oto",ad:"Oto / Yedek parça / Servis",geo:["commercial.vehicle"],osm:[["shop","^(car_parts|car|car_repair|tyres)$"]],g:["oto yedek parça"]},
- {gr:"Sanayi / Toptan",k:"akaryakit",ad:"Akaryakıt istasyonu",geo:[],osm:[["amenity","^fuel$"]],g:["benzin istasyonu"]},
+ {gr:"Sanayi / Toptan",k:"akaryakit",ad:"Akaryakıt istasyonu",geo:["service.vehicle.fuel"],osm:[["amenity","^fuel$"]],g:["benzin istasyonu"]},
  {gr:"Hizmet",k:"kuafor",ad:"Kuaför / Güzellik",geo:["service.beauty"],osm:[["shop","^(hairdresser|beauty)$"]],g:["kuaför"]},
  {gr:"Hizmet",k:"temizleme",ad:"Kuru temizleme / Çamaşırhane",geo:["service.cleaning"],osm:[["shop","^(dry_cleaning|laundry)$"]],g:["kuru temizleme"]},
  {gr:"Hizmet",k:"saglik",ad:"Klinik / Hastane / Diş",geo:["healthcare.clinic_or_praxis","healthcare.dentist","healthcare.hospital"],osm:[["amenity","^(clinic|dentist|hospital|doctors)$"]],g:["klinik"]},
@@ -935,7 +935,7 @@ function openAyar(){
  $("aAdm").hidden=!isAdmin();$("aSat").hidden=isAdmin();
  Object.entries(AF).forEach(([k,v])=>$(k).value=ayar.firma[v]||"");ayarLogo=ayar.firma.logo||"";$("a_lp").src=ayarLogo;$("a_lp").hidden=!ayarLogo;$("a_ld").hidden=!ayarLogo;$("a_logo").value="";
  $("h_g").value=ayar.hedef.gorusme||0;$("h_m").value=ayar.hedef.musteri||0;$("h_t").value=ayar.hedef.teklif||0;$("a_uyku").value=ayar.uyku||60;
- $("a_kgf").value=ayar.kgFiyat||"";$("a_marj").value=ayar.hedefMarj??25;$("a_sipa").value=ayar.sipAralik||30;$("a_numg").value=ayar.numuneGun||7;$("tukBox").innerHTML=TSEK.map(s=>`<div><label>${esc(s.ad)}</label><input type="number" min="0" data-tk="${s.k}" value="${tuk(s.k)}"></div>`).join("");$("a_gkey").value=ayar.googleKey||"";$("a_geo").value=ayar.geoKey||"";$("a_glim").value=ayar.gLimit||900;
+ $("a_kgf").value=ayar.kgFiyat||"";$("a_marj").value=ayar.hedefMarj??25;$("a_sipa").value=ayar.sipAralik||30;$("a_numg").value=ayar.numuneGun||7;$("tukBox").innerHTML=TSEK.map(s=>`<div><label>${esc(s.ad)}</label><input type="number" min="0" data-tk="${s.k}" value="${tuk(s.k)}"></div>`).join("");$("a_gkey").value=ayar.googleKey||"";$("a_geo").value=ayar.geoKey||"";$("geoT").textContent=ayar.geoKey?"Bugün bu cihazdan "+geoToday()+" Geoapify sorgusu yapıldı.":"";$("a_glim").value=ayar.gLimit||900;
  sw=clean(ayar.sablon);renderSl();dlgA.showModal();
 }
 function saveAyarForm(){
@@ -1185,24 +1185,36 @@ function taraMapDraw_eski(fit){
 }
 /* --- Geoapify (OpenStreetMap verisi, ücretsiz anahtar) --- */
 const GEO_OLD={market:["commercial.supermarket","commercial.convenience"],manav:["commercial.food_and_drink.fruit_and_vegetable"],kasap:["commercial.food_and_drink.butcher"],firin:["commercial.food_and_drink.bakery","commercial.food_and_drink.confectionery"],durum:["catering.fast_food"],restoran:["catering.restaurant"],kafe:["catering.cafe"],kuruyemis:["commercial.food_and_drink.nuts","commercial.food_and_drink.deli"],eczane:["healthcare.pharmacy"],bufe:["commercial.kiosk"],giyim:["commercial.clothing"],hirdavat:["commercial.houseware_and_hardware.hardware_and_tools","commercial.houseware_and_hardware.doityourself"]};
-async function geoGet(cats,c,rKm,off){
- const u=`https://api.geoapify.com/v2/places?categories=${cats.join(",")}&filter=circle:${c.lon},${c.lat},${Math.round(rKm*1000)}&bias=proximity:${c.lon},${c.lat}&limit=200&offset=${off}&lang=tr&apiKey=${encodeURIComponent(ayar.geoKey)}`;
+async function geoGet(cats,c,rKm,off,ad){
+ geoCount();const u=`https://api.geoapify.com/v2/places?categories=${cats.join(",")}${ad?"&name="+encodeURIComponent(ad):""}&filter=circle:${c.lon},${c.lat},${Math.round(rKm*1000)}&bias=proximity:${c.lon},${c.lat}&limit=200&offset=${off}&lang=tr&apiKey=${encodeURIComponent(ayar.geoKey)}`;
  const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),30000);let r;
  try{r=await fetch(u,{signal:ac.signal})}catch(e){throw new Error(e.name==="AbortError"?"30 sn içinde yanıt vermedi":"bağlantı kurulamadı")}finally{clearTimeout(tm)}
  if(!r.ok){const e=new Error(r.status===401||r.status===403?"anahtar geçersiz veya izin yok":r.status===429?"günlük ücretsiz sınır doldu":"yanıt "+r.status);e.status=r.status;throw e}
  return(await r.json()).features||[];
 }
-async function geoapifySearch(c,rKm,secs){
- const cats=[...new Set(secs.flatMap(s=>s.geo||[]))];if(!cats.length)return[];
- let feats=[];
- const pull=async cs=>{const o=[];for(let off=0;off<1000;off+=200){const f=await geoGet(cs,c,rKm,off);o.push(...f);$("tstat").textContent=`Geoapify'da aranıyor… (${feats.length+o.length})`;if(f.length<200)break}return o};
- try{feats=await pull(cats)}catch(e){if(e.status!==400)throw e;for(const ct of cats){try{feats.push(...await pull([ct]))}catch(e2){if(e2.status!==400)throw e2}}}
+const GENIS=["commercial","catering","production","office","service"];
+async function geoapifySearch(c,rKm,secs,kw){
+ const cats=[...new Set(secs.flatMap(s=>s.geo||[]))];
+ let feats=[];const tag=(l,k)=>{l.forEach(f=>f._sek=k);return l};
+ const pull=async(cs,ad)=>{const o=[];for(let off=0;off<1000;off+=200){const f=await geoGet(cs,c,rKm,off,ad);o.push(...f);$("tstat").textContent=`Geoapify'da aranıyor… (${feats.length+o.length})`;if(f.length<200)break}return o};
+ if(cats.length){try{feats=await pull(cats)}catch(e){if(e.status!==400)throw e;for(const ct of cats){try{feats.push(...await pull([ct]))}catch(e2){if(e2.status!==400)throw e2}}}}
+ for(const s of secs.filter(s=>s.geoAd))for(const ad of s.geoAd){try{feats.push(...tag(await pull(GENIS,ad),s.k))}catch(e){if(e.status!==400)throw e}}
+ if(kw){try{feats.push(...tag(await pull(GENIS,kw),"ozel"))}catch(e){if(e.status!==400)throw e}}
  return feats.map(ft=>{const p=ft.properties||{},raw=(p.datasource&&p.datasource.raw)||{};if(!p.name)return null;const cs=p.categories||[];
-   const s=secs.find(s=>(s.geo||[]).some(k=>cs.some(x=>x===k||x.startsWith(k+"."))));
+   const s=ft._sek?{k:ft._sek}:secs.find(s=>(s.geo||[]).some(k=>cs.some(x=>x===k||x.startsWith(k+"."))));
    return{id:"a"+(raw.osm_id||p.place_id),ad:p.name,sek:s?s.k:"ozel",lat:p.lat,lon:p.lon,
     adres:[p.suburb,p.street&&(p.street+(p.housenumber?" No:"+p.housenumber:""))].filter(Boolean).join(", "),
     il:[p.city||p.county||p.district,p.state].filter((v,i,a)=>v&&a.indexOf(v)===i).join(" / "),
     tel:(p.contact&&p.contact.phone)||raw.phone||raw["contact:phone"]||raw["contact:mobile"]||"",web:p.website||raw.website||raw["contact:website"]||"",src:["OSM"]}}).filter(Boolean);
+}
+const geoToday=()=>+ls.get("mag_geo_"+today())||0;
+function geoCount(){ls.set("mag_geo_"+today(),String(geoToday()+1))}
+async function geoTest(){
+ const k=$("a_geo").value.trim();if(!k){$("geoT").textContent="Önce anahtarı yapıştır.";return}
+ $("geoT").textContent="Deneniyor…";
+ try{const r=await fetch(`https://api.geoapify.com/v2/places?categories=commercial.supermarket&filter=circle:28.97,41.01,1000&limit=1&apiKey=${encodeURIComponent(k)}`);
+  $("geoT").textContent=r.ok?"✔ Anahtar çalışıyor (bugün bu cihazdan "+geoToday()+" sorgu; günlük ücretsiz hak 3.000 kredi)":r.status===401||r.status===403?"✖ Anahtar reddedildi: yanlış kopyalanmış olabilir ya da Geoapify'da 'izin verilen adres' kısıtlaması bu siteyi kapsamıyor.":r.status===429?"✖ Günlük ücretsiz sınır dolmuş, yarın sıfırlanır.":"✖ Geoapify yanıtı: "+r.status}
+ catch(e){$("geoT").textContent="✖ Geoapify'a ulaşılamadı (internet veya engel)."}
 }
 /* --- OpenStreetMap (Overpass) --- */
 async function ovFetch(ep,q,ms){
@@ -1286,13 +1298,15 @@ async function doScan(){
  tara.r=rKm;tara.sek=ks;tara.kw=kw;$("tbtn").disabled=true;
  const all=[],hata=[];
  if(useG&&gLeft()>0){try{$("tstat").textContent="Google'da aranıyor…";all.push(...await gSearch(tara.c,rKm,secs,kw,detay))}catch(e){hata.push("Google: "+(gAuthErr||e.message))}}
- if(useO){let rest=secs;
-  if(ayar.geoKey){const gs=secs.filter(s=>(s.geo||[]).length);if(gs.length){try{all.push(...await geoapifySearch(tara.c,rKm,gs));rest=secs.filter(s=>!(s.geo||[]).length)}catch(e){hata.push("Geoapify: "+e.message+" — yedek sunucu denendi")}}}
-  if(rest.length||kw){try{$("tstat").textContent="OpenStreetMap'te aranıyor…";all.push(...await osmSearch(tara.c,rKm,rest,kw))}catch(e){hata.push("OpenStreetMap: "+e.message)}}}
+ const bilgi=[];
+ if(useO){let geoOk=false;
+  if(ayar.geoKey){const n0=all.length,q0=geoToday();try{all.push(...await geoapifySearch(tara.c,rKm,secs,kw));geoOk=true;bilgi.push(`Geoapify ✓ ${all.length-n0} sonuç, ${geoToday()-q0} sorgu`)}catch(e){hata.push("Geoapify çalışmadı: "+e.message+(e.status===401||e.status===403?" → Ayarlar'daki anahtarı ve Geoapify'daki 'izin verilen adres' ayarını kontrol et":"")+". Yavaş yedek sunucu denendi")}}
+  else bilgi.push("Geoapify anahtarı yok (Diğer → Ayarlar) → yavaş ücretsiz sunucu kullanıldı");
+  if(!geoOk){try{$("tstat").textContent="OpenStreetMap'te aranıyor…";const n0=all.length;all.push(...await osmSearch(tara.c,rKm,secs,kw));bilgi.push(`Yedek sunucu ✓ ${all.length-n0} sonuç`)}catch(e){hata.push("OpenStreetMap: "+e.message)}}}
  all.forEach(p=>p.km=hav(tara.c.lat,tara.c.lon,p.lat,p.lon));
  tara.res=mergeRes(all.filter(p=>p.km<=rKm*1.02)).sort((a,b)=>a.km-b.km);markNew(ks,rKm);tara.t=Date.now();tSel.clear();saveTara();
  $("tbtn").disabled=false;
- $("tstat").textContent=(hata.length&&!tara.res.length?"⚠ Tarama yapılamadı. ":`✔ ${tara.res.length} işletme bulundu (${kmTxt(rKm)} içinde)`)+(gLimitHit?" • Google aylık sınırına ulaşıldı":"")+(hata.length?" • Sorun: "+hata.join(" | "):"");
+ $("tstat").textContent=(hata.length&&!tara.res.length?"⚠ Tarama yapılamadı. ":`✔ ${tara.res.length} işletme bulundu (${kmTxt(rKm)} içinde)`)+(bilgi.length?" • "+bilgi.join(" • "):"")+(gLimitHit?" • Google aylık sınırına ulaşıldı":"")+(hata.length?" • ⚠ "+hata.join(" | "):"");
  logEv(`Tarama: ${kmTxt(rKm)}, ${tara.res.length} sonuç`,tara.c.ad||"");renderTaraG();renderTara();taraMapDraw();if(tara.res.length)$("tview").scrollIntoView({behavior:"smooth"});
 }
 const inList=p=>findDup({firma:p.ad,telefon:p.tel},null);
