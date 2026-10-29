@@ -72,6 +72,8 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
 
 - **v7.1 (29.10.2026):** GitHub Pages'e taşındı. Giriş penceresinde "Beni hatırla" (oturum açık kalır, ad/e-posta dolu gelir, şifre tarayıcının şifre kasasında). Cihaz hafızası anahtarları "mpz:" ön ekiyle (aynı github.io adresindeki diğer programlarla karışmaz). API anahtarları buluttaki ayarlara da yazılır; bulutta yoksa cihazdaki korunur.
 
+- **v8 (29.10.2026) — kendi veri servisimiz:** Tarama ve adres/semt arama önce **mag-veri** deposundaki kendi OpenStreetMap verimizden yapılır (anahtarsız, kotasız, ücretsiz; haftalık otomatik güncelleme; parçalar telefonda önbelleğe alınır). Kendi verimiz yoksa sırayla Geoapify → yavaş ücretsiz sunucu. Ayarlar'da "Veri adresi" ve "Veriyi kontrol et". Kurulum: mag-veri deposundaki README.md. Geoapify anahtarı kutusuna bağlantı yapıştırılırsa anahtar otomatik ayıklanır; "AIza" ile başlamayan Google anahtarı kabul edilmez.
+
 ## Google Haritalar anahtarı nasıl alınır (isteğe bağlı)
 1. console.cloud.google.com → yeni proje (veya mevcut `mag-pazar` Firebase projesi).
 2. Faturalandırma hesabı bağla (kart ister; aylık ücretsiz kota aşılmadıkça ücret çıkmaz). Places "Enterprise" alanları (telefon, web, puan) için ayda yaklaşık 1.000 sorgu ücretsiz; her sorgu en çok 20 işletme getirir.

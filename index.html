@@ -284,6 +284,8 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <div class="g3"><div><label>Görüşme sayısı</label><input id="h_g" type="number" min="0"></div><div><label>Yeni müşteri</label><input id="h_m" type="number" min="0"></div>
 <div><label>Kabul edilen teklif ₺</label><input id="h_t" type="number" min="0"></div></div>
 <div class="g2"><div><label>"Uyuyan müşteri" sınırı (gün)</label><input id="a_uyku" type="number" min="7"></div></div>
+<h4>Kendi veri deposu</h4>
+<div class="g2"><div><label>Veri adresi (boş = varsayılan)</label><input id="a_veri" placeholder="https://xfranerx53.github.io/mag-veri/data/"></div><div><label>&nbsp;</label><button type="button" onclick="veriTest()">Veriyi kontrol et</button> <span class="mu" id="veriT"></span></div></div>
 <h4>Google Haritalar taraması</h4>
 <p class="mu">Anahtar yoksa tarama yalnızca ücretsiz OpenStreetMap ile yapılır. Anahtar alma adımları README.md içinde.</p>
 <div class="g2"><div><label>Geoapify anahtarı (ücretsiz, kart yok — önerilen)</label><input id="a_geo" placeholder="Sadece anahtar (örn: 7454…70d8)" oninput="geoFix()" onchange="geoFix()"></div><div><label>&nbsp;</label><button type="button" onclick="geoTest()">Anahtarı test et</button> <span class="mu" id="geoT"></span></div><div><label>Google API anahtarı</label><input id="a_gkey" placeholder="AIza..."></div><div><label>Aylık Google sorgu sınırı</label><input id="a_glim" type="number" min="0"></div></div>
@@ -938,7 +940,7 @@ function openAyar(){
  $("aAdm").hidden=!isAdmin();$("aSat").hidden=isAdmin();
  Object.entries(AF).forEach(([k,v])=>$(k).value=ayar.firma[v]||"");ayarLogo=ayar.firma.logo||"";$("a_lp").src=ayarLogo;$("a_lp").hidden=!ayarLogo;$("a_ld").hidden=!ayarLogo;$("a_logo").value="";
  $("h_g").value=ayar.hedef.gorusme||0;$("h_m").value=ayar.hedef.musteri||0;$("h_t").value=ayar.hedef.teklif||0;$("a_uyku").value=ayar.uyku||60;
- $("a_kgf").value=ayar.kgFiyat||"";$("a_marj").value=ayar.hedefMarj??25;$("a_sipa").value=ayar.sipAralik||30;$("a_numg").value=ayar.numuneGun||7;$("tukBox").innerHTML=TSEK.map(s=>`<div><label>${esc(s.ad)}</label><input type="number" min="0" data-tk="${s.k}" value="${tuk(s.k)}"></div>`).join("");$("a_gkey").value=ayar.googleKey||"";$("a_geo").value=ayar.geoKey||"";$("geoT").textContent=ayar.geoKey?"Bugün bu cihazdan "+geoToday()+" Geoapify sorgusu yapıldı.":"";$("a_glim").value=ayar.gLimit||900;
+ $("a_kgf").value=ayar.kgFiyat||"";$("a_marj").value=ayar.hedefMarj??25;$("a_sipa").value=ayar.sipAralik||30;$("a_numg").value=ayar.numuneGun||7;$("tukBox").innerHTML=TSEK.map(s=>`<div><label>${esc(s.ad)}</label><input type="number" min="0" data-tk="${s.k}" value="${tuk(s.k)}"></div>`).join("");$("a_veri").value=ayar.veriUrl||"";$("veriT").textContent=vIdx?vIdx.map(u=>u.ad+" "+fd(u.tarih)).join(", "):"";$("a_gkey").value=ayar.googleKey||"";$("a_geo").value=ayar.geoKey||"";$("geoT").textContent=ayar.geoKey?"Bugün bu cihazdan "+geoToday()+" Geoapify sorgusu yapıldı.":"";$("a_glim").value=ayar.gLimit||900;
  sw=clean(ayar.sablon);renderSl();dlgA.showModal();
 }
 function saveAyarForm(){
@@ -946,7 +948,7 @@ function saveAyarForm(){
  Object.entries(AF).forEach(([k,v])=>ayar.firma[v]=$(k).value.trim());ayar.firma.logo=ayarLogo;
  ayar.hedef={gorusme:+$("h_g").value||0,musteri:+$("h_m").value||0,teklif:+$("h_t").value||0};ayar.uyku=Math.max(7,+$("a_uyku").value||60);
  ayar.sablon=sw.filter(s=>s.ad.trim()||s.metin.trim()).map(s=>({ad:s.ad.trim()||"Şablon",metin:s.metin.trim()}));
- let nk=$("a_gkey").value.trim();if(nk&&!okGoogle(nk)){alert("Google API anahtarı \"AIza\" ile başlamalı. Girdiğin değer bir Google Haritalar anahtarı değil, kaydedilmedi. Google kullanmayacaksan bu kutuyu boş bırak.");nk=""}const kc=nk!==(ayar.googleKey||"");ayar.googleKey=nk;ayar.geoKey=normGeo($("a_geo").value);ayar.kgFiyat=+$("a_kgf").value||0;ayar.hedefMarj=$("a_marj").value===""?25:+$("a_marj").value;ayar.sipAralik=+$("a_sipa").value||30;ayar.numuneGun=+$("a_numg").value||7;{const tk={};document.querySelectorAll("[data-tk]").forEach(i=>{if(i.value!==""&&+i.value!==TUK_DEF[i.dataset.tk])tk[i.dataset.tk]=+i.value});ayar.tuketim=tk}ayar.gLimit=Math.max(0,+$("a_glim").value||0);
+ let nk=$("a_gkey").value.trim();if(nk&&!okGoogle(nk)){alert("Google API anahtarı \"AIza\" ile başlamalı. Girdiğin değer bir Google Haritalar anahtarı değil, kaydedilmedi. Google kullanmayacaksan bu kutuyu boş bırak.");nk=""}const kc=nk!==(ayar.googleKey||"");ayar.googleKey=nk;ayar.geoKey=normGeo($("a_geo").value);{const nv=$("a_veri").value.trim();if(nv!==(ayar.veriUrl||"")){ayar.veriUrl=nv;vIdx=null;vIdxP=null;for(const k in vMeta)delete vMeta[k];for(const k in vTile)delete vTile[k];for(const k in vYer)delete vYer[k]}}ayar.kgFiyat=+$("a_kgf").value||0;ayar.hedefMarj=$("a_marj").value===""?25:+$("a_marj").value;ayar.sipAralik=+$("a_sipa").value||30;ayar.numuneGun=+$("a_numg").value||7;{const tk={};document.querySelectorAll("[data-tk]").forEach(i=>{if(i.value!==""&&+i.value!==TUK_DEF[i.dataset.tk])tk[i.dataset.tk]=+i.value});ayar.tuketim=tk}ayar.gLimit=Math.max(0,+$("a_glim").value||0);
  saveAyar();logEv("Ayarlar güncellendi");dlgA.close();if(kc&&window.google&&window.google.maps&&confirm("Google anahtarı değişti. Geçerli olması için sayfa yenilensin mi?"))location.reload();
 }
 
@@ -1135,8 +1137,8 @@ function taraInitUI(){
 }
 function renderTaraG(){
  const k=!!ayar.googleKey;$("tgoo").disabled=!k;if(!k)$("tgoo").checked=false;else if(!$("tgoo").dataset.init){$("tgoo").checked=true;$("tgoo").dataset.init=1}
- $("tosmL").textContent=ayar.geoKey?"OpenStreetMap (Geoapify, ücretsiz)":"OpenStreetMap (ücretsiz, yavaş olabilir)";
- $("tgooN").textContent=(ayar.geoKey?"":"İpucu: ⚙ Ayarlar'a ücretsiz Geoapify anahtarı girersen tarama çok daha güvenilir çalışır. ")+(k?`Google: bu ay ${gUsed()} / ${+ayar.gLimit||900} sorgu kullanıldı.`:"Google Haritalar kapalı (anahtar girilince açılır, daha çok telefon verir).");
+ $("tosmL").textContent=vIdx?"OpenStreetMap (kendi verimiz, ücretsiz)":ayar.geoKey?"OpenStreetMap (Geoapify, ücretsiz)":"OpenStreetMap (ücretsiz)";
+ $("tgooN").textContent=(vIdx?"Kendi verimiz: "+vIdx.map(u=>u.ad+" ("+fd(u.tarih)+", "+NUM(u.adet)+" işletme)").join(", ")+". ":ayar.geoKey?"":"İpucu: Ayarlar'a ücretsiz Geoapify anahtarı girersen tarama daha güvenilir çalışır. ")+(k?`Google: bu ay ${gUsed()} / ${+ayar.gLimit||900} sorgu kullanıldı.`:"Google Haritalar kapalı (anahtar girilince açılır, daha çok telefon verir).");
 }
 function sekSummary(){const l=TSEK.filter(s=>tSek.has(s.k)).map(s=>s.ad);$("tsekN").textContent=l.length;$("tsekS").textContent=l.length?l.slice(0,3).join(", ")+(l.length>3?" +"+(l.length-3)+" diğer":""):"Seçmek için dokun"}
 function openSek(){$("ssq").value="";renderSek();dlgS.showModal()}
@@ -1164,6 +1166,7 @@ function geoMe(){
 }
 async function geoAddr(){
  const q=$("tadr").value.trim();if(!q)return;$("tstat").textContent="Adres aranıyor…";
+ if(!/\d/.test(q)){try{const y=await yerAra(q);if(y){setCenter(y.lat,y.lon,y.ad);$("tstat").textContent="";return}}catch(e){}}
  try{const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=tr&accept-language=tr&q="+encodeURIComponent(q));const j=await r.json();
   if(!j.length){$("tstat").textContent="Adres bulunamadı, daha genel yaz (örn: semt + il).";return}setCenter(+j[0].lat,+j[0].lon,q);$("tstat").textContent=""}
  catch(e){$("tstat").textContent="Adres aranamadı: "+e.message}
@@ -1185,6 +1188,45 @@ function taraMapDraw_eski(fit){
  taraFiltered().slice(0,1000).forEach(p=>L.circleMarker([p.lat,p.lon],{radius:6,color:p.tel?"#067647":"#2e5aac",fillColor:p.tel?"#12b76a":"#4f75c2",fillOpacity:.75,weight:1}).bindPopup(`<b>${esc(p.ad)}</b><br>${esc(secAd(p.sek))} • ${kmTxt(p.km)}<br>${esc(p.tel||"telefon yok")}`).addTo(tLayer));
  L.circleMarker([tara.c.lat,tara.c.lon],{radius:8,color:"#fff",fillColor:"#d92d20",fillOpacity:1,weight:2}).addTo(tLayer);
  if(fit)tmap.setView([tara.c.lat,tara.c.lon],zoomFor(r));
+}
+/* --- KENDİ VERİMİZ (mag-veri deposu, GitHub Pages; anahtarsız, ücretsiz) --- */
+const VERI_DEF="https://xfranerx53.github.io/mag-veri/data/";
+const veriUrl=()=>String(ayar.veriUrl||VERI_DEF).trim().replace(/\/?$/,"/");
+let vIdx=null,vIdxP=null;const vMeta={},vTile={},vYer={};
+async function vJson(u){const r=await fetch(u);if(!r.ok){const e=new Error("yanıt "+r.status);e.status=r.status;throw e}return r.json()}
+function vIndex(){if(vIdx)return Promise.resolve(vIdx);if(!vIdxP)vIdxP=vJson(veriUrl()+"ulkeler.json").then(x=>{vIdx=x;renderTaraG();return x}).catch(e=>{vIdxP=null;throw e});return vIdxP}
+const inBox=(b,lat,lon,pad)=>b&&lat>=b[0]-pad&&lat<=b[2]+pad&&lon>=b[1]-pad&&lon<=b[3]+pad;
+async function vUlkeMeta(u){return vMeta[u.cc]||(vMeta[u.cc]=await vJson(veriUrl()+u.cc+"/meta.json"))}
+async function ownSearch(c,rKm,secs,kw){
+ let idx;try{idx=await vIndex()}catch(e){const er=new Error("veri deposuna ulaşılamadı ("+e.message+")");er.nodata=e.status===404;throw er}
+ const pad=rKm/111,ul=idx.filter(u=>inBox(u.bbox,c.lat,c.lon,pad));
+ if(!ul.length){const e=new Error("bu bölge için henüz kendi verimiz yok");e.nodata=true;throw e}
+ const ks=new Set(secs.map(s=>s.k)),q=kw?normF(kw):"",out=[];
+ for(const u of ul){
+  const m=await vUlkeMeta(u),T=m.kare||0.1,dLa=rKm/111,dLo=rKm/(111*Math.cos(c.lat*Math.PI/180)),keys=[];
+  for(let a=Math.floor((c.lat-dLa)/T);a<=Math.floor((c.lat+dLa)/T);a++)for(let b=Math.floor((c.lon-dLo)/T);b<=Math.floor((c.lon+dLo)/T);b++){const k=a+"_"+b;if(m.tiles[k])keys.push(k)}
+  let n=0;
+  const parts=await Promise.all(keys.map(k=>{const id=u.cc+"/"+k;if(!vTile[id])vTile[id]=vJson(veriUrl()+u.cc+"/t/"+k+".json").catch(e=>{delete vTile[id];throw e});
+   return vTile[id].then(t=>{n++;$("tstat").textContent=`Kendi verimiz: ${n}/${keys.length} parça…`;return t})}));
+  parts.forEach(t=>t.forEach(r=>{const[ad,k,lat,lon,tel,web,adres,il,oid]=r,ok=ks.has(k);if(!ok&&!(q&&normF(ad).includes(q)))return;
+   out.push({id:"o"+(oid||u.cc+lat+","+lon),ad,sek:ok?k:"ozel",lat,lon,tel:tel||"",web:web||"",adres:adres||"",il:il||"",src:["OSM"]})}));
+  tara.veriTarih=m.tarih;
+ }
+ return out;
+}
+async function yerAra(q){
+ const idx=await vIndex(),w=q.toLocaleLowerCase("tr").split(/[\s,\/]+/).map(normF).filter(x=>x.length>1);if(!w.length)return null;
+ const RANK={city:6,town:5,suburb:4,quarter:3,neighbourhood:3,village:2,hamlet:1};let best=null;
+ for(const u of idx){const Y=vYer[u.cc]||(vYer[u.cc]=await vJson(veriUrl()+u.cc+"/yerler.json"));
+  for(const y of Y){const n=normF(y[0]);if(!w.some(x=>n===x||n.startsWith(x)))continue;const pa=normF(y[4]||"");let sc=RANK[y[1]]||0;
+   w.forEach(x=>{if(n===x)sc+=10;else if(n.startsWith(x))sc+=5;else if(pa.includes(x))sc+=6});if(!best||sc>best.sc)best={sc,y}}}
+ return best&&{lat:best.y[2],lon:best.y[3],ad:best.y[0]+(best.y[4]?", "+best.y[4]:"")};
+}
+async function yerYakin(lat,lon){
+ const idx=await vIndex(),u=idx.find(u=>inBox(u.bbox,lat,lon,.2));if(!u)return null;
+ const Y=vYer[u.cc]||(vYer[u.cc]=await vJson(veriUrl()+u.cc+"/yerler.json"));let b=null,bd=1e9;
+ Y.forEach(y=>{if(!["town","city","suburb","neighbourhood","quarter","village"].includes(y[1]))return;const d=hav(lat,lon,y[2],y[3]);if(d<bd){bd=d;b=y}});
+ return b&&bd<8?b:null;
 }
 /* --- Geoapify (OpenStreetMap verisi, ücretsiz anahtar) --- */
 const GEO_OLD={market:["commercial.supermarket","commercial.convenience"],manav:["commercial.food_and_drink.fruit_and_vegetable"],kasap:["commercial.food_and_drink.butcher"],firin:["commercial.food_and_drink.bakery","commercial.food_and_drink.confectionery"],durum:["catering.fast_food"],restoran:["catering.restaurant"],kafe:["catering.cafe"],kuruyemis:["commercial.food_and_drink.nuts","commercial.food_and_drink.deli"],eczane:["healthcare.pharmacy"],bufe:["commercial.kiosk"],giyim:["commercial.clothing"],hirdavat:["commercial.houseware_and_hardware.hardware_and_tools","commercial.houseware_and_hardware.doityourself"]};
@@ -1212,6 +1254,9 @@ async function geoapifySearch(c,rKm,secs,kw){
 }
 const geoToday=()=>+ls.get("mag_geo_"+today())||0;
 function geoCount(){ls.set("mag_geo_"+today(),String(geoToday()+1))}
+async function veriTest(){const eski=ayar.veriUrl;ayar.veriUrl=$("a_veri").value.trim();vIdx=null;vIdxP=null;$("veriT").textContent="Kontrol ediliyor…";
+ try{const x=await vIndex();$("veriT").textContent="✔ "+x.map(u=>u.ad+": "+NUM(u.adet)+" işletme, veri tarihi "+fd(u.tarih)).join(" • ")}catch(e){$("veriT").textContent="✖ Veri bulunamadı ("+e.message+"). mag-veri deposu kurulup ilk çalıştırma bitti mi?"}
+ ayar.veriUrl=eski;}
 async function geoTest(){
  const k=normGeo($("a_geo").value);$("a_geo").value=k;if(!k){$("geoT").textContent="Önce anahtarı yapıştır.";return}
  $("geoT").textContent="Deneniyor…";
@@ -1303,8 +1348,9 @@ async function doScan(){
  if(useG&&gLeft()>0){try{$("tstat").textContent="Google'da aranıyor…";all.push(...await gSearch(tara.c,rKm,secs,kw,detay))}catch(e){hata.push("Google: "+(gAuthErr||e.message))}}
  const bilgi=[];
  if(useO){let geoOk=false;
-  if(ayar.geoKey){const n0=all.length,q0=geoToday();try{all.push(...await geoapifySearch(tara.c,rKm,secs,kw));geoOk=true;bilgi.push(`Geoapify ✓ ${all.length-n0} sonuç, ${geoToday()-q0} sorgu`)}catch(e){hata.push("Geoapify çalışmadı: "+e.message+(e.status===401||e.status===403?" → Ayarlar'daki anahtarı ve Geoapify'daki 'izin verilen adres' ayarını kontrol et":"")+". Yavaş yedek sunucu denendi")}}
-  else bilgi.push("Geoapify anahtarı yok (Diğer → Ayarlar) → yavaş ücretsiz sunucu kullanıldı");
+  {const n0=all.length;try{all.push(...await ownSearch(tara.c,rKm,secs,kw));geoOk=true;bilgi.push(`Kendi verimiz ✓ ${all.length-n0} sonuç (veri tarihi ${fd(tara.veriTarih)})`)}catch(e){if(!e.nodata)hata.push("Kendi verimiz: "+e.message);else bilgi.push("Kendi verimiz: "+e.message)}}
+  if(!geoOk&&ayar.geoKey){const n0=all.length,q0=geoToday();try{all.push(...await geoapifySearch(tara.c,rKm,secs,kw));geoOk=true;bilgi.push(`Geoapify ✓ ${all.length-n0} sonuç, ${geoToday()-q0} sorgu`)}catch(e){hata.push("Geoapify çalışmadı: "+e.message+(e.status===401||e.status===403?" → Ayarlar'daki anahtarı ve Geoapify'daki 'izin verilen adres' ayarını kontrol et":"")+". Yavaş yedek sunucu denendi")}}
+  else if(!geoOk)bilgi.push("Geoapify anahtarı yok → yavaş ücretsiz sunucu kullanıldı");
   if(!geoOk){try{$("tstat").textContent="OpenStreetMap'te aranıyor…";const n0=all.length;all.push(...await osmSearch(tara.c,rKm,secs,kw));bilgi.push(`Yedek sunucu ✓ ${all.length-n0} sonuç`)}catch(e){hata.push("OpenStreetMap: "+e.message)}}}
  all.forEach(p=>p.km=hav(tara.c.lat,tara.c.lon,p.lat,p.lon));
  tara.res=mergeRes(all.filter(p=>p.km<=rKm*1.02)).sort((a,b)=>a.km-b.km);markNew(ks,rKm);tara.t=Date.now();tSel.clear();saveTara();
@@ -1382,7 +1428,7 @@ function renderTara(){
   <div class="mu">${isChain(p)?'<span class="tag">Zincir</span>':""}${isMobile(p.tel)?'<span class="tag ok">Cep</span>':""}${esc(secAd(p.sek))}${p.tel?" • "+esc(p.tel):""}${p.puan?" • ★ "+p.puan+" ("+p.puanN+")":""}</div>
   <div class="mu">${esc([p.adres,p.il].filter(Boolean).join(", "))}</div>
   ${p.yeni?'<span class="tag new">YENİ AÇILAN</span>':""}${isRival(p)?'<span class="tag rakip">Rakip ambalajcı</span>':""}${(b=>b?`<span class="tag">🗺 ${esc(b.ad)}${b.uad?" – "+esc(b.uad):""}</span>`:"")(bolgeOf(p.lat,p.lon))}${d?`<span class="tag ok">✔ Listende: ${esc(d.firma)}</span>`:""}${tSel.has(p.id)?'<span class="tag" style="background:var(--pr);color:var(--on)">SEÇİLDİ</span>':""}
-  <div class="row">${p.tel?`<a class="btn" href="tel:${digits(p.tel)}">📞 Ara</a>`:'<span class="mu">Telefon bilinmiyor</span>'}${/^https?:/i.test(p.web)?`<a class="btn" target="_blank" rel="noopener" href="${esc(p.web)}">Web</a>`:""}<a class="btn" target="_blank" rel="noopener" href="${esc(mu)}">Haritada</a>${d?"":`<button class="p" data-a="tadd" data-i="${esc(p.id)}">+ Ekle</button>`}${gizli.has(gKey(p))?`<button data-a="tunhide" data-i="${esc(p.id)}">Gizlemeyi kaldır</button>`:`<button data-a="thide" data-i="${esc(p.id)}" title="Bu işletmeyi bir daha gösterme">Gizle</button>`}</div></div>`}).join("")+(l.length>400?`<div class="mu">İlk 400 gösteriliyor; filtreleri daralt.</div>`:"");
+  <div class="row">${p.tel?`<a class="btn" href="tel:${digits(p.tel)}">📞 Ara</a>`:'<span class="mu">Telefon bilinmiyor</span>'}${/^https?:/i.test(p.web)?`<a class="btn" target="_blank" rel="noopener" href="${esc(p.web)}">Web</a>`:""}<a class="btn" target="_blank" rel="noopener" href="${esc(mu)}">Haritada</a>${d?"":`<button class="p" data-a="tadd" data-i="${esc(p.id)}">+ Ekle</button>`}${gizli.has(gKey(p))?`<button data-a="tunhide" data-i="${esc(p.id)}">Gizlemeyi kaldır</button>`:`<button data-a="thide" data-i="${esc(p.id)}" title="Bu işletmeyi bir daha gösterme">Gizle</button>`}</div></div>`}).join("")+(l.length>400?`<div class="mu">İlk 400 gösteriliyor; filtreleri daralt.</div>`:"")+(res.length?`<div class="mu" style="margin-top:8px">Veri: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap katkıda bulunanlar</a> (ODbL)</div>`:"");
  $("tselN").textContent=tSel.size;$("tselbar").hidden=!(tSel.size&&tab==="tara");
 }
 ["tfs","tfb","tfm","tq","tso"].forEach(i=>$(i).addEventListener("input",()=>{renderTF();renderTara();taraMapDraw()}));
@@ -1416,7 +1462,8 @@ function formGetPos(){
  getPos(async p=>{fKon={lat:p.lat,lon:p.lon};$("fkon").textContent="📍 Konum eklendi (±"+Math.round(p.acc||0)+" m)";
   try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${p.lat}&lon=${p.lon}&accept-language=tr`);const j=await r.json(),a=j.address||{};
    if(!$("adres").value.trim())$("adres").value=[a.neighbourhood||a.suburb||a.quarter,[a.road,a.house_number].filter(Boolean).join(" No:")].filter(Boolean).join(", ");
-   if(!$("il").value.trim())$("il").value=[a.town||a.county||a.district||a.city_district,a.province||a.state||a.city].filter((v,i,x)=>v&&x.indexOf(v)===i).join(" / ")}catch(e){}},
+   if(!$("il").value.trim())$("il").value=[a.town||a.county||a.district||a.city_district,a.province||a.state||a.city].filter((v,i,x)=>v&&x.indexOf(v)===i).join(" / ")}catch(e){}
+  if(!$("il").value.trim()){try{const y=await yerYakin(p.lat,p.lon);if(y)$("il").value=[y[1]==="town"||y[1]==="city"?y[0]:"",y[4]||(y[1]==="town"?"":y[0])].filter(Boolean).join(" / ")||y[0]}catch(e){}}},
   ()=>{$("fkon").textContent="Konum alınamadı"});
 }
 function quickAdd(){openForm();formGetPos();try{$("ffoto").click()}catch(e){}}
@@ -1642,7 +1689,7 @@ document.querySelectorAll("dialog").forEach(d=>{let dn=false;
  d.addEventListener("mousedown",e=>{dn=e.target===d&&out(e)});
  d.addEventListener("click",e=>{if(dn&&e.target===d&&out(e)){if(d===dlgG)recStop(true);d.close()}dn=false});
 });
-render();initCloud();
+render();initCloud();vIndex().catch(()=>{});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 setTimeout(()=>{if(!root)notifyToday()},2500);setInterval(()=>notifyToday(),36e5);
 </script></body></html>
