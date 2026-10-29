@@ -303,9 +303,11 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <b>☁ Bulut ve kullanıcı</b>
 <p class="mu" id="cstate"></p>
 <div id="cIn">
-<label>Ad soyad (yalnızca ilk kez hesap oluştururken)</label><input id="cname" placeholder="Örn: Ahmet Yılmaz">
-<label>E-posta</label><input id="cmail" type="email">
-<label>Şifre</label><input id="cpass" type="password" placeholder="en az 6 karakter">
+<label>Ad soyad (ilk kez hesap oluştururken)</label><input id="cname" name="name" autocomplete="name" placeholder="Örn: Ahmet Yılmaz">
+<label>E-posta</label><input id="cmail" type="email" name="email" autocomplete="username">
+<label>Şifre</label><div class="row" style="margin:0;flex-wrap:nowrap"><input id="cpass" type="password" name="password" autocomplete="current-password" placeholder="en az 6 karakter"><button type="button" onclick="$('cpass').type=$('cpass').type==='password'?'text':'password'" title="Şifreyi göster/gizle">👁</button></div>
+<label class="chip" style="margin-top:10px"><input type="checkbox" id="crem" checked> Beni hatırla</label>
+<div class="mu">İşaretliyse bu cihazda oturumun açık kalır, adın ve e-postan dolu gelir; şifren tarayıcının güvenli şifre kasasında saklanır. Ortak kullanılan bir cihazdaysan işareti kaldır.</div>
 <div class="row"><button type="button" class="p" onclick="cloudLogin()">Giriş yap</button><button type="button" onclick="cloudSignup()">İlk kez: hesap oluştur</button><button type="button" onclick="cloudReset()">Şifremi unuttum</button></div>
 </div>
 <div id="cOut" hidden>
@@ -400,7 +402,11 @@ const NUM=n=>new Intl.NumberFormat("tr-TR",{maximumFractionDigits:2}).format(n||
 const uid_=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const clean=o=>JSON.parse(JSON.stringify(o));
 const opts=(el,a,all)=>{el.innerHTML=(all!=null?`<option value="">${all}</option>`:"")+a.map(x=>`<option value="${esc(x)}">${esc(x)||"—"}</option>`).join("")};
-const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v);return true}catch(e){return false}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+const LSP="mpz:";
+const ls={get:k=>{try{return localStorage.getItem(LSP+k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(LSP+k,v);return true}catch(e){return false}},del:k=>{try{localStorage.removeItem(LSP+k)}catch(e){}}};
+(()=>{try{if(localStorage.getItem(LSP+"_tasindi"))return;const ok=(k,f)=>{const v=localStorage.getItem(k);if(v&&localStorage.getItem(LSP+k)===null){try{if(f(JSON.parse(v)))localStorage.setItem(LSP+k,v)}catch(e){}}};
+ ok("mag_ayar",o=>o&&o.sablon);ok("mag_leads",a=>Array.isArray(a)&&(!a.length||a[0].firma!==undefined));ok("mag_tara",o=>o&&Array.isArray(o.res));ok("mag_katalog",a=>Array.isArray(a));
+ localStorage.setItem(LSP+"_tasindi","1")}catch(e){}})();
 const lsJ=(k,d)=>{try{return JSON.parse(ls.get(k))??d}catch(e){return d}};
 const digits=t=>String(t||"").replace(/\D/g,"");
 function waNum(t){let d=digits(t);if(!d)return"";if(d.startsWith("00"))d=d.slice(2);if(d.startsWith("0"))d="90"+d.slice(1);else if(d.length===10)d="90"+d;return d.length>=11?d:""}
@@ -1042,7 +1048,7 @@ function cloudUi(){
   cloudState==="pending"?"Giriş yapıldı ("+u.email+"). Hesabın yönetici onayı bekliyor.":
   "Bağlı: "+(me.ad||"")+" • "+u.email+" • Rol: "+ROLN[role]+(isAdmin()?". Kurallar değiştiyse aşağıdakini Firebase'e yeniden yapıştır.":"");
 }
-function openCloud(){cloudErr("");cloudUi();dlgC.showModal()}
+function openCloud(){cloudErr("");loginPrefill();cloudUi();dlgC.showModal()}
 async function initCloud(){
  cloudUi();
  try{const b="https://www.gstatic.com/firebasejs/10.12.2/";for(const f of["firebase-app-compat.js","firebase-auth-compat.js","firebase-database-compat.js"])await loadScript(b+f);
@@ -1052,8 +1058,19 @@ async function initCloud(){
 }
 const trErr=e=>({"auth/invalid-credential":"E-posta veya şifre yanlış.","auth/invalid-login-credentials":"E-posta veya şifre yanlış.","auth/wrong-password":"Şifre yanlış.","auth/user-not-found":"Bu e-posta ile hesap yok. 'Hesap oluştur'u dene.","auth/email-already-in-use":"Bu e-posta zaten kayıtlı. 'Giriş yap'ı dene.","auth/weak-password":"Şifre en az 6 karakter olmalı.","auth/invalid-email":"E-posta geçersiz.","auth/missing-password":"Şifre yaz.","auth/operation-not-allowed":"Firebase'de Authentication → Sign-in method → Email/Password açık değil.","auth/configuration-not-found":"Firebase'de Authentication henüz başlatılmamış (Get started).","auth/too-many-requests":"Çok fazla deneme. Biraz bekle."}[e.code]||e.message);
 let pendingName="";
-function cloudLogin(){cloudErr("");if(!window.firebase){cloudErr("Firebase yüklenemedi, internet bağlantısını kontrol et.");return}firebase.auth().signInWithEmailAndPassword($("cmail").value.trim(),$("cpass").value).catch(e=>cloudErr(trErr(e)))}
-function cloudSignup(){cloudErr("");if(!$("cname").value.trim()){cloudErr("Ad soyad yaz.");return}pendingName=$("cname").value.trim();firebase.auth().createUserWithEmailAndPassword($("cmail").value.trim(),$("cpass").value).catch(e=>cloudErr(trErr(e)))}
+const LOGK="mag_login";
+function loginPrefill(){
+ const s=lsJ(LOGK,null);$("crem").checked=s?!!s.rem:true;
+ if(s&&s.rem){if(s.ad&&!$("cname").value)$("cname").value=s.ad;if(s.email&&!$("cmail").value)$("cmail").value=s.email}
+ if(s&&s.rem&&window.PasswordCredential&&navigator.credentials&&!$("cpass").value)navigator.credentials.get({password:true,mediation:"optional"}).then(c=>{if(c&&c.password){$("cmail").value=c.id;$("cpass").value=c.password}}).catch(()=>{});
+}
+async function applyRemember(){
+ const rem=$("crem").checked;try{await firebase.auth().setPersistence(rem?firebase.auth.Auth.Persistence.LOCAL:firebase.auth.Auth.Persistence.SESSION)}catch(e){}
+ ls.set(LOGK,JSON.stringify(rem?{rem:1,ad:$("cname").value.trim(),email:$("cmail").value.trim()}:{rem:0}));
+}
+function storePw(){if(!$("crem").checked||!window.PasswordCredential||!navigator.credentials)return;try{navigator.credentials.store(new PasswordCredential({id:$("cmail").value.trim(),password:$("cpass").value,name:$("cname").value.trim()||$("cmail").value.trim()})).catch(()=>{})}catch(e){}}
+async function cloudLogin(){cloudErr("");if(!window.firebase){cloudErr("Firebase yüklenemedi, internet bağlantısını kontrol et.");return}await applyRemember();firebase.auth().signInWithEmailAndPassword($("cmail").value.trim(),$("cpass").value).then(storePw).catch(e=>cloudErr(trErr(e)))}
+async function cloudSignup(){cloudErr("");if(!$("cname").value.trim()){cloudErr("Ad soyad yaz.");return}pendingName=$("cname").value.trim();applyRemember().then(()=>firebase.auth().createUserWithEmailAndPassword($("cmail").value.trim(),$("cpass").value)).then(storePw).catch(e=>cloudErr(trErr(e)))}
 function cloudReset(){const m=$("cmail").value.trim();if(!m){cloudErr("Önce e-postanı yaz.");return}firebase.auth().sendPasswordResetEmail(m).then(()=>cloudErr("Şifre sıfırlama e-postası gönderildi.")).catch(e=>cloudErr(trErr(e)))}
 function cloudOut(){firebase.auth().signOut();dlgC.close()}
 function copyRules(){navigator.clipboard&&navigator.clipboard.writeText($("crules").textContent).then(()=>cloudErr("Kopyalandı ✔")).catch(()=>{})}
@@ -1069,7 +1086,7 @@ async function startSync(u){
   catch(e){try{await R.child("users/"+u.uid).set({email:u.email,ad,rol:"beklemede",t:Date.now()});prof={email:u.email,ad,rol:"beklemede"}}catch(e2){denied=true}}}
  pendingName="";
  if(denied||!prof){cloudState="norules";role="admin";render();cloudUi();if(!dlgC.open)dlgC.showModal();return}
- me.ad=prof.ad||u.email;role=prof.rol;
+ me.ad=prof.ad||u.email;role=prof.rol;{const lg=lsJ(LOGK,null);if(lg&&lg.rem)ls.set(LOGK,JSON.stringify({rem:1,ad:prof.ad||"",email:u.email}))}
  if(role==="beklemede"){cloudState="pending";role="satis";render();cloudUi();
   on(R.child("users/"+u.uid+"/rol"),s=>{if(s.val()&&s.val()!=="beklemede")location.reload()});return}
  root=R;cloudState="on";
@@ -1088,7 +1105,7 @@ async function startSync(u){
   }else data=remote;
   ls.set(SYNCK,"1");localSave();render();cloudUi();
  },err=>{cloudErr("Okuma hatası: "+err.message);cloudState="norules";render();cloudUi()});
- on(R.child("ayar"),s=>{const v=s.val();if(v){ayar=mergeAyar(v);ls.set("mag_ayar",JSON.stringify(ayar));render()}else if(isAdmin()){if(prof.yeniSahip)ayar.ownerUid=u.uid;R.child("ayar").set(clean(ayar)).catch(()=>{})}});
+ on(R.child("ayar"),s=>{const v=s.val();if(v){const loc=ayar,up={};ayar=mergeAyar(v);["geoKey","googleKey","gLimit","kgFiyat","hedefMarj","tuketim"].forEach(k=>{if((ayar[k]==null||ayar[k]==="")&&loc[k]!=null&&loc[k]!==""){ayar[k]=loc[k];up[k]=clean(loc[k])}});ls.set("mag_ayar",JSON.stringify(ayar));if(isAdmin()&&Object.keys(up).length)R.child("ayar").update(up).catch(()=>{});render()}else if(isAdmin()){if(prof.yeniSahip)ayar.ownerUid=u.uid;R.child("ayar").set(clean(ayar)).catch(()=>{})}});
  on(R.child("katalog"),s=>{const v=s.val();if(v){katalog=arr(v);ls.set("mag_katalog",JSON.stringify(katalog));render()}else if(isAdmin()&&katalog.length)R.child("katalog").set(clean(katalog)).catch(()=>{})});
  if(isAdmin()){
   if(prof.yeniSahip){ayar.ownerUid=u.uid;R.child("ayar/ownerUid").set(u.uid).catch(()=>{})}

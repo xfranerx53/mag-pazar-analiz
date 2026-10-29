@@ -1,7 +1,7 @@
 # MAG Ambalaj • Pazar Analiz — Proje Notları
 
 > **Programın asıl amacı:** Seçilen konumun çevresinde (yarıçap / mesafe) potansiyel müşteri işletmeleri **otomatik taramak**, bilgilerini (ad, adres, telefon, web, uzaklık) vermek ve seçilenleri takip listesine almak. Ana ekran: **🔍 Çevrede Tara**. Teklif / sipariş / tahsilat gibi bölümler bulunan müşterilerin takibi için arkada durur.
-https://xfranerx53.github.io/mag-pazar-analiz/
+
 **Site:** https://mag-pazar-analiz.pages.dev (Cloudflare Pages; GitHub `xfranerx53/mag-pazar-analiz` → `main` dalına her yüklemede otomatik yayınlanır)
 **Yapı:** Tek dosya `index.html` + `sw.js` (çevrimdışı önbellek) + `manifest.webmanifest` + `icon.svg`. Derleme yok.
 **Bulut:** Firebase projesi `mag-pazar` — Realtime Database (europe-west1), giriş: E-posta/Şifre. Ayarlar `index.html` içine gömülü.
@@ -69,6 +69,8 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
   - Satış: 💬 Toplu WhatsApp (sırayla, şablonlu, izinsizleri atlar), 🎁 Numune takibi (N gün sonra Bugün'de hatırlatma), 🔁 Tekrar sipariş hatırlatması (müşterinin ortalama sipariş aralığına göre), 💡 Önerilen fiyat (maliyet + hedef kâr marjı), cari/fatura bilgileri (unvan, VD, VKN, vade, fatura adresi) teklif/sipariş çıktısında.
   - Ekip: personel performansı (aylık yeni firma, görüşme, ziyaret, numune, teklif, sipariş, tahsilat), satış bölgeleri (Yönetim → bölge ekle; taramadan eklenen firma bölge sahibine atanır, başkasına uyarı).
   - Henüz yok: Sevkiyat programına doğrudan sipariş aktarımı (sevkiyat programının veri yapısı gerekiyor; şimdilik "📤 Sevkiyata bildir" WhatsApp metni).
+
+- **v7.1 (29.10.2026):** GitHub Pages'e taşındı. Giriş penceresinde "Beni hatırla" (oturum açık kalır, ad/e-posta dolu gelir, şifre tarayıcının şifre kasasında). Cihaz hafızası anahtarları "mpz:" ön ekiyle (aynı github.io adresindeki diğer programlarla karışmaz). API anahtarları buluttaki ayarlara da yazılır; bulutta yoksa cihazdaki korunur.
 
 ## Google Haritalar anahtarı nasıl alınır (isteğe bağlı)
 1. console.cloud.google.com → yeni proje (veya mevcut `mag-pazar` Firebase projesi).
