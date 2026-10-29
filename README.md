@@ -1,8 +1,11 @@
 # MAG Ambalaj • Pazar Analiz — Proje Notları
 
+> **Programın asıl amacı:** Seçilen konumun çevresinde (yarıçap / mesafe) potansiyel müşteri işletmeleri **otomatik taramak**, bilgilerini (ad, adres, telefon, web, uzaklık) vermek ve seçilenleri takip listesine almak. Ana ekran: **🔍 Çevrede Tara**. Teklif / sipariş / tahsilat gibi bölümler bulunan müşterilerin takibi için arkada durur.
+
 **Site:** https://mag-pazar-analiz.pages.dev (Cloudflare Pages; GitHub `xfranerx53/mag-pazar-analiz` → `main` dalına her yüklemede otomatik yayınlanır)
 **Yapı:** Tek dosya `index.html` + `sw.js` (çevrimdışı önbellek) + `manifest.webmanifest` + `icon.svg`. Derleme yok.
 **Bulut:** Firebase projesi `mag-pazar` — Realtime Database (europe-west1), giriş: E-posta/Şifre. Ayarlar `index.html` içine gömülü.
+**Tarama kaynakları:** OpenStreetMap Overpass API (ücretsiz, anahtarsız; overpass-api.de, yedek overpass.kumi.systems) + isteğe bağlı Google Maps JavaScript API / Places (anahtar ⚙ Ayarlar'da, aylık sorgu sınırı ile). Adres → konum: Nominatim (OSM).
 **Dış kütüphaneler (gerektiğinde yüklenir):** Firebase 10.12.2 (gstatic), Leaflet 1.9.4 (harita, cdnjs), SheetJS xlsx 0.18.5 (Excel, cdnjs). Harita altlığı: OpenStreetMap.
 
 ## Veri yapısı (`mag_pazar/...`)
@@ -32,6 +35,23 @@ Güvenlik kuralı sitede ☁ → giriş → "Kuralı kopyala" ile alınır; sahi
   - *Analiz:* Satış hunisi (adım adım dönüşüm, en çok kayıp olan adım), son 6 ay karşılaştırma tablosu (▲▼ geçen aya göre), Türkiye haritası (il bazında firma/müşteri), sektör kârlılığı, kayıp sebepleri, rakip takibi (mevcut tedarikçi + fiyatı).
   - *Otomasyon:* Günlük bildirim (uygulama açıldığında; izin gerekir), uyuyan müşteri listesi (varsayılan 60 gün), teslimi geciken siparişler, kartvizit fotoğrafı, sesli görüşme notu (en fazla 60 sn), 7 sayfalık Excel raporu.
   - *Entegrasyon:* "📤 Sevkiyata bildir" siparişi hazır metin olarak WhatsApp'a (Mag Sevkiyat grubu) gönderir; ürün maliyetleri poşet maliyet tablosundan girilerek kâr marjı görünür.
+
+- **v5 (29.10.2026) — ÇEVREDE TARA (asıl amaç)**
+  - Ana ekran tarama: merkez = GPS konumu, yazılan adres veya haritaya tıklama; yarıçap 500 m – 25 km.
+  - 13 sektör (market, manav, kasap, fırın/pastane, dürüm/fast food, restoran, kafe, kuruyemiş/şarküteri, eczane, büfe/tekel, giyim, hırdavat, toptancı) + serbest arama kelimesi.
+  - Kaynak: OpenStreetMap (ücretsiz) ve/veya Google Haritalar; iki kaynağın aynı işletmesi birleştirilir (Google bilgisi öncelikli).
+  - Sonuçlar yakından uzağa; ad, sektör, mesafe, adres, telefon, web, Google puanı; haritada noktalar (yeşil = telefonlu).
+  - Filtre: sektör, sadece telefonu olanlar, listemde olmayanlar (mükerrer kontrolü), arama; sıralama A-Z / yorum sayısı.
+  - Tek tıkla veya toplu "listeye ekle" (sektör, il, adres, telefon, konum, mesafe, kaynak otomatik dolar), seçilenlere Google Haritalar rotası, CSV indir.
+  - Google aylık sorgu sayacı (cihaz + bulut), sınır dolunca Google durur, OSM devam eder. Son tarama cihazda saklanır.
+
+## Google Haritalar anahtarı nasıl alınır (isteğe bağlı)
+1. console.cloud.google.com → yeni proje (veya mevcut `mag-pazar` Firebase projesi).
+2. Faturalandırma hesabı bağla (kart ister; aylık ücretsiz kota aşılmadıkça ücret çıkmaz). Places "Enterprise" alanları (telefon, web, puan) için ayda yaklaşık 1.000 sorgu ücretsiz; her sorgu en çok 20 işletme getirir.
+3. APIs & Services → Library: **Maps JavaScript API** ve **Places API (New)** → Enable.
+4. Credentials → Create credentials → API key → Application restrictions: **Websites** → `https://mag-pazar-analiz.pages.dev/*` ; API restrictions: yukarıdaki iki API.
+5. Anahtarı sitede ⚙ Ayarlar → "Google API anahtarı" alanına yapıştır, "Aylık Google sorgu sınırı" 900 kalsın.
+6. Güvenlik için Google Cloud → Billing → Budgets & alerts'ten 1 ₺ / 1 $'lık bütçe uyarısı kur.
 
 ## Otomatik kurallar
 - Teklif eklenince firma "Teklif verildi" olur (Yeni / İletişim kuruldu / İlgileniyor ise).
