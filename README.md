@@ -1,0 +1,1 @@
+# mag-pazar-analiz
