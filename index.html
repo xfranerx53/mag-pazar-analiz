@@ -969,7 +969,7 @@ function openAyar(){
  $("aAdm").hidden=!isAdmin();$("aSat").hidden=isAdmin();
  Object.entries(AF).forEach(([k,v])=>$(k).value=ayar.firma[v]||"");ayarLogo=ayar.firma.logo||"";$("a_lp").src=ayarLogo;$("a_lp").hidden=!ayarLogo;$("a_ld").hidden=!ayarLogo;$("a_logo").value="";
  $("h_g").value=ayar.hedef.gorusme||0;$("h_m").value=ayar.hedef.musteri||0;$("h_t").value=ayar.hedef.teklif||0;$("a_uyku").value=ayar.uyku||60;
- $("a_kgf").value=ayar.kgFiyat||"";$("a_marj").value=ayar.hedefMarj??25;$("a_sipa").value=ayar.sipAralik||30;$("a_numg").value=ayar.numuneGun||7;$("tukBox").innerHTML=TSEK.map(s=>`<div><label>${esc(s.ad)}</label><input type="number" min="0" data-tk="${s.k}" value="${tuk(s.k)}"></div>`).join("");$("a_veri").value=ayar.veriUrl||"";$("veriT").textContent=vIdx?vIdx.map(u=>u.ad+" "+fd(u.tarih)).join(", "):"";$("a_gkey").value=ayar.googleKey||"";$("a_geo").value=ayar.geoKey||"";$("geoT").textContent=ayar.geoKey?"Bugün bu cihazdan "+geoToday()+" Geoapify sorgusu yapıldı.":"";$("a_glim").value=ayar.gLimit||900;
+ $("a_kgf").value=ayar.kgFiyat||"";$("a_marj").value=ayar.hedefMarj??25;$("a_sipa").value=ayar.sipAralik||30;$("a_numg").value=ayar.numuneGun||7;$("tukBox").innerHTML=TSEK.map(s=>`<div><label>${esc(s.ad)}</label><input type="number" min="0" data-tk="${s.k}" value="${tuk(s.k)}"></div>`).join("");$("a_veri").value=ayar.veriUrl||"";$("veriT").textContent=vOzet();$("a_gkey").value=ayar.googleKey||"";$("a_geo").value=ayar.geoKey||"";$("geoT").textContent=ayar.geoKey?"Bugün bu cihazdan "+geoToday()+" Geoapify sorgusu yapıldı.":"";$("a_glim").value=ayar.gLimit||900;
  sw=clean(ayar.sablon);renderSl();dlgA.showModal();
 }
 function saveAyarForm(){
@@ -977,7 +977,7 @@ function saveAyarForm(){
  Object.entries(AF).forEach(([k,v])=>ayar.firma[v]=$(k).value.trim());ayar.firma.logo=ayarLogo;
  ayar.hedef={gorusme:+$("h_g").value||0,musteri:+$("h_m").value||0,teklif:+$("h_t").value||0};ayar.uyku=Math.max(7,+$("a_uyku").value||60);
  ayar.sablon=sw.filter(s=>s.ad.trim()||s.metin.trim()).map(s=>({ad:s.ad.trim()||"Şablon",metin:s.metin.trim()}));
- let nk=$("a_gkey").value.trim();if(nk&&!okGoogle(nk)){alert("Google API anahtarı \"AIza\" ile başlamalı. Girdiğin değer bir Google Haritalar anahtarı değil, kaydedilmedi. Google kullanmayacaksan bu kutuyu boş bırak.");nk=""}const kc=nk!==(ayar.googleKey||"");ayar.googleKey=nk;ayar.geoKey=normGeo($("a_geo").value);{const nv=$("a_veri").value.trim();if(nv!==(ayar.veriUrl||"")){ayar.veriUrl=nv;vIdx=null;vIdxP=null;for(const k in vMeta)delete vMeta[k];for(const k in vTile)delete vTile[k];for(const k in vYer)delete vYer[k]}}ayar.kgFiyat=+$("a_kgf").value||0;ayar.hedefMarj=$("a_marj").value===""?25:+$("a_marj").value;ayar.sipAralik=+$("a_sipa").value||30;ayar.numuneGun=+$("a_numg").value||7;{const tk={};document.querySelectorAll("[data-tk]").forEach(i=>{if(i.value!==""&&+i.value!==TUK_DEF[i.dataset.tk])tk[i.dataset.tk]=+i.value});ayar.tuketim=tk}ayar.gLimit=Math.max(0,+$("a_glim").value||0);
+ let nk=$("a_gkey").value.trim();if(nk&&!okGoogle(nk)){alert("Google API anahtarı \"AIza\" ile başlamalı. Girdiğin değer bir Google Haritalar anahtarı değil, kaydedilmedi. Google kullanmayacaksan bu kutuyu boş bırak.");nk=""}const kc=nk!==(ayar.googleKey||"");ayar.googleKey=nk;ayar.geoKey=normGeo($("a_geo").value);{const nv=$("a_veri").value.trim();if(nv!==(ayar.veriUrl||"")){ayar.veriUrl=nv;vIdx=null;vIdxP=null;for(const k in vMeta)delete vMeta[k];for(const k in vTile)delete vTile[k];for(const C of [vYer,vBlk,vS,vYK])for(const k in C)delete C[k]}}ayar.kgFiyat=+$("a_kgf").value||0;ayar.hedefMarj=$("a_marj").value===""?25:+$("a_marj").value;ayar.sipAralik=+$("a_sipa").value||30;ayar.numuneGun=+$("a_numg").value||7;{const tk={};document.querySelectorAll("[data-tk]").forEach(i=>{if(i.value!==""&&+i.value!==TUK_DEF[i.dataset.tk])tk[i.dataset.tk]=+i.value});ayar.tuketim=tk}ayar.gLimit=Math.max(0,+$("a_glim").value||0);
  saveAyar();logEv("Ayarlar güncellendi");dlgA.close();if(kc&&window.google&&window.google.maps&&confirm("Google anahtarı değişti. Geçerli olması için sayfa yenilensin mi?"))location.reload();
 }
 
@@ -1168,7 +1168,7 @@ function taraInitUI(){
 function renderTaraG(){
  const k=!!ayar.googleKey;$("tgoo").disabled=!k;if(!k)$("tgoo").checked=false;else if(!$("tgoo").dataset.init){$("tgoo").checked=true;$("tgoo").dataset.init=1}
  $("tosmL").textContent=vIdx?"OpenStreetMap (kendi verimiz, ücretsiz)":ayar.geoKey?"OpenStreetMap (Geoapify, ücretsiz)":"OpenStreetMap (ücretsiz)";
- $("tgooN").textContent=(vIdx?"Kendi verimiz: "+vIdx.map(u=>u.ad+" ("+fd(u.tarih)+", "+NUM(u.adet)+" işletme)").join(", ")+". ":ayar.geoKey?"":"İpucu: Ayarlar'a ücretsiz Geoapify anahtarı girersen tarama daha güvenilir çalışır. ")+(k?`Google: bu ay ${gUsed()} / ${+ayar.gLimit||900} sorgu kullanıldı.`:"Google Haritalar kapalı (anahtar girilince açılır, daha çok telefon verir).");
+ $("tgooN").textContent=(vIdx?"Kendi verimiz: "+vOzet()+". ":ayar.geoKey?"":"İpucu: Ayarlar'a ücretsiz Geoapify anahtarı girersen tarama daha güvenilir çalışır. ")+(k?`Google: bu ay ${gUsed()} / ${+ayar.gLimit||900} sorgu kullanıldı.`:"Google Haritalar kapalı (anahtar girilince açılır, daha çok telefon verir).");
 }
 function sekSummary(){const l=TSEK.filter(s=>tSek.has(s.k)).map(s=>s.ad);$("tsekN").textContent=l.length;$("tsekS").textContent=l.length?l.slice(0,3).join(", ")+(l.length>3?" +"+(l.length-3)+" diğer":""):"Seçmek için dokun"}
 function openSek(){$("ssq").value="";renderSek();dlgS.showModal()}
@@ -1197,7 +1197,7 @@ function geoMe(){
 async function geoAddr(){
  const q=$("tadr").value.trim();if(!q)return;$("tstat").textContent="Adres aranıyor…";
  if(!/\d/.test(q)){try{const y=await yerAra(q);if(y){setCenter(y.lat,y.lon,y.ad);$("tstat").textContent="";return}}catch(e){}}
- try{const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=tr&accept-language=tr&q="+encodeURIComponent(q));const j=await r.json();
+ try{const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=tr&q="+encodeURIComponent(q));const j=await r.json();
   if(!j.length){$("tstat").textContent="Adres bulunamadı, daha genel yaz (örn: semt + il).";return}setCenter(+j[0].lat,+j[0].lon,q);$("tstat").textContent=""}
  catch(e){$("tstat").textContent="Adres aranamadı: "+e.message}
 }
@@ -1242,40 +1242,78 @@ function taraMapDraw_eski(fit){
 /* --- KENDİ VERİMİZ (mag-veri deposu, GitHub Pages; anahtarsız, ücretsiz) --- */
 const VERI_DEF="https://xfranerx53.github.io/mag-veri/data/";
 const veriUrl=()=>String(ayar.veriUrl||VERI_DEF).trim().replace(/\/?$/,"/");
-let vIdx=null,vIdxP=null;const vMeta={},vTile={},vYer={};
+let vIdx=null,vIdxP=null;const vMeta={},vTile={},vYer={},vBlk={},vS={},vYK={};
 async function vJson(u){const r=await fetch(u);if(!r.ok){const e=new Error("yanıt "+r.status);e.status=r.status;throw e}return r.json()}
-function vIndex(){if(vIdx)return Promise.resolve(vIdx);if(!vIdxP)vIdxP=vJson(veriUrl()+"ulkeler.json").then(x=>{vIdx=x;renderTaraG();return x}).catch(e=>{vIdxP=null;throw e});return vIdxP}
+// sıkıştırılmış (.gz) veri parçası: tarayıcı içinde açılır
+async function vGz(u){const r=await fetch(u);if(!r.ok){const e=new Error("yanıt "+r.status);e.status=r.status;throw e}
+ const b=new Uint8Array(await r.arrayBuffer());let t;
+ if(b[0]===0x1f&&b[1]===0x8b){if(typeof DecompressionStream==="undefined")throw new Error("tarayıcı çok eski (sıkıştırılmış veri açılamıyor), tarayıcıyı güncelle");
+  t=await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream("gzip"))).text()}else t=new TextDecoder().decode(b);
+ return JSON.parse(t)}
+const vOpt=(p,bos)=>p.catch(e=>{if(e.status===404)return bos;throw e});
+// dünya verisi (dunya.json) varsa onu, yoksa eski ülke düzenini (ulkeler.json) kullan
+function vIndex(){if(vIdx)return Promise.resolve(vIdx);
+ if(!vIdxP)vIdxP=vJson(veriUrl()+"dunya.json").then(x=>({...x,dunya:true})).catch(e=>{if(e.status!==404)throw e;return vJson(veriUrl()+"ulkeler.json")})
+  .then(x=>{vIdx=x;renderTaraG();return x}).catch(e=>{vIdxP=null;throw e});return vIdxP}
+function vOzet(x){x=x||vIdx;if(!x)return"";return x.dunya?`Dünya: ${NUM(x.adet)} işletme, veri tarihi ${fd(x.tarih)}`+(x.bolgeler&&x.bolgeler.length<8?` (${x.bolgeler.map(b=>b.ad).join(", ")})`:""):x.map(u=>u.ad+": "+NUM(u.adet)+" işletme, veri tarihi "+fd(u.tarih)).join(" • ")}
 const inBox=(b,lat,lon,pad)=>b&&lat>=b[0]-pad&&lat<=b[2]+pad&&lon>=b[1]-pad&&lon<=b[3]+pad;
 async function vUlkeMeta(u){return vMeta[u.cc]||(vMeta[u.cc]=await vJson(veriUrl()+u.cc+"/meta.json"))}
 async function havuz(l,n,f){const out=new Array(l.length);let i=0;await Promise.all(Array.from({length:Math.min(n,l.length)},async()=>{while(i<l.length){const k=i++;out[k]=await f(l[k])}}));return out}
+const normY=s=>String(s||"").replace(/[İIı]/g,"i").toLowerCase().normalize("NFD").replace(/[^\p{L}\p{N}]/gu,"");
+const a10=x=>Math.floor(x*10);
+function wBlk(k){return vBlk[k]||(vBlk[k]=vOpt(vJson(veriUrl()+"w/i/"+k+".json"),{t:{}}).catch(e=>{delete vBlk[k];throw e}))}
+function vRows(r,ks,q,out,pre){r.forEach(x=>{const[ad,k,lat,lon,tel,web,adres,il,oid]=x,ok=ks.has(k);if(!ok&&!(q&&normF(ad).includes(q)))return;
+ out.push({id:"o"+(oid||pre+lat+","+lon),ad,sek:ok?k:"ozel",lat,lon,tel:tel||"",web:web||"",adres:adres||"",il:il||"",src:["OSM"]})})}
 async function ownSearch(c,rKm,secs,kw){
  let idx;try{idx=await vIndex()}catch(e){const er=new Error("veri deposuna ulaşılamadı ("+e.message+")");er.nodata=e.status===404;throw er}
- const pad=rKm/111,ul=idx.filter(u=>inBox(u.bbox,c.lat,c.lon,pad));
- if(!ul.length){const e=new Error("bu bölge için henüz kendi verimiz yok");e.nodata=true;throw e}
  const ks=new Set(secs.map(s=>s.k)),q=kw?normF(kw):"",out=[];
+ const dLa=rKm/111,dLo=rKm/(111*Math.max(.05,Math.cos(c.lat*Math.PI/180)));
+ if(idx.dunya){
+  const B=idx.blok||48,la0=a10(c.lat-dLa),la1=a10(c.lat+dLa),lo0=a10(c.lon-dLo),lo1=a10(c.lon+dLo),bl=[];
+  for(let i=Math.floor(la0/B);i<=Math.floor(la1/B);i++)for(let j=Math.floor(lo0/B);j<=Math.floor(lo1/B);j++)bl.push(i+"_"+j);
+  const keys=[];(await Promise.all(bl.map(wBlk))).forEach(d=>Object.keys(d.t||{}).forEach(k=>{const[s,ij]=k.split("/"),[i,j]=ij.split("_").map(Number),S=+s;
+   if(i*S<=la1&&i*S+S-1>=la0&&j*S<=lo1&&j*S+S-1>=lo0)keys.push(k)}));
+  let n=0;const parts=await havuz(keys,8,k=>{if(!vTile[k])vTile[k]=vGz(veriUrl()+"w/t/"+k+".json.gz").catch(e=>{delete vTile[k];throw e});
+   return vTile[k].then(t=>{n++;$("tstat").textContent=`Kendi verimiz: ${n}/${keys.length} parça…`;return t})});
+  parts.forEach(t=>vRows(t,ks,q,out,"w"));tara.veriTarih=idx.tarih;return out}
+ const ul=idx.filter(u=>inBox(u.bbox,c.lat,c.lon,dLa));
+ if(!ul.length){const e=new Error("bu bölge için henüz kendi verimiz yok");e.nodata=true;throw e}
  for(const u of ul){
-  const m=await vUlkeMeta(u),T=m.kare||0.1,dLa=rKm/111,dLo=rKm/(111*Math.cos(c.lat*Math.PI/180)),keys=[];
+  const m=await vUlkeMeta(u),T=m.kare||0.1,keys=[];
   for(let a=Math.floor((c.lat-dLa)/T);a<=Math.floor((c.lat+dLa)/T);a++)for(let b=Math.floor((c.lon-dLo)/T);b<=Math.floor((c.lon+dLo)/T);b++){const k=a+"_"+b;if(m.tiles[k])keys.push(k)}
   let n=0;
   const parts=await havuz(keys,8,k=>{const id=u.cc+"/"+k;if(!vTile[id])vTile[id]=vJson(veriUrl()+u.cc+"/t/"+k+".json").catch(e=>{delete vTile[id];throw e});
    return vTile[id].then(t=>{n++;$("tstat").textContent=`Kendi verimiz: ${n}/${keys.length} parça…`;return t})});
-  parts.forEach(t=>t.forEach(r=>{const[ad,k,lat,lon,tel,web,adres,il,oid]=r,ok=ks.has(k);if(!ok&&!(q&&normF(ad).includes(q)))return;
-   out.push({id:"o"+(oid||u.cc+lat+","+lon),ad,sek:ok?k:"ozel",lat,lon,tel:tel||"",web:web||"",adres:adres||"",il:il||"",src:["OSM"]})}));
+  parts.forEach(t=>vRows(t,ks,q,out,u.cc));
   tara.veriTarih=m.tarih;
  }
  return out;
 }
+const YRANK={city:6,town:5,suburb:4,quarter:3,neighbourhood:3,village:2,hamlet:1};
 async function yerAra(q){
- const idx=await vIndex(),w=q.toLocaleLowerCase("tr").split(/[\s,\/]+/).map(normF).filter(x=>x.length>1);if(!w.length)return null;
- const RANK={city:6,town:5,suburb:4,quarter:3,neighbourhood:3,village:2,hamlet:1};let best=null;
+ const idx=await vIndex();
+ if(idx.dunya){
+  const ws=String(q).split(/[\s,\/]+/).map(normY).filter(x=>x.length>1),qn=normY(q);if(!ws.length)return null;
+  const pre=[...new Set(ws.map(w=>[...w].slice(0,2).map(c=>c.codePointAt(0).toString(16)).join("-")))].slice(0,3);
+  const L=(await Promise.all(pre.map(p=>vS[p]||(vS[p]=vOpt(vGz(veriUrl()+"w/s/"+p+".json.gz"),[]).catch(e=>{delete vS[p];throw e}))))).flat();
+  let best=null;const c=tara.c;
+  for(const y of L){const n=normY(y[5]||y[0]);if(!(n===qn||ws.some(w=>n===w||n.startsWith(w))))continue;const pa=normY(y[4]);let sc=YRANK[y[1]]||0;
+   if(n===qn)sc+=15;ws.forEach(w=>{if(n===w)sc+=10;else if(n.startsWith(w))sc+=5;else if(pa.includes(w))sc+=6});
+   if(c&&hav(c.lat,c.lon,y[2],y[3])<300)sc+=3;if(!best||sc>best.sc)best={sc,y}}
+  return best&&{lat:best.y[2],lon:best.y[3],ad:best.y[0]+(best.y[4]?", "+best.y[4]:"")}}
+ const w=q.toLocaleLowerCase("tr").split(/[\s,\/]+/).map(normF).filter(x=>x.length>1);if(!w.length)return null;
+ let best=null;
  for(const u of idx){const Y=vYer[u.cc]||(vYer[u.cc]=await vJson(veriUrl()+u.cc+"/yerler.json"));
-  for(const y of Y){const n=normF(y[0]);if(!w.some(x=>n===x||n.startsWith(x)))continue;const pa=normF(y[4]||"");let sc=RANK[y[1]]||0;
+  for(const y of Y){const n=normF(y[0]);if(!w.some(x=>n===x||n.startsWith(x)))continue;const pa=normF(y[4]||"");let sc=YRANK[y[1]]||0;
    w.forEach(x=>{if(n===x)sc+=10;else if(n.startsWith(x))sc+=5;else if(pa.includes(x))sc+=6});if(!best||sc>best.sc)best={sc,y}}}
  return best&&{lat:best.y[2],lon:best.y[3],ad:best.y[0]+(best.y[4]?", "+best.y[4]:"")};
 }
 async function yerYakin(lat,lon){
- const idx=await vIndex(),u=idx.find(u=>inBox(u.bbox,lat,lon,.2));if(!u)return null;
- const Y=vYer[u.cc]||(vYer[u.cc]=await vJson(veriUrl()+u.cc+"/yerler.json"));let b=null,bd=1e9;
+ const idx=await vIndex();let Y;
+ if(idx.dunya){const S=idx.yerKare||8,ks=new Set();[-.08,.08].forEach(da=>[-.11,.11].forEach(dl=>ks.add(Math.floor(a10(lat+da)/S)+"_"+Math.floor(a10(lon+dl)/S))));
+  Y=(await Promise.all([...ks].map(k=>vYK[k]||(vYK[k]=vOpt(vGz(veriUrl()+"w/y/"+k+".json.gz"),[]).catch(e=>{delete vYK[k];throw e}))))).flat()}
+ else{const u=idx.find(u=>inBox(u.bbox,lat,lon,.2));if(!u)return null;Y=vYer[u.cc]||(vYer[u.cc]=await vJson(veriUrl()+u.cc+"/yerler.json"))}
+ let b=null,bd=1e9;
  Y.forEach(y=>{if(!["town","city","suburb","neighbourhood","quarter","village"].includes(y[1]))return;const d=hav(lat,lon,y[2],y[3]);if(d<bd){bd=d;b=y}});
  return b&&bd<8?b:null;
 }
@@ -1306,7 +1344,7 @@ async function geoapifySearch(c,rKm,secs,kw){
 const geoToday=()=>+ls.get("mag_geo_"+today())||0;
 function geoCount(){ls.set("mag_geo_"+today(),String(geoToday()+1))}
 async function veriTest(){const eski=ayar.veriUrl;ayar.veriUrl=$("a_veri").value.trim();vIdx=null;vIdxP=null;$("veriT").textContent="Kontrol ediliyor…";
- try{const x=await vIndex();$("veriT").textContent="✔ "+x.map(u=>u.ad+": "+NUM(u.adet)+" işletme, veri tarihi "+fd(u.tarih)).join(" • ")}catch(e){$("veriT").textContent="✖ Veri bulunamadı ("+e.message+"). mag-veri deposu kurulup ilk çalıştırma bitti mi?"}
+ try{const x=await vIndex();$("veriT").textContent="✔ "+vOzet(x)}catch(e){$("veriT").textContent="✖ Veri bulunamadı ("+e.message+"). mag-veri deposu kurulup ilk çalıştırma bitti mi?"}
  ayar.veriUrl=eski;}
 async function geoTest(){
  const k=normGeo($("a_geo").value);$("a_geo").value=k;if(!k){$("geoT").textContent="Önce anahtarı yapıştır.";return}

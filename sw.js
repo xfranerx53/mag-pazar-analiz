@@ -1,4 +1,4 @@
-const C="mag-v10",V="mag-veri-v1",F=["./","index.html","manifest.webmanifest","icon.svg"];
+const C="mag-v11",V="mag-veri-v1",F=["./","index.html","manifest.webmanifest","icon.svg"];
 const EXT=/^https:\/\/(www\.gstatic\.com\/firebasejs\/|cdnjs\.cloudflare\.com\/ajax\/libs\/(leaflet|xlsx)\/)/;
 const VERI=/\/mag-veri\/data\//;
 self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F)));self.skipWaiting()});
