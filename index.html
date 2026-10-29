@@ -173,7 +173,7 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <div class="sec" id="s-analiz">
 <div class="bar"><button class="p" onclick="excelReport()">📊 Excel raporu indir</button></div>
 <div id="analiz"></div>
-<div class="card"><h3>Türkiye haritası</h3><div class="mu">Daire büyüklüğü = firma sayısı • yeşil = o ilde müşteri var</div><div id="map"></div><div class="mu" id="mapnote"></div></div>
+<div class="card"><h3>Dünya haritası</h3><div class="mu">Daire büyüklüğü = firma sayısı • yeşil = içinde müşteri var • yakınlaştırdıkça daireler şehir, semt ve tek tek firmalara ayrılır</div><div class="row" style="margin:6px 0"><button onclick="mapFit()">🌍 Tüm kayıtlar</button><button id="geoBtn" onclick="geoMissing()">📍 Konumu olmayanları bul</button></div><div id="map"></div><div class="mu" id="mapnote"></div></div>
 <div id="analiz2"></div>
 </div>
 
@@ -207,7 +207,7 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <b id="dt">Kayıt</b>
 <label>Firma adı *</label><input id="firma"><div class="warn mu" id="dupw"></div>
 <div class="g2"><div><label>Yetkili kişi</label><input id="yetkili"></div><div><label>Sektör</label><select id="sektor"></select></div>
-<div><label>İl / İlçe</label><input id="il" placeholder="Örn: İstanbul / Kadıköy"></div><div><label>Telefon</label><input id="telefon" type="tel"></div></div>
+<div><label>İl / İlçe</label><input id="il" placeholder="Örn: İstanbul / Kadıköy veya Berlin, Almanya"></div><div><label>Telefon</label><input id="telefon" type="tel"></div></div>
 <label>Açık adres</label><input id="adres" placeholder="Mahalle, cadde, no..."><div class="row"><button type="button" onclick="formGetPos()">📍 Şu anki konumumu ekle</button><span class="mu" id="fkon"></span></div>
 <div class="g2"><div><label>E-posta</label><input id="eposta" type="email"></div><div><label>Kaynak</label><input id="kaynak" placeholder="Google, tavsiye, ziyaret..."></div>
 <div><label>Durum</label><select id="durum"></select></div><div><label>Öncelik</label><select id="oncelik"></select></div>
@@ -697,17 +697,41 @@ function renderAnaliz(){
  bars("Önceliğe göre",["Sıcak","Ilık","Soğuk"].map(k=>[k,data.filter(x=>x.oncelik===k).length]));
  drawMap();
 }
-/* ---------- harita ---------- */
-let map=null,mapLayer=null;
+/* ---------- harita (dünya) ---------- */
+let map=null,mapLayer=null,mapFitted=false,geoRun=false;
+// kaydın haritadaki yeri: 1) taramadan/ziyaretten gelen gerçek konum 2) Türkiye il merkezi 3) yok
+function leadPos(x){if(x.konum&&isFinite(x.konum.lat)&&isFinite(x.konum.lon))return[+x.konum.lat,+x.konum.lon,1];const k=ilOf(x.il);return k&&IL[k]?[IL[k][0],IL[k][1],0]:null}
+function mapPts(){return data.map(x=>({x,p:leadPos(x)})).filter(o=>o.p)}
+function mapFit(){if(!map)return;const pts=mapPts();if(!pts.length){map.setView([25,15],2);return}map.fitBounds(L.latLngBounds(pts.map(o=>[o.p[0],o.p[1]])).pad(.15),{maxZoom:12})}
+function mapDraw(){if(!map)return;if(mapLayer)mapLayer.remove();mapLayer=L.layerGroup().addTo(map);
+ const z=map.getZoom(),T=z>=13?0:60/Math.pow(2,z),g={};
+ mapPts().forEach(({x,p})=>{const k=T?Math.floor(p[0]/T)+"_"+Math.floor(p[1]/T):x.id;const c=g[k]=g[k]||{n:0,m:0,la:0,lo:0,f:[]};c.n++;c.la+=p[0];c.lo+=p[1];if(x.durum==="Müşteri")c.m++;if(c.f.length<8)c.f.push(x)});
+ Object.values(g).forEach(c=>{const ll=[c.la/c.n,c.lo/c.n],one=c.n===1;
+  const mk=L.circleMarker(ll,{radius:one?7:6+Math.sqrt(c.n)*4,color:c.m?"#067647":"#1F3864",fillColor:c.m?"#12b76a":"#4f75c2",fillOpacity:.6,weight:2});
+  mk.bindPopup(one?`<b>${esc(c.f[0].firma)}</b><br>${esc([c.f[0].sektor,c.f[0].durum].filter(Boolean).join(" • "))}<br>${esc(addr(c.f[0]))}`:`<b>${c.n} firma, ${c.m} müşteri</b><br><small>${c.f.map(x=>esc(x.firma)).join("<br>")}${c.n>8?"<br>… yakınlaştır":""}</small>`);
+  if(!one)mk.on("dblclick",()=>map.setView(ll,Math.min(z+3,16)));mk.addTo(mapLayer)});
+ const yok=data.length-mapPts().length,yak=data.filter(x=>!(x.konum&&isFinite(x.konum.lat))&&leadPos(x)).length;
+ $("mapnote").textContent=(yok?yok+" kaydın yeri bilinmiyor. ":"")+(yak?yak+" kayıt il merkezinde gösteriliyor (tam konumu yok). ":"")+(yok||yak?"“📍 Konumu olmayanları bul” adres/il/ülke bilgisinden yerini bulur.":"")}
 async function drawMap(){
  try{loadCss("https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css");await loadScript("https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js")}catch(e){$("mapnote").textContent=e.message;return}
- if(!map){map=L.map("map",{scrollWheelZoom:false}).setView([39,35],5.4);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:12,attribution:"© OpenStreetMap"}).addTo(map)}
- setTimeout(()=>map.invalidateSize(),50);
- if(mapLayer)mapLayer.remove();mapLayer=L.layerGroup().addTo(map);
- const o={};let un=0;data.forEach(x=>{const k=ilOf(x.il);if(!k){un++;return}o[k]=o[k]||{n:0,m:0,f:[]};o[k].n++;if(x.durum==="Müşteri")o[k].m++;if(o[k].f.length<8)o[k].f.push(x.firma)});
- Object.entries(o).forEach(([k,v])=>{L.circleMarker(IL[k],{radius:6+Math.sqrt(v.n)*4,color:v.m?"#067647":"#1F3864",fillColor:v.m?"#12b76a":"#4f75c2",fillOpacity:.55,weight:2}).bindPopup(`<b>${k}</b><br>${v.n} firma, ${v.m} müşteri<br><small>${v.f.map(esc).join("<br>")}${v.n>8?"<br>…":""}</small>`).addTo(mapLayer)});
- $("mapnote").textContent=un?un+" kaydın ili tanınmadı (İl / İlçe alanına il adını yaz).":"";
+ if(!map){map=L.map("map",{scrollWheelZoom:false,worldCopyJump:true,minZoom:1}).setView([25,15],2);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(map);map.on("zoomend",mapDraw)}
+ setTimeout(()=>{map.invalidateSize();if(!mapFitted){mapFitted=true;mapFit()}mapDraw()},60);
 }
+// konumu olmayan kayıtları ücretsiz OpenStreetMap adres aramasıyla (Nominatim, saniyede 1 istek) bul
+async function geoMissing(){
+ if(geoRun){geoRun=false;return}
+ const l=data.filter(x=>!(x.konum&&isFinite(x.konum.lat))&&(x.adres||x.il||x.firma));
+ if(!l.length){alert("Bütün kayıtların konumu var.");return}
+ if(!confirm(l.length+" kaydın yeri adres / il / ülke bilgisinden aranacak (her kayıt ~1 saniye). Başlasın mı?"))return;
+ geoRun=true;$("geoBtn").textContent="⏹ Durdur";let ok=0,no=0;
+ for(const x of l){if(!geoRun)break;
+  const qs=[[x.adres,x.il].filter(Boolean).join(", "),x.il,x.firma&&x.il?x.firma+", "+x.il:""].filter((q,i,a)=>q&&a.indexOf(q)===i);let hit=null;
+  for(const q of qs){try{const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=tr&q="+encodeURIComponent(q));const j=await r.json();if(j[0]){hit={lat:+j[0].lat,lon:+j[0].lon};break}}catch(e){}await new Promise(r=>setTimeout(r,1100))}
+  if(hit){const y=data.find(v=>v.id===x.id);if(y){put({...y,konum:hit,konumKaynak:"adres"});ok++}}else no++;
+  $("mapnote").textContent=`Konum aranıyor… bulunan ${ok}, bulunamayan ${no}, kalan ${l.length-ok-no}`;
+  await new Promise(r=>setTimeout(r,1100))}
+ geoRun=false;$("geoBtn").textContent="📍 Konumu olmayanları bul";mapFitted=false;drawMap();
+ alert(`Bitti. Bulunan: ${ok}, bulunamayan: ${no}.`+(no?"\nBulunamayanların “İl / İlçe” alanına şehir ve ülke yaz (örn: Berlin, Almanya) ve tekrar dene.":""))}
 /* ---------- yönetim ---------- */
 async function renderYonetim(){
  if(!isAdmin()){$("ylist").innerHTML="";return}
@@ -767,8 +791,8 @@ async function saveForm(){
  if(!$("firma").value.trim()){alert("Firma adı gerekli.");return}
  const d=findDup({firma:$("firma").value,telefon:$("telefon").value},editId);
  if(d&&!confirm("Bu firma zaten kayıtlı olabilir:\n"+d.firma+(d.telefon?" ("+d.telefon+")":"")+"\n\nYine de kaydedilsin mi?"))return;
- const o=editId?{...data.find(v=>v.id===editId)}:{id:uid_(),c:Date.now()};
- KEYS.forEach(k=>o[k]=$(k).value.trim());if(o.durum!=="İlgilenmiyor")o.kayip="";if(fKon)o.konum=fKon;
+ const o=editId?{...data.find(v=>v.id===editId)}:{id:uid_(),c:Date.now()},eskiYer=(o.adres||"")+"|"+(o.il||"");
+ KEYS.forEach(k=>o[k]=$(k).value.trim());if(o.durum!=="İlgilenmiyor")o.kayip="";if(fKon&&fKon!==o.konum){o.konum=fKon;delete o.konumKaynak}else if(o.konumKaynak==="adres"&&eskiYer!==o.adres+"|"+o.il){delete o.konum;delete o.konumKaynak}else if(fKon)o.konum=fKon;
  if(!$("ownBox").hidden){o.sahip=$("sahip").value;o.sahipAd=(users[o.sahip]||{}).ad||""}
  try{if(fotoState==="new"){await mediaPut("f_"+o.id,fotoData);o.foto=1}else if(fotoState==="del"){mediaDel("f_"+o.id);delete o.foto}}catch(e){alert("Fotoğraf kaydedilemedi: "+e.message)}
  put(o);dlg.close();
