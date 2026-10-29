@@ -286,7 +286,7 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <div class="g2"><div><label>"Uyuyan müşteri" sınırı (gün)</label><input id="a_uyku" type="number" min="7"></div></div>
 <h4>Google Haritalar taraması</h4>
 <p class="mu">Anahtar yoksa tarama yalnızca ücretsiz OpenStreetMap ile yapılır. Anahtar alma adımları README.md içinde.</p>
-<div class="g2"><div><label>Geoapify anahtarı (ücretsiz, kart yok — önerilen)</label><input id="a_geo" placeholder="Geoapify API key"></div><div><label>&nbsp;</label><button type="button" onclick="geoTest()">Anahtarı test et</button> <span class="mu" id="geoT"></span></div><div><label>Google API anahtarı</label><input id="a_gkey" placeholder="AIza..."></div><div><label>Aylık Google sorgu sınırı</label><input id="a_glim" type="number" min="0"></div></div>
+<div class="g2"><div><label>Geoapify anahtarı (ücretsiz, kart yok — önerilen)</label><input id="a_geo" placeholder="Sadece anahtar (örn: 7454…70d8)" oninput="geoFix()" onchange="geoFix()"></div><div><label>&nbsp;</label><button type="button" onclick="geoTest()">Anahtarı test et</button> <span class="mu" id="geoT"></span></div><div><label>Google API anahtarı</label><input id="a_gkey" placeholder="AIza..."></div><div><label>Aylık Google sorgu sınırı</label><input id="a_glim" type="number" min="0"></div></div>
 <h4>Satış ve pazar hesapları</h4>
 <div class="g3"><div><label>Ort. poşet satış fiyatı (₺/kg)</label><input id="a_kgf" type="number" step="0.01"></div><div><label>Hedef kâr marjı (% satış fiyatı)</label><input id="a_marj" type="number"></div><div><label>Varsayılan sipariş aralığı (gün)</label><input id="a_sipa" type="number"></div>
 <div><label>Numune dönüş süresi (gün)</label><input id="a_numg" type="number"></div></div>
@@ -442,7 +442,9 @@ const DEFAYAR={firma:{ad:"MAG AMBALAJ",tel:"",ep:"",web:"",adr:"",alt:"Bu teklif
  {ad:"Teklif takibi",metin:"Merhaba {yetkili}, {firma} için ilettiğimiz teklifle ilgili sorunuz var mı? Yardımcı olmaktan memnuniyet duyarız. MAG Ambalaj"},
  {ad:"Teşekkür",metin:"Merhaba {yetkili}, siparişiniz için teşekkür ederiz. Her türlü ambalaj ihtiyacınızda buradayız. MAG Ambalaj"}]};
 const mergeAyar=a=>{a=a||{};return{...a,firma:{...DEFAYAR.firma,...(a.firma||{})},hedef:{...DEFAYAR.hedef,...(a.hedef||{})},uyku:+a.uyku||DEFAYAR.uyku,sablon:a.sablon?arr(a.sablon):clean(DEFAYAR.sablon)}};
-let ayar=mergeAyar(lsJ("mag_ayar",null));
+const normGeo=v=>{v=String(v||"").trim();const m=v.match(/apiKey=([A-Za-z0-9_-]+)/i);return m?m[1]:v.replace(/\s/g,"")};
+const okGoogle=v=>/^AIza[0-9A-Za-z_-]{30,}$/.test(String(v||"").trim());
+let ayar=mergeAyar(lsJ("mag_ayar",null));if(ayar.geoKey)ayar.geoKey=normGeo(ayar.geoKey);if(ayar.googleKey&&!okGoogle(ayar.googleKey))ayar.googleKey="";
 function saveAyar(){ls.set("mag_ayar",JSON.stringify(ayar));if(root&&isAdmin())root.child("ayar").set(clean(ayar)).catch(e=>cloudErr(e.message));render()}
 function saveKatalog(){ls.set("mag_katalog",JSON.stringify(katalog));if(root&&isAdmin())root.child("katalog").set(clean(katalog)).catch(e=>cloudErr(e.message));render()}
 
@@ -931,6 +933,7 @@ let sw=[],ayarLogo="";
 const AF={a_ad:"ad",a_tel:"tel",a_ep:"ep",a_web:"web",a_adr:"adr",a_alt:"alt"};
 function renderSl(){$("slist").innerHTML=sw.map((s,i)=>`<div class="sl"><input data-si="${i}" data-sf="ad" value="${esc(s.ad)}" placeholder="Şablon adı"><textarea data-si="${i}" data-sf="metin" rows="3" placeholder="Mesaj metni">${esc(s.metin)}</textarea><div class="row"><button type="button" class="d" data-a="sdel" data-i="${i}">Şablonu sil</button></div></div>`).join("")}
 $("a_logo").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{ayarLogo=await resizeImg(f,400,"image/png");$("a_lp").src=ayarLogo;$("a_lp").hidden=false;$("a_ld").hidden=false}catch(err){alert(err.message)}};
+function geoFix(){const v=$("a_geo").value,k=normGeo(v);if(k!==v.trim()){$("a_geo").value=k;$("geoT").textContent="Bağlantının içinden anahtar ayıklandı: "+k.slice(0,4)+"…"+k.slice(-4)}}
 function openAyar(){
  $("aAdm").hidden=!isAdmin();$("aSat").hidden=isAdmin();
  Object.entries(AF).forEach(([k,v])=>$(k).value=ayar.firma[v]||"");ayarLogo=ayar.firma.logo||"";$("a_lp").src=ayarLogo;$("a_lp").hidden=!ayarLogo;$("a_ld").hidden=!ayarLogo;$("a_logo").value="";
@@ -943,7 +946,7 @@ function saveAyarForm(){
  Object.entries(AF).forEach(([k,v])=>ayar.firma[v]=$(k).value.trim());ayar.firma.logo=ayarLogo;
  ayar.hedef={gorusme:+$("h_g").value||0,musteri:+$("h_m").value||0,teklif:+$("h_t").value||0};ayar.uyku=Math.max(7,+$("a_uyku").value||60);
  ayar.sablon=sw.filter(s=>s.ad.trim()||s.metin.trim()).map(s=>({ad:s.ad.trim()||"Şablon",metin:s.metin.trim()}));
- const nk=$("a_gkey").value.trim(),kc=nk!==(ayar.googleKey||"");ayar.googleKey=nk;ayar.geoKey=$("a_geo").value.trim();ayar.kgFiyat=+$("a_kgf").value||0;ayar.hedefMarj=$("a_marj").value===""?25:+$("a_marj").value;ayar.sipAralik=+$("a_sipa").value||30;ayar.numuneGun=+$("a_numg").value||7;{const tk={};document.querySelectorAll("[data-tk]").forEach(i=>{if(i.value!==""&&+i.value!==TUK_DEF[i.dataset.tk])tk[i.dataset.tk]=+i.value});ayar.tuketim=tk}ayar.gLimit=Math.max(0,+$("a_glim").value||0);
+ let nk=$("a_gkey").value.trim();if(nk&&!okGoogle(nk)){alert("Google API anahtarı \"AIza\" ile başlamalı. Girdiğin değer bir Google Haritalar anahtarı değil, kaydedilmedi. Google kullanmayacaksan bu kutuyu boş bırak.");nk=""}const kc=nk!==(ayar.googleKey||"");ayar.googleKey=nk;ayar.geoKey=normGeo($("a_geo").value);ayar.kgFiyat=+$("a_kgf").value||0;ayar.hedefMarj=$("a_marj").value===""?25:+$("a_marj").value;ayar.sipAralik=+$("a_sipa").value||30;ayar.numuneGun=+$("a_numg").value||7;{const tk={};document.querySelectorAll("[data-tk]").forEach(i=>{if(i.value!==""&&+i.value!==TUK_DEF[i.dataset.tk])tk[i.dataset.tk]=+i.value});ayar.tuketim=tk}ayar.gLimit=Math.max(0,+$("a_glim").value||0);
  saveAyar();logEv("Ayarlar güncellendi");dlgA.close();if(kc&&window.google&&window.google.maps&&confirm("Google anahtarı değişti. Geçerli olması için sayfa yenilensin mi?"))location.reload();
 }
 
@@ -1105,7 +1108,7 @@ async function startSync(u){
   }else data=remote;
   ls.set(SYNCK,"1");localSave();render();cloudUi();
  },err=>{cloudErr("Okuma hatası: "+err.message);cloudState="norules";render();cloudUi()});
- on(R.child("ayar"),s=>{const v=s.val();if(v){const loc=ayar,up={};ayar=mergeAyar(v);["geoKey","googleKey","gLimit","kgFiyat","hedefMarj","tuketim"].forEach(k=>{if((ayar[k]==null||ayar[k]==="")&&loc[k]!=null&&loc[k]!==""){ayar[k]=loc[k];up[k]=clean(loc[k])}});ls.set("mag_ayar",JSON.stringify(ayar));if(isAdmin()&&Object.keys(up).length)R.child("ayar").update(up).catch(()=>{});render()}else if(isAdmin()){if(prof.yeniSahip)ayar.ownerUid=u.uid;R.child("ayar").set(clean(ayar)).catch(()=>{})}});
+ on(R.child("ayar"),s=>{const v=s.val();if(v){const loc=ayar,up={};ayar=mergeAyar(v);if(ayar.geoKey&&normGeo(ayar.geoKey)!==ayar.geoKey){ayar.geoKey=normGeo(ayar.geoKey);up.geoKey=ayar.geoKey}if(ayar.googleKey&&!okGoogle(ayar.googleKey)){ayar.googleKey="";up.googleKey=""}["geoKey","googleKey","gLimit","kgFiyat","hedefMarj","tuketim"].forEach(k=>{if((ayar[k]==null||ayar[k]==="")&&loc[k]!=null&&loc[k]!==""){ayar[k]=loc[k];up[k]=clean(loc[k])}});ls.set("mag_ayar",JSON.stringify(ayar));if(isAdmin()&&Object.keys(up).length)R.child("ayar").update(up).catch(()=>{});render()}else if(isAdmin()){if(prof.yeniSahip)ayar.ownerUid=u.uid;R.child("ayar").set(clean(ayar)).catch(()=>{})}});
  on(R.child("katalog"),s=>{const v=s.val();if(v){katalog=arr(v);ls.set("mag_katalog",JSON.stringify(katalog));render()}else if(isAdmin()&&katalog.length)R.child("katalog").set(clean(katalog)).catch(()=>{})});
  if(isAdmin()){
   if(prof.yeniSahip){ayar.ownerUid=u.uid;R.child("ayar/ownerUid").set(u.uid).catch(()=>{})}
@@ -1210,7 +1213,7 @@ async function geoapifySearch(c,rKm,secs,kw){
 const geoToday=()=>+ls.get("mag_geo_"+today())||0;
 function geoCount(){ls.set("mag_geo_"+today(),String(geoToday()+1))}
 async function geoTest(){
- const k=$("a_geo").value.trim();if(!k){$("geoT").textContent="Önce anahtarı yapıştır.";return}
+ const k=normGeo($("a_geo").value);$("a_geo").value=k;if(!k){$("geoT").textContent="Önce anahtarı yapıştır.";return}
  $("geoT").textContent="Deneniyor…";
  try{const r=await fetch(`https://api.geoapify.com/v2/places?categories=commercial.supermarket&filter=circle:28.97,41.01,1000&limit=1&apiKey=${encodeURIComponent(k)}`);
   $("geoT").textContent=r.ok?"✔ Anahtar çalışıyor (bugün bu cihazdan "+geoToday()+" sorgu; günlük ücretsiz hak 3.000 kredi)":r.status===401||r.status===403?"✖ Anahtar reddedildi: yanlış kopyalanmış olabilir ya da Geoapify'da 'izin verilen adres' kısıtlaması bu siteyi kapsamıyor.":r.status===429?"✖ Günlük ücretsiz sınır dolmuş, yarın sıfırlanır.":"✖ Geoapify yanıtı: "+r.status}
