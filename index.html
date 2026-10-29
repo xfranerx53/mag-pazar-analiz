@@ -340,12 +340,13 @@ $("fj").onchange=e=>{
 
 /* ---------- bulut (Firebase) ---------- */
 const CFGK="mag_fbcfg",SYNCK="mag_synced";
-const getCfg=()=>{try{return JSON.parse(localStorage.getItem(CFGK))}catch(e){return null}};
+const DEFCFG={apiKey:"AIzaSyC8vJ8i4foPYQ1jRAmQ5XZlt86izHpVsas",authDomain:"mag-pazar.firebaseapp.com",databaseURL:"https://mag-pazar-default-rtdb.europe-west1.firebasedatabase.app",projectId:"mag-pazar",storageBucket:"mag-pazar.firebasestorage.app",messagingSenderId:"978998609477",appId:"1:978998609477:web:abf2c94c55d4da521cc52c"};
+const getCfg=()=>{try{return JSON.parse(localStorage.getItem(CFGK))||DEFCFG}catch(e){return DEFCFG}};
 let myUid=null,booted=false;
 function cloudErr(m){$("cerr").textContent=m||""}
 function cloudUi(){
  const c=getCfg();
- $("cb").textContent=ref?"☁ Bulut: Bağlı":c?"☁ Bulut: Giriş gerekli":"☁ Bulut: Kapalı";
+ $("cb").textContent=ref?"☁ Bulut: Bağlı":c?"☁ Giriş yap (eşitleme)":"☁ Bulut: Kapalı";
  $("cstep1").hidden=!!c;$("cstep2").hidden=!c||!!myUid;$("cstep3").hidden=!myUid;
  $("cstate").textContent=!c?"Telefon ve bilgisayarda aynı kayıtları görmek için ücretsiz Firebase hesabına bağla.":myUid?"Bağlı.":"Ayarlar kayıtlı. Giriş yap.";
  if(myUid)$("crules").textContent=JSON.stringify({rules:{mag_pazar:{".read":"auth.uid === '"+myUid+"'",".write":"auth.uid === '"+myUid+"'"}}});
