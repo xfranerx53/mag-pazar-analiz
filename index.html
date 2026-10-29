@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mag Ambalaj Pazar Analiz</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg">
+<meta name="theme-color" content="#1F3864">
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--tx:#1b1f24;--mu:#667085;--br:#d9dde3;--pr:#1F3864;--on:#fff;--ac:#e8eef9;--rd:#b42318}
+@media(prefers-color-scheme:dark){:root{--bg:#14171c;--card:#1d2127;--tx:#eceff3;--mu:#98a2b3;--br:#323842;--pr:#7ea6e8;--on:#0b1220;--ac:#232c3d;--rd:#f97066}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px system-ui,Segoe UI,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{background:var(--pr);color:var(--on);padding:14px 16px;font-weight:600;font-size:17px}
+main{max-width:900px;margin:0 auto;padding:12px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.st{background:var(--card);border:1px solid var(--br);border-radius:10px;padding:10px;text-align:center}
+.st b{display:block;font-size:22px}.st span{color:var(--mu);font-size:12px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+input,select,textarea{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--br);border-radius:8px;padding:8px;width:100%}
+.bar input{flex:2 1 160px;width:auto}.bar select{flex:1 1 120px;width:auto}
+button{font:inherit;border:1px solid var(--br);background:var(--card);color:var(--tx);border-radius:8px;padding:8px 12px;cursor:pointer}
+button.p{background:var(--pr);color:var(--on);border-color:var(--pr)}
+.card{background:var(--card);border:1px solid var(--br);border-radius:10px;padding:12px;margin-bottom:8px}
+.card h3{margin:0 0 4px;font-size:16px}.mu{color:var(--mu);font-size:13px}
+.tag{display:inline-block;background:var(--ac);border-radius:99px;padding:2px 9px;font-size:12px;margin-right:4px}
+.row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.row button{padding:5px 10px;font-size:13px}
+dialog{border:1px solid var(--br);border-radius:12px;background:var(--card);color:var(--tx);width:min(480px,94vw);padding:16px}
+dialog::backdrop{background:rgba(0,0,0,.5)}label{display:block;margin:8px 0 3px;font-size:13px;color:var(--mu)}
+.empty{text-align:center;color:var(--mu);padding:30px}.warn{color:var(--rd)}
+</style></head><body>
+<header>Mag Ambalaj • Pazar Analiz</header>
+<main>
+<div class="stats" id="stats"></div>
+<div class="bar">
+<input id="q" placeholder="Ara: firma, şehir, telefon...">
+<select id="fs"></select><select id="fd"></select>
+</div>
+<div class="bar">
+<button class="p" onclick="openForm()">+ Yeni kayıt</button>
+<button onclick="document.getElementById('f').click()">Excel/CSV içe aktar</button>
+<button onclick="exportCsv()">Excel/CSV indir</button>
+<input type="file" id="f" accept=".csv,.txt" hidden>
+</div>
+<div id="list"></div>
+<p class="mu">Veriler yalnızca bu cihazın tarayıcısında saklanır. Başka cihaza taşımak için "indir" ve "içe aktar" kullanın. Bulutta eşitleme sonraki aşamada eklenecek.</p>
+</main>
+<dialog id="dlg"><form method="dialog" id="fm" onsubmit="return false">
+<b id="dt">Kayıt</b>
+<label>Firma adı *</label><input id="firma">
+<label>Sektör</label><select id="sektor"></select>
+<label>İl / İlçe</label><input id="il">
+<label>Telefon</label><input id="telefon" type="tel">
+<label>E-posta</label><input id="eposta" type="email">
+<label>Durum</label><select id="durum"></select>
+<label>Ticari ileti izni</label><select id="izin"><option>Yok</option><option>Var</option><option>Çıkış yaptı</option></select>
+<label>Not</label><textarea id="not" rows="3"></textarea>
+<div class="row"><button class="p" onclick="saveForm()">Kaydet</button><button onclick="dlg.close()">Vazgeç</button></div>
+</form></dialog>
+<script>
+const SEK=["Market","Manav","Kasap","Dürümcü/Restoran","Tekstil/Konfeksiyon","Mağaza","Depo/Lojistik","Toptancı","Diğer"];
+const DUR=["Yeni","İletişim kuruldu","İlgileniyor","Müşteri","İlgilenmiyor"];
+const KEYS=["firma","sektor","il","telefon","eposta","durum","izin","not"];
+const HEAD=["Firma","Sektör","İl/İlçe","Telefon","E-posta","Durum","İzin","Not"];
+let data=[],editId=null;
+try{data=JSON.parse(localStorage.getItem("mag_leads")||"[]")}catch(e){data=[]}
+const $=id=>document.getElementById(id),dlg=$("dlg");
+const save=()=>{try{localStorage.setItem("mag_leads",JSON.stringify(data))}catch(e){alert("Kayıt yapılamadı: tarayıcı depolaması kapalı.")}};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const opts=(el,arr,all)=>{el.innerHTML=(all?`<option value="">${all}</option>`:"")+arr.map(x=>`<option>${x}</option>`).join("")};
+opts($("fs"),SEK,"Tüm sektörler");opts($("fd"),DUR,"Tüm durumlar");opts($("sektor"),SEK);opts($("durum"),DUR);
+function render(){
+ const q=$("q").value.toLowerCase(),s=$("fs").value,d=$("fd").value;
+ const c=n=>data.filter(x=>x.durum===n).length;
+ $("stats").innerHTML=[["Toplam",data.length],["Yeni",c("Yeni")],["İlgileniyor",c("İlgileniyor")],["Müşteri",c("Müşteri")]].map(a=>`<div class="st"><b>${a[1]}</b><span>${a[0]}</span></div>`).join("");
+ const r=data.filter(x=>(!s||x.sektor===s)&&(!d||x.durum===d)&&(!q||KEYS.some(k=>String(x[k]||"").toLowerCase().includes(q))));
+ $("list").innerHTML=r.length?r.map(x=>`<div class="card"><h3>${esc(x.firma)}</h3>
+ <span class="tag">${esc(x.sektor)}</span><span class="tag">${esc(x.durum)}</span><span class="tag ${x.izin==="Çıkış yaptı"?"warn":""}">İzin: ${esc(x.izin)}</span>
+ <div class="mu">${esc(x.il)} ${x.telefon?"• "+esc(x.telefon):""} ${x.eposta?"• "+esc(x.eposta):""}</div>
+ ${x.not?`<div class="mu">${esc(x.not)}</div>`:""}
+ <div class="row"><button onclick="openForm('${x.id}')">Düzenle</button><button onclick="del('${x.id}')">Sil</button></div></div>`).join(""):`<div class="empty">Kayıt yok. "+ Yeni kayıt" ile ekleyin veya Excel/CSV içe aktarın.</div>`;
+}
+function openForm(id){
+ editId=id||null;const x=data.find(v=>v.id===id)||{sektor:SEK[0],durum:DUR[0],izin:"Yok"};
+ $("dt").textContent=id?"Kaydı düzenle":"Yeni kayıt";KEYS.forEach(k=>$(k).value=x[k]||"");dlg.showModal();
+}
+function saveForm(){
+ if(!$("firma").value.trim()){alert("Firma adı gerekli.");return}
+ const o={};KEYS.forEach(k=>o[k]=$(k).value.trim());
+ if(editId){Object.assign(data.find(v=>v.id===editId),o)}else{o.id=Date.now()+""+Math.random().toString(36).slice(2,6);data.unshift(o)}
+ save();dlg.close();render();
+}
+function del(id){if(confirm("Bu kayıt silinsin mi?")){data=data.filter(x=>x.id!==id);save();render()}}
+function exportCsv(){
+ const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
+ const t=[HEAD.map(q).join(";")].concat(data.map(x=>KEYS.map(k=>q(x[k])).join(";"))).join("\r\n");
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+t],{type:"text/csv;charset=utf-8"}));
+ a.download="mag-adaylar-"+new Date().toISOString().slice(0,10)+".csv";a.click();
+}
+function parseCsv(t,sep){
+ const rows=[];let r=[],c="",inq=false;
+ for(let i=0;i<t.length;i++){const ch=t[i];
+  if(inq){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else inq=false}else c+=ch}
+  else if(ch=='"')inq=true;else if(ch==sep){r.push(c);c=""}
+  else if(ch=="\n"){r.push(c);rows.push(r);r=[];c=""}else if(ch!="\r")c+=ch}
+ if(c||r.length){r.push(c);rows.push(r)}return rows;
+}
+$("f").onchange=e=>{
+ const file=e.target.files[0];if(!file)return;const fr=new FileReader();
+ fr.onload=()=>{
+  let t=String(fr.result).replace(/^\ufeff/,"");const l=t.split("\n")[0];
+  const rows=parseCsv(t,(l.split(";").length>=l.split(",").length)?";":",");
+  const h=rows.shift().map(x=>x.trim().toLowerCase());
+  const idx=HEAD.map(n=>h.indexOf(n.toLowerCase()));
+  if(idx[0]<0){alert("İlk satırda 'Firma' başlığı bulunamadı. Önce 'indir' ile örnek dosya alıp o düzene uyun.");return}
+  let n=0;rows.forEach(r=>{const o={};KEYS.forEach((k,i)=>o[k]=idx[i]>=0?(r[idx[i]]||"").trim():"");
+   if(!o.firma)return;o.sektor=o.sektor||"Diğer";o.durum=o.durum||"Yeni";o.izin=o.izin||"Yok";
+   o.id=Date.now()+""+Math.random().toString(36).slice(2,6)+n;data.push(o);n++});
+  save();render();alert(n+" kayıt eklendi.");e.target.value="";
+ };fr.readAsText(file,"utf-8");
+};
+["q","fs","fd"].forEach(i=>$(i).oninput=render);
+render();
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script></body></html>
