@@ -1040,15 +1040,27 @@ function taraMapDraw(fit){
  if(fit)tmap.setView([tara.c.lat,tara.c.lon],zoomFor(r));
 }
 /* --- OpenStreetMap (Overpass) --- */
+async function ovFetch(ep,q,ms){
+ const ac=new AbortController(),t=setTimeout(()=>ac.abort(),ms);
+ try{const r=await fetch(ep,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"data="+encodeURIComponent(q),signal:ac.signal});
+  if(!r.ok)throw new Error(r.status===429?"çok yoğun (429)":r.status===504?"zaman aşımı (504)":"yanıt "+r.status);
+  const j=await r.json();
+  if(j.remark&&/error|timed out|timeout|memory/i.test(j.remark)&&!(j.elements||[]).length)throw new Error("sunucu işi bitiremedi");
+  return j}
+ catch(e){if(e.name==="AbortError")throw new Error(ms/1000+" sn içinde yanıt vermedi");throw e}
+ finally{clearTimeout(t)}
+}
 async function osmSearch(c,rKm,secs,kw){
  const a=`(around:${Math.round(rKm*1000)},${c.lat},${c.lon})`,parts=[];
  secs.forEach(s=>s.osm.forEach(([k,re])=>parts.push(`nwr["${k}"~"${re}"]${a};`)));
  if(kw)parts.push(`nwr["name"~"${kw.replace(/["\\]/g,"")}",i]${a};`);
- const q=`[out:json][timeout:90];(${parts.join("")});out center tags 4000;`;
- let j=null,err=null;
- for(const ep of["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter"]){
-  try{const r=await fetch(ep,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"data="+encodeURIComponent(q)});if(!r.ok)throw new Error("sunucu yanıtı "+r.status);j=await r.json();break}catch(e){err=e}}
- if(!j)throw err||new Error("OpenStreetMap'e ulaşılamadı");
+ const q=`[out:json][timeout:30];(${parts.join("")});out center tags 3000;`;
+ const EPS=["https://overpass-api.de/api/interpreter","https://overpass.private.coffee/api/interpreter","https://maps.mail.ru/osm/tools/overpass/api/interpreter","https://overpass.kumi.systems/api/interpreter"];
+ let j=null;const errs=[];
+ for(let i=0;i<EPS.length&&!j;i++){
+  $("tstat").textContent=`OpenStreetMap: sunucu ${i+1}/${EPS.length} deneniyor…`;
+  try{j=await ovFetch(EPS[i],q,35000)}catch(e){errs.push((i+1)+". sunucu: "+e.message)}}
+ if(!j)throw new Error("Ücretsiz harita sunucularının hepsi şu an meşgul ("+errs.join("; ")+"). Birkaç dakika sonra tekrar dene veya mesafeyi küçült.");
  return(j.elements||[]).map(e=>{const t=e.tags||{};if(!t.name)return null;const lat=e.lat??(e.center&&e.center.lat),lon=e.lon??(e.center&&e.center.lon);if(lat==null)return null;
   const s=secs.find(s=>s.osm.some(([k,re])=>t[k]&&new RegExp(re).test(t[k])));
   const sokak=[t["addr:street"],t["addr:housenumber"]].filter(Boolean).join(" No:");
@@ -1113,7 +1125,7 @@ async function doScan(){
  all.forEach(p=>p.km=hav(tara.c.lat,tara.c.lon,p.lat,p.lon));
  tara.res=mergeRes(all.filter(p=>p.km<=rKm*1.02)).sort((a,b)=>a.km-b.km);tara.t=Date.now();tSel.clear();saveTara();
  $("tbtn").disabled=false;
- $("tstat").textContent=`✔ ${tara.res.length} işletme bulundu (${kmTxt(rKm)} içinde)`+(gLimitHit?" • Google aylık sınırına ulaşıldı":"")+(hata.length?" • Sorun: "+hata.join(" | "):"");
+ $("tstat").textContent=(hata.length&&!tara.res.length?"⚠ Tarama yapılamadı. ":`✔ ${tara.res.length} işletme bulundu (${kmTxt(rKm)} içinde)`)+(gLimitHit?" • Google aylık sınırına ulaşıldı":"")+(hata.length?" • Sorun: "+hata.join(" | "):"");
  logEv(`Tarama: ${kmTxt(rKm)}, ${tara.res.length} sonuç`,tara.c.ad||"");renderTaraG();renderTara();taraMapDraw();
 }
 const inList=p=>findDup({firma:p.ad,telefon:p.tel},null);
