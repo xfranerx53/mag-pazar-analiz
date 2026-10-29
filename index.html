@@ -395,6 +395,12 @@ function startSync(){
  },err=>{cloudErr("Okuma hatası: "+err.message+" — Firebase kurallarını kontrol et.")});
 }
 
+/* boşluğa tıklayınca pencereyi kapat */
+document.querySelectorAll("dialog").forEach(d=>{let dn=false;
+ const out=e=>{const r=d.getBoundingClientRect();return e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom};
+ d.addEventListener("mousedown",e=>{dn=e.target===d&&out(e)});
+ d.addEventListener("click",e=>{if(dn&&e.target===d&&out(e))d.close();dn=false});
+});
 render();initCloud();
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script></body></html>
