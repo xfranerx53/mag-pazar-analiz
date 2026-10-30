@@ -86,6 +86,23 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
   - *Para birimi ve ülke telefon kodu* (Ayarlar → Satış ve pazar hesapları): tüm tutarlar ve ₺ yazan etiketler seçilen para birimine döner; WhatsApp'ta 0'la başlayan/kodsuz numaralara ülke kodu eklenir, +… ve 00… numaralar olduğu gibi kalır.
   - *Kayıtlar haritası:* durum / sektör / satışçı süzgeci; "🧭 Görünen alandan rota" haritada görünen ve tam konumu olan firmalardan ziyaret rotası çıkarır.
 - **v9.1 (30.10.2026):** Düzeltme: "X sektör seçili" sayısı 0 görünüyordu (aynı kimlik iki yerde). Yeni sektör "Diğer işletmeler (sektörü belirsiz)": veride olup hiçbir sektöre girmeyen işletmeler artık seçilerek görülebilir. Fabrika: adı olan sanayi binaları ve sanayi alanları (OSB) da; Depo: depo binaları; Ambalaj: adında ambalaj/poşet/packaging geçenler; Şirket/Ofis: tüm ofis türleri. Aynı kurallar mag-veri sektorler.json ve build.py'ye de işlendi (bir sonraki derlemede geçerli).
+- **v10 (30.10.2026) — büyük paket:**
+  - *Bulutta kişisel ayarlar:* kayıtlı yerler, taranan alanlar, gizlenen firmalar ve filtreler `kisisel/<kullanıcı>` altında; telefon ve bilgisayarda aynı.
+  - *Ekip ortak katmanı:* sahadan (taramadan değil) eklenen ve konumu olan firmalar `ortak/` altına yazılır, ekipteki herkesin taramasında "Ekip" kaynağıyla çıkar.
+  - *OpenStreetMap'e bildir:* kayıt → ⋯ → "🌍 OpenStreetMap'e bildir" haritada eksik firmayı herkese açık not olarak gönderir (ücretsiz, hesapsız).
+  - *Kartvizitten doldur:* kayıt formunda kartvizit fotoğrafı → firma, yetkili, telefon, e-posta, adres otomatik (Tesseract.js, telefonda çalışır, ilk seferde dil dosyası iner).
+  - *Yakındaki sanayi bölgeleri:* Tara → "🏭 Yakındaki sanayi bölgeleri / OSB'ler" (kendi veri + OpenStreetMap), dokununca 3 km merkez.
+  - *Belge dili:* kayıtta "Belge dili" (Türkçe / English / Русский) → teklif ve sipariş PDF'i o dilde.
+  - *Bugün özet panosu:* bugün aranacak, bu ay yeni müşteri / hedef, geciken teslim, numune, alacak, yeni açılan; bulut kapalıysa haftalık yedek hatırlatması.
+  - *Araçlar (Diğer → 🧰):* mükerrer kayıt birleştirme, aramayın listesi + CSV (KVKK kaydı), PIN kilidi, Firebase güvenlik kontrolü, sektorler.json indir, yedek.
+  - *Aramayın listesi:* kayıt → ⋯ → "⛔ Aramayın listesine al" (neden + tarih + kim); arama modu, toplu WhatsApp ve Bugün'den çıkar.
+  - *Satışçı primi:* Ayarlar → yeni müşteri başına tutar + tahsilat %; Analiz → performans tablosunda Prim sütunu.
+  - *Hammadde fiyatları:* Ürünler ekranında; fiyat girilince bağlı ürünlerin maliyeti (birim başına kg × fark) güncellenir, son 24 fiyat geçmişi.
+  - *Müşteri sipariş sayfası:* kayıt → ⋯ → "🔗 Sipariş linki / QR". Müşteri linkten (giriş yapmadan) ürünleri görür, miktar yazıp talep gönderir; talepler Satış → Siparişler'de "Siparişe çevir". Fiyatların görünmesi Ayarlar'dan.
+  - *Google ile giriş* (Firebase'de Google sağlayıcısı açılmalı), *Takvime ekle* (.ics, alarm 09:00), Rusya/Kazakistan 8'li numaralar.
+  - Sektör kuralları artık mag-veri `data/sektorler.json`'dan okunur (tek yerden yönetim).
+  - **Firebase kuralları değişti** (kisisel, ortak, vitrin, musteri, talep) → ☁ → kuralı kopyala → Firebase Rules → Publish.
+  - Yapılamayanlar: uygulama kapalıyken bildirim (ücretli sunucu gerekir; yerine takvim), sevkiyat entegrasyonu (sevkiyat index.html'i gerekli), tüm arayüzün çevirisi (şimdilik sadece PDF).
 - **Alan adı notu (30.10.2026):** magambalaj.com Natro'da (NS1/NS2.NATROHOST.COM). İleride `pazar.magambalaj.com` → Cloudflare Pages için Natro DNS'e CNAME `pazar` → `mag-pazar-analiz.pages.dev` eklenecek (siteyi kuranlarla birlikte yapılacak); sonra Firebase "Authorized domains"a eklenip program deposu gizlenebilir.
 
 ## Google Haritalar anahtarı nasıl alınır (isteğe bağlı)
