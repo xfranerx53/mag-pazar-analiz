@@ -147,7 +147,7 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <details class="card"><summary>Toplu işlem</summary><div class="row"><button onclick="taraSelAll()">Görünenlerin hepsini seç</button><button onclick="taraAddAll()">Görünen yenilerin hepsini listeye ekle</button><button onclick="bolgeRaporu()">📄 Bölge pazar raporu (PDF)</button><button onclick="taraHideSel()">Seçilenleri gizle</button><button onclick="taraCsv()">CSV indir</button></div></details>
 <div id="tres"></div>
 <div class="card" id="tmapBox" hidden><div class="row" style="margin:0 0 8px"><button onclick="heatOn=!heatOn;taraMapDraw();this.textContent=heatOn?'📍 Noktalara dön':'🔥 Yoğunluk haritası'">🔥 Yoğunluk haritası</button><button onclick="histOn=!histOn;taraMapDraw()">Taranan alanlar aç/kapa</button></div><div id="tmap"></div><div class="mu" id="tmapN">Kırmızı nokta = merkez • yeşil = telefonlu • mavi = telefonsuz • turuncu = yeni açılan • büyük kırmızı = rakip ambalajcı • kesikli gri = daha önce taranan alanlar • renkli daireler = satış bölgeleri. Merkezi değiştirmek için haritaya dokun.</div></div>
-<div class="selbar" id="tselbar" hidden><b><span id="tselN">0</span> seçili</b><button onclick="taraAddSel()">+ Listeye ekle</button><button onclick="wbStart(tara.res.filter(p=>tSel.has(p.id)).map(p=>({ad:p.ad,tel:p.tel})))">💬 WhatsApp</button><button onclick="taraRoute()">🗺 Rota</button><button onclick="tSel.clear();renderTara()">Bırak</button></div>
+<div class="selbar" id="tselbar" hidden><b><span id="tselN">0</span> seçili</b><button onclick="taraAddSel()">+ Listeye ekle</button><button onclick="wbStart(tara.res.filter(p=>tSel.has(p.id)).map(p=>({ad:p.ad,tel:p.tel})))">💬 WhatsApp</button><button onclick="taraRoute()">🗺 Rota</button><button onclick="epBul(tara.res.filter(p=>tSel.has(p.id)))">✉ E-posta bul</button><button onclick="tSel.clear();renderTara()">Bırak</button></div>
 </div>
 
 <div class="sec" id="s-liste">
@@ -592,7 +592,7 @@ function card(x,ck){
  <div class="mu">${[x.yetkili,x.il,x.telefon,x.eposta].filter(Boolean).map(esc).join(" • ")}</div>
  ${x.adres?`<div class="mu">📍 ${esc(x.adres)}</div>`:""}${x.rakip?`<div class="mu">Rakip: ${esc(x.rakip)}${x.rakipFiyat?" • "+TL2(x.rakipFiyat):""}</div>`:""}${x.not?`<div class="mu">${esc(x.not)}</div>`:""}
  <div class="row">${digits(x.telefon)&&!x.aramayin?`<a class="btn" href="tel:${digits(x.telefon)}">Ara</a>`:""}${wa&&!x.aramayin?`<button data-a="wa" data-id="${x.id}">WhatsApp</button>`:""}${addr(x)||x.konum?`<a class="btn" target="_blank" rel="noopener" href="${x.konum?"https://www.google.com/maps/search/?api=1&query="+x.konum.lat+","+x.konum.lon:mapUrl(x)}">Harita</a>`:""}${/^https?:/i.test(x.web||"")?`<a class="btn" target="_blank" rel="noopener" href="${esc(x.web)}">Web</a>`:""}${x.foto?`<button data-a="foto" data-id="${x.id}">📷</button>`:""}
- <button data-a="gor" data-id="${x.id}">+ Görüşme</button></div><details class="more"><summary>⋯ Diğer işlemler</summary><div class="row"><button data-a="tek" data-id="${x.id}">+ Teklif</button><button data-a="sip" data-id="${x.id}">+ Sipariş</button>${arr(x.siparis).length?`<button data-a="pay" data-id="${x.id}">+ Ödeme</button>`:""}<button data-a="ziy" data-id="${x.id}">📍 Buradayım (ziyaret)</button><button data-a="num" data-id="${x.id}">🎁 Numune bıraktım</button><button data-a="edit" data-id="${x.id}">Düzenle</button>${x.sonraki?`<button data-a="ical" data-id="${x.id}">📅 Takvime ekle</button>`:""}<button data-a="slink" data-id="${x.id}">🔗 Sipariş linki / QR</button>${x.konum?`<button data-a="osmn" data-id="${x.id}">🌍 OpenStreetMap'e bildir</button>`:""}<button data-a="nocall" data-id="${x.id}">${x.aramayin?"✅ Aramayın listesinden çıkar":"⛔ Aramayın listesine al"}</button>${isAdmin()?`<button data-a="del" data-id="${x.id}">Sil</button>`:""}</div></details>${hist(x)}</div>`;
+ <button data-a="gor" data-id="${x.id}">+ Görüşme</button></div><details class="more"><summary>⋯ Diğer işlemler</summary><div class="row"><button data-a="tek" data-id="${x.id}">+ Teklif</button><button data-a="sip" data-id="${x.id}">+ Sipariş</button>${arr(x.siparis).length?`<button data-a="pay" data-id="${x.id}">+ Ödeme</button>`:""}<button data-a="ziy" data-id="${x.id}">📍 Buradayım (ziyaret)</button><button data-a="num" data-id="${x.id}">🎁 Numune bıraktım</button><button data-a="edit" data-id="${x.id}">Düzenle</button>${x.sonraki?`<button data-a="ical" data-id="${x.id}">📅 Takvime ekle</button>`:""}<button data-a="slink" data-id="${x.id}">🔗 Sipariş linki / QR</button>${x.konum?`<button data-a="osmn" data-id="${x.id}">🌍 OpenStreetMap'e bildir</button>`:""}${x.web&&!x.eposta?`<button data-a="lmail" data-id="${x.id}">🔎 Web'den e-posta bul</button>`:""}<button data-a="nocall" data-id="${x.id}">${x.aramayin?"✅ Aramayın listesinden çıkar":"⛔ Aramayın listesine al"}</button>${isAdmin()?`<button data-a="del" data-id="${x.id}">Sil</button>`:""}</div></details>${hist(x)}</div>`;
 }
 
 /* ================= ekranlar ================= */
@@ -613,13 +613,36 @@ async function kisSync(){
 }
 /* --- ekip ortak katmanı: sahadan eklenen firmalar herkesin taramasında --- */
 let ortak=[],ortakT=0;
+/* --- web sitesinden e-posta bulma (ücretsiz açık aracı sunucular üzerinden) --- */
+const EPRE=/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,24}/gi,EPKOT=/\.(png|jpe?g|gif|webp|svg|css|js)$|@(sentry|example|domain|email|wixpress|sentry-next|2x|3x)\.|^(u00|x22)|noreply|no-reply/i;
+const PROX=[u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),u=>"https://corsproxy.io/?url="+encodeURIComponent(u),u=>"https://r.jina.ai/"+u];
+async function sayfaGetir(u){let son="";for(const f of PROX){try{const c=new AbortController(),t=setTimeout(()=>c.abort(),15000);const r=await fetch(f(u),{signal:c.signal});clearTimeout(t);if(r.ok){const x=await r.text();if(x&&x.length>50)return x}son="yanıt "+r.status}catch(e){son=e.name==="AbortError"?"zaman aşımı":e.message}}throw new Error(son||"açılamadı")}
+function epCikar(html){const t=String(html).replace(/&#64;|&#x40;|\s*\((at|et)\)\s*|\s*\[(at|et)\]\s*|\s+at\s+(?=[a-z0-9-]+\s*(\.|\(dot\)|\[dot\]))/gi,"@").replace(/\s*(\(dot\)|\[dot\]|\(nokta\))\s*/gi,".").replace(/%40/g,"@");
+ return[...new Set((t.match(EPRE)||[]).map(e=>e.toLowerCase().replace(/^mailto:/,"").replace(/\.$/,"")))].filter(e=>!EPKOT.test(e))}
+async function siteEposta(web){let u=String(web||"").trim();if(!u)return[];if(!/^https?:/i.test(u))u="https://"+u;const host=(()=>{try{return new URL(u).hostname.replace(/^www\./,"")}catch(e){return""}})();
+ const h=await sayfaGetir(u);let l=epCikar(h);
+ if(!l.length){const lk=[...new Set([...h.matchAll(/href=["']?([^"' >]+)|\]\((https?:[^)\s]+)\)/gi)].map(m=>m[1]||m[2]).filter(x=>x&&/(iletisim|contact|kontakt|bize-ulasin|hakkimizda|about|контакт)/i.test(x)))].slice(0,2);
+  for(const k of lk){try{const a=new URL(k,u).href;l=epCikar(await sayfaGetir(a));if(l.length)break}catch(e){}}}
+ return l.sort((a,b)=>(b.endsWith(host)?1:0)-(a.endsWith(host)?1:0))}
+let epCalis=false;
+async function epBul(list){list=list.filter(p=>p&&p.web&&!p.ep);if(!list.length){alert("Web sitesi olup e-postası eksik firma yok (seçtiklerinde).");return}
+ if(epCalis){epCalis=false;return}
+ if(list.length>1&&!confirm(`${list.length} firmanın web sitesinde e-posta aranacak (her biri ~3-10 sn). Ücretsiz açık aracı sunucular kullanılır, bazı siteler açılmayabilir. Başlasın mı?`))return;
+ epCalis=true;let ok=0,no=0;const st=m=>{$("tstat").textContent=m};
+ for(const p of list){if(!epCalis)break;st(`✉ E-posta aranıyor: ${p.ad} (${ok+no+1}/${list.length}) — bulunan ${ok}`);
+  try{const l=await siteEposta(p.web);if(l.length){ok++;p.ep=l[0];p.epK=1;p.epTum=l;
+    const ld=p.lead?data.find(v=>v.id===p.lead):inList(p);if(ld&&!ld.eposta)put({...ld,eposta:l[0]},true);
+    if(p.lead){const x=data.find(v=>v.id===p.lead);alert(`${p.ad}: ${l.join(", ")}`+(x&&x.eposta===l[0]?"\n\nKayda eklendi ✔":""))}}else{no++;if(p.lead)alert(p.ad+": web sitesinde e-posta bulunamadı.")}}
+  catch(e){no++;if(p.lead)alert(p.ad+": site açılamadı ("+e.message+")")}
+  if(!p.lead){saveTara();renderTara()}}
+ epCalis=false;st(`✉ E-posta arama bitti: ${ok} bulundu, ${no} bulunamadı.`)}
 function ortakPut(o){if(!root||!o.konum||!isFinite(o.konum.lat)||String(o.kaynak||"").startsWith("Tarama"))return;
- root.child("ortak/"+o.id).set({ad:o.firma||"",sek:(TSEK.find(s=>s.ad===o.sektor)||{}).k||"ozel",lat:+o.konum.lat,lon:+o.konum.lon,tel:o.telefon||"",adres:o.adres||"",il:o.il||"",web:o.web||"",kim:me.ad||"",t:Date.now()}).catch(()=>{})}
+ root.child("ortak/"+o.id).set({ad:o.firma||"",sek:(TSEK.find(s=>s.ad===o.sektor)||{}).k||"ozel",lat:+o.konum.lat,lon:+o.konum.lon,tel:o.telefon||"",adres:o.adres||"",il:o.il||"",web:o.web||"",ep:o.eposta||"",kim:me.ad||"",t:Date.now()}).catch(()=>{})}
 async function ortakYukle(force){if(!root)return[];if(!force&&Date.now()-ortakT<6e5)return ortak;
  try{const v=(await root.child("ortak").once("value")).val()||{};ortak=Object.entries(v).map(([k,o])=>({k,...o}));ortakT=Date.now()}catch(e){}return ortak}
 async function ortakAra(c,rKm,secs,kw){const ks=new Set(secs.map(s=>s.k)),q=kw?normF(kw):"";
  return(await ortakYukle()).filter(o=>isFinite(o.lat)&&hav(c.lat,c.lon,o.lat,o.lon)<=rKm&&(ks.has(o.sek)||(q&&normF(o.ad).includes(q))))
-  .map(o=>({id:"e"+o.k,ad:o.ad,sek:ks.has(o.sek)?o.sek:"ozel",lat:o.lat,lon:o.lon,tel:o.tel||"",web:o.web||"",adres:o.adres||"",il:o.il||"",src:["Ekip"]}))}
+  .map(o=>({id:"e"+o.k,ad:o.ad,sek:ks.has(o.sek)?o.sek:"ozel",lat:o.lat,lon:o.lon,tel:o.tel||"",web:o.web||"",ep:o.ep||"",adres:o.adres||"",il:o.il||"",src:["Ekip"]}))}
 /* --- OpenStreetMap'e eksik firma notu (ücretsiz, hesapsız) --- */
 async function osmBildir(id){const x=data.find(v=>v.id===id);if(!x||!x.konum)return;
  if(x.osmNot&&!confirm("Bu firma daha önce bildirildi (not #"+x.osmNot.id+"). Yine de gönderilsin mi?"))return;
@@ -1192,7 +1215,7 @@ function saveAyarForm(){
 
 /* ================= tıklamalar ================= */
 const A={
- edit:id=>openForm(id),gor:id=>openG(id),ical:id=>icsIndir(id),slink:id=>sipLink(id),osmn:id=>osmBildir(id),nocall:id=>aramayinToggle(id),tbirles:(id,i)=>talepSip(i),tsil:(id,i)=>talepSil(i),hmed:(id,i)=>hamEdit(i),hmsil:(id,i)=>hamSil(i),dbir:(id,i)=>birlestir(i),sanset:(id,i)=>sanSec(i),wa:id=>openW(id),pay:id=>openP(id),
+ edit:id=>openForm(id),gor:id=>openG(id),lmail:id=>{const x=data.find(v=>v.id===id);if(x)epBul([{id:"L"+x.id,ad:x.firma,web:x.web,lead:x.id}])},ical:id=>icsIndir(id),slink:id=>sipLink(id),osmn:id=>osmBildir(id),nocall:id=>aramayinToggle(id),tbirles:(id,i)=>talepSip(i),tsil:(id,i)=>talepSil(i),hmed:(id,i)=>hamEdit(i),hmsil:(id,i)=>hamSil(i),dbir:(id,i)=>birlestir(i),sanset:(id,i)=>sanSec(i),wa:id=>openW(id),pay:id=>openP(id),
  tek:id=>openDoc("teklif",id),sip:id=>openDoc("siparis",id),tedit:(id,i)=>openDoc("teklif",id,i),sedit:(id,i)=>openDoc("siparis",id,i),
  t2s:(id,i)=>teklifToSiparis(id,i),tpr:(id,i)=>printDoc("teklif",id,i),spr:(id,i)=>printDoc("siparis",id,i),
  sevk:(id,i)=>{const x=data.find(v=>v.id===id);window.open("https://wa.me/?text="+encodeURIComponent(sevkText(x,arr(x.siparis)[+i])),"_blank")},
@@ -1525,8 +1548,8 @@ async function havuz(l,n,f){const out=new Array(l.length);let i=0;await Promise.
 const normY=s=>String(s||"").replace(/[İIı]/g,"i").toLowerCase().normalize("NFD").replace(/[^\p{L}\p{N}]/gu,"");
 const a10=x=>Math.floor(x*10);
 function wBlk(k){return vBlk[k]||(vBlk[k]=vOpt(vJson(veriUrl()+"w/i/"+k+".json"),{t:{}}).catch(e=>{delete vBlk[k];throw e}))}
-function vRows(r,ks,q,out,pre){r.forEach(x=>{const[ad,k,lat,lon,tel,web,adres,il,oid]=x,ok=ks.has(k);if(!ok&&!(q&&normF(ad).includes(q)))return;
- out.push({id:"o"+(oid||pre+lat+","+lon),ad,sek:ok?k:"ozel",lat,lon,tel:tel||"",web:web||"",adres:adres||"",il:il||"",src:["OSM"]})})}
+function vRows(r,ks,q,out,pre){r.forEach(x=>{const[ad,k,lat,lon,tel,web,adres,il,oid,ep]=x,ok=ks.has(k);if(!ok&&!(q&&normF(ad).includes(q)))return;
+ out.push({id:"o"+(oid||pre+lat+","+lon),ad,sek:ok?k:"ozel",lat,lon,tel:tel||"",web:web||"",ep:ep||"",adres:adres||"",il:il||"",src:["OSM"]})})}
 async function ownSearch(c,rKm,secs,kw){
  let idx;try{idx=await vIndex()}catch(e){const er=new Error("veri deposuna ulaşılamadı ("+e.message+")");er.nodata=e.status===404;throw er}
  const ks=new Set(secs.map(s=>s.k)),q=kw?normF(kw):"",out=[];
@@ -1602,7 +1625,7 @@ async function geoapifySearch(c,rKm,secs,kw){
    return{id:"a"+(raw.osm_id||p.place_id),ad:p.name,sek:s?s.k:"ozel",lat:p.lat,lon:p.lon,
     adres:[p.suburb,p.street&&(p.street+(p.housenumber?" No:"+p.housenumber:""))].filter(Boolean).join(", "),
     il:[p.city||p.county||p.district,p.state].filter((v,i,a)=>v&&a.indexOf(v)===i).join(" / "),
-    tel:(p.contact&&p.contact.phone)||raw.phone||raw["contact:phone"]||raw["contact:mobile"]||"",web:p.website||raw.website||raw["contact:website"]||"",src:["OSM"]}}).filter(Boolean);
+    tel:(p.contact&&p.contact.phone)||raw.phone||raw["contact:phone"]||raw["contact:mobile"]||"",web:p.website||raw.website||raw["contact:website"]||"",ep:(p.contact&&p.contact.email)||raw.email||raw["contact:email"]||"",src:["OSM"]}}).filter(Boolean);
 }
 const geoToday=()=>+ls.get("mag_geo_"+today())||0;
 function geoCount(){ls.set("mag_geo_"+today(),String(geoToday()+1))}
@@ -1643,7 +1666,7 @@ async function osmSearch(c,rKm,secs,kw){
   const sokak=[t["addr:street"],t["addr:housenumber"]].filter(Boolean).join(" No:");
   return{id:"o"+e.type[0]+e.id,ad:t.name,sek:s?s.k:"ozel",lat,lon,adres:[t["addr:neighbourhood"]||t["addr:quarter"],sokak].filter(Boolean).join(", "),
    il:[t["addr:district"]||t["addr:suburb"],t["addr:city"]||t["addr:province"]].filter(Boolean).join(" / "),
-   tel:t.phone||t["contact:phone"]||t["contact:mobile"]||t.mobile||"",web:t.website||t["contact:website"]||"",src:["OSM"]}}).filter(Boolean);
+   tel:t.phone||t["contact:phone"]||t["contact:mobile"]||t.mobile||"",web:t.website||t["contact:website"]||"",ep:t.email||t["contact:email"]||"",src:["OSM"]}}).filter(Boolean);
 }
 /* --- Google Haritalar (Maps JavaScript API, Places) --- */
 const gMon=()=>ym(today()).replace("-","");
@@ -1681,7 +1704,7 @@ function mergeRes(list){
  const out=[],cell={},key=(la,lo)=>Math.round(la*500)+":"+Math.round(lo*500);
  list.forEach(p=>{const k=key(p.lat,p.lon),[a,b]=k.split(":").map(Number);let m=null;const np=normF(p.ad);
   for(let i=-1;i<=1&&!m;i++)for(let j=-1;j<=1&&!m;j++)(cell[(a+i)+":"+(b+j)]||[]).forEach(q=>{if(m)return;const nq=normF(q.ad);if((q.id===p.id)||(hav(p.lat,p.lon,q.lat,q.lon)<0.15&&np&&nq&&(nq.includes(np)||np.includes(nq))))m=q});
-  if(m){["tel","web","adres","il","puan","puanN","gUrl"].forEach(f=>{if(!m[f]&&p[f])m[f]=p[f]});if(m.sek==="ozel"&&p.sek!=="ozel")m.sek=p.sek;p.src.forEach(s=>{if(!m.src.includes(s))m.src.push(s)})}
+  if(m){["tel","web","ep","adres","il","puan","puanN","gUrl"].forEach(f=>{if(!m[f]&&p[f])m[f]=p[f]});if(m.sek==="ozel"&&p.sek!=="ozel")m.sek=p.sek;p.src.forEach(s=>{if(!m.src.includes(s))m.src.push(s)})}
   else{const o={...p,src:[...p.src]};out.push(o);(cell[k]=cell[k]||[]).push(o)}});
  return out;
 }
@@ -1714,13 +1737,14 @@ async function doScan(){
 }
 const inList=p=>findDup({firma:p.ad,telefon:p.tel},null);
 /* --- sonuç filtreleri --- */
-const TFDEF={tel:"all",liste:"yeni",web:"all",adres:"all",zincir:"goster",puan:"0",yorum:"0",kaynak:"all",yeni:"all",rakip:"goster",bolge:"all",gizli:"gizle"};
+const TFDEF={tel:"all",liste:"yeni",web:"all",ep:"all",adres:"all",zincir:"goster",puan:"0",yorum:"0",kaynak:"all",yeni:"all",rakip:"goster",bolge:"all",gizli:"gizle"};
 let tf={...TFDEF,...lsJ("mag_tfil",{})};
 let gizli=new Set(arr(lsJ("mag_gizli",[])));
 const TFG=[
  ["tel","Telefon",[["all","Hepsi"],["var","Telefonu olan"],["cep","Cep (WhatsApp)"],["sabit","Sabit hat"],["yok","Numarasız"]]],
  ["liste","Müşteri listem",[["all","Hepsi"],["yeni","Listemde olmayan"],["var","Listemde olan"]]],
  ["web","Web sitesi",[["all","Hepsi"],["var","Var"],["yok","Yok"]]],
+ ["ep","E-posta",[["all","Hepsi"],["var","Var"],["yok","Yok"],["bul","Yok ama web sitesi var"]]],
  ["adres","Adres",[["all","Hepsi"],["var","Adresi olan"]]],
  ["zincir","Zincir mağazalar (BİM, A101, Migros, Opet…)",[["goster","Göster"],["gizle","Gizle"],["sadece","Sadece zincir"]]],
  ["puan","Google puanı",[["0","Hepsi"],["3","3+"],["4","4+"],["4.5","4,5+"]]],
@@ -1751,7 +1775,7 @@ function taraFiltered(){
   if(q&&!(p.ad+" "+p.adres+" "+p.il).toLocaleLowerCase("tr").includes(q))return false;
   const t=tf.tel;if(t==="var"&&!p.tel)return false;if(t==="yok"&&p.tel)return false;if(t==="cep"&&!isMobile(p.tel))return false;if(t==="sabit"&&(!p.tel||isMobile(p.tel)))return false;
   if(tf.liste!=="all"){const d=!!inList(p);if(tf.liste==="yeni"&&d)return false;if(tf.liste==="var"&&!d)return false}
-  if(tf.web==="var"&&!p.web)return false;if(tf.web==="yok"&&p.web)return false;
+  if(tf.web==="var"&&!p.web)return false;if(tf.web==="yok"&&p.web)return false;if(tf.ep==="var"&&!p.ep)return false;if(tf.ep==="yok"&&p.ep)return false;if(tf.ep==="bul"&&(p.ep||!p.web))return false;
   if(tf.adres==="var"&&!(p.adres||"").trim())return false;
   if(tf.zincir!=="goster"){const z=isChain(p);if(tf.zincir==="gizle"&&z)return false;if(tf.zincir==="sadece"&&!z)return false}
   if(+tf.puan&&!((p.puan||0)>=+tf.puan))return false;if(+tf.yorum&&!((p.puanN||0)>=+tf.yorum))return false;
@@ -1780,13 +1804,14 @@ function renderTara(){
   l.slice(0,400).map(p=>{const d=inList(p),mu=p.gUrl&&/^https:/.test(p.gUrl)?p.gUrl:"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(p.ad+" "+p.lat+","+p.lon);
   return `<div class="card ${d?"":"rcard"} ${tSel.has(p.id)?"sel":""}" ${d?"":`data-rsel="${esc(p.id)}"`}><div class="rhd"><b>${scoreB(p)}${esc(p.ad)}</b><span class="rkm">${kmTxt(p.km)}</span></div>
   <div class="mu">${isChain(p)?'<span class="tag">Zincir</span>':""}${isMobile(p.tel)?'<span class="tag ok">Cep</span>':""}${esc(secAd(p.sek))}${p.tel?" • "+esc(p.tel):""}${p.puan?" • ★ "+p.puan+" ("+p.puanN+")":""}</div>
-  <div class="mu">${esc([p.adres,p.il].filter(Boolean).join(", "))}</div>
+  <div class="mu">${esc([p.adres,p.il].filter(Boolean).join(", "))}</div>${p.ep?`<div class="mu">✉ <a href="mailto:${esc(p.ep)}">${esc(p.ep)}</a>${p.epK?" <small>(web sitesinden)</small>":""}</div>`:""}
   ${p.yeni?'<span class="tag new">YENİ AÇILAN</span>':""}${isRival(p)?'<span class="tag rakip">Rakip ambalajcı</span>':""}${(b=>b?`<span class="tag">🗺 ${esc(b.ad)}${b.uad?" – "+esc(b.uad):""}</span>`:"")(bolgeOf(p.lat,p.lon))}${d?`<span class="tag ok">✔ Listende: ${esc(d.firma)}</span>`:""}${tSel.has(p.id)?'<span class="tag" style="background:var(--pr);color:var(--on)">SEÇİLDİ</span>':""}
-  <div class="row">${p.tel?`<a class="btn" href="tel:${digits(p.tel)}">📞 Ara</a>`:'<span class="mu">Telefon bilinmiyor</span>'}${/^https?:/i.test(p.web)?`<a class="btn" target="_blank" rel="noopener" href="${esc(p.web)}">Web</a>`:""}<a class="btn" target="_blank" rel="noopener" href="${esc(mu)}">Haritada</a>${d?"":`<button class="p" data-a="tadd" data-i="${esc(p.id)}">+ Ekle</button>`}${gizli.has(gKey(p))?`<button data-a="tunhide" data-i="${esc(p.id)}">Gizlemeyi kaldır</button>`:`<button data-a="thide" data-i="${esc(p.id)}" title="Bu işletmeyi bir daha gösterme">Gizle</button>`}</div></div>`}).join("")+(l.length>400?`<div class="mu">İlk 400 gösteriliyor; filtreleri daralt.</div>`:"")+(res.length?`<div class="mu" style="margin-top:8px">Veri: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap katkıda bulunanlar</a> (ODbL)</div>`:"");
+  <div class="row">${p.tel?`<a class="btn" href="tel:${digits(p.tel)}">📞 Ara</a>`:'<span class="mu">Telefon bilinmiyor</span>'}${/^https?:/i.test(p.web)?`<a class="btn" target="_blank" rel="noopener" href="${esc(p.web)}">Web</a>`:""}${p.web&&!p.ep?`<button data-a="tmail" data-i="${esc(p.id)}">🔎 E-posta bul</button>`:""}<a class="btn" target="_blank" rel="noopener" href="${esc(mu)}">Haritada</a>${d?"":`<button class="p" data-a="tadd" data-i="${esc(p.id)}">+ Ekle</button>`}${gizli.has(gKey(p))?`<button data-a="tunhide" data-i="${esc(p.id)}">Gizlemeyi kaldır</button>`:`<button data-a="thide" data-i="${esc(p.id)}" title="Bu işletmeyi bir daha gösterme">Gizle</button>`}</div></div>`}).join("")+(l.length>400?`<div class="mu">İlk 400 gösteriliyor; filtreleri daralt.</div>`:"")+(res.length?`<div class="mu" style="margin-top:8px">Veri: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap katkıda bulunanlar</a> (ODbL)</div>`:"");
  $("tselN").textContent=tSel.size;$("tselbar").hidden=!(tSel.size&&tab==="tara");
 }
 ["tfs","tfb","tfm","tq","tso"].forEach(i=>$(i).addEventListener("input",()=>{renderTF();renderTara();taraMapDraw()}));
-function toLead(p){const s=TSEK.find(s=>s.k===p.sek),bo=bolgeOf(p.lat,p.lon),own=bo&&bo.uid&&isAdmin()&&cloudOn()?{sahip:bo.uid,sahipAd:bo.uad||""}:{};return{...own,aday:adayPuan(p),id:uid_(),c:Date.now(),firma:p.ad,yetkili:"",sektor:s?s.ad:"Diğer",il:p.il||"",adres:p.adres||"",telefon:p.tel||"",eposta:"",web:p.web||"",durum:"Yeni",izin:"Yok",oncelik:"",kaynak:"Tarama ("+p.src.join("+")+")",konum:{lat:p.lat,lon:p.lon},mesafe:Math.round(p.km*100)/100,puan:p.puan||null,sonraki:"",not:""}}
+function toLead(p){const s=TSEK.find(s=>s.k===p.sek),bo=bolgeOf(p.lat,p.lon),own=bo&&bo.uid&&isAdmin()&&cloudOn()?{sahip:bo.uid,sahipAd:bo.uad||""}:{};return{...own,aday:adayPuan(p),id:uid_(),c:Date.now(),firma:p.ad,yetkili:"",sektor:s?s.ad:"Diğer",il:p.il||"",adres:p.adres||"",telefon:p.tel||"",eposta:p.ep||"",web:p.web||"",durum:"Yeni",izin:"Yok",oncelik:"",kaynak:"Tarama ("+p.src.join("+")+")",konum:{lat:p.lat,lon:p.lon},mesafe:Math.round(p.km*100)/100,puan:p.puan||null,sonraki:"",not:""}}
+A.tmail=(id,i)=>{const p=tara.res.find(x=>x.id===i);if(p)epBul([p])};
 A.tadd=(id,i)=>{const p=tara.res.find(x=>x.id===i);if(p&&regionOk([p])){put(toLead(p));renderTara();taraMapDraw()}};
 function taraSelAll(){taraFiltered().filter(p=>!inList(p)).forEach(p=>tSel.add(p.id));renderTara()}
 function taraAddSel(){const l=tara.res.filter(p=>tSel.has(p.id)&&!inList(p));if(!l.length){alert("Seçili yeni firma yok. Kartlara dokunarak seç.");return}if(!regionOk(l))return;putMany(l.map(toLead),"Taramadan listeye eklendi");tSel.clear();renderTara();taraMapDraw();alert(l.length+" firma müşteri listene eklendi.")}
@@ -1798,7 +1823,7 @@ function taraRoute_eski(){
 }
 function taraCsv(){
  const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"',l=taraFiltered();
- const t=[["Firma","Sektör","Mesafe (km)","Telefon","Adres","İl/İlçe","Web","Puan","Yorum sayısı","Kaynak","Enlem","Boylam"].map(q).join(";")].concat(l.map(p=>[p.ad,secAd(p.sek),p.km.toFixed(2).replace(".",","),p.tel,p.adres,p.il,p.web,p.puan||"",p.puanN||"",p.src.join("+"),p.lat,p.lon].map(q).join(";"))).join("\r\n");
+ const t=[["Firma","Sektör","Mesafe (km)","Telefon","Adres","İl/İlçe","Web","E-posta","Puan","Yorum sayısı","Kaynak","Enlem","Boylam"].map(q).join(";")].concat(l.map(p=>[p.ad,secAd(p.sek),p.km.toFixed(2).replace(".",","),p.tel,p.adres,p.il,p.web,p.ep||"",p.puan||"",p.puanN||"",p.src.join("+"),p.lat,p.lon].map(q).join(";"))).join("\r\n");
  download("mag-tarama-"+today()+".csv","\ufeff"+t,"text/csv;charset=utf-8");
 }
 taraInitUI();

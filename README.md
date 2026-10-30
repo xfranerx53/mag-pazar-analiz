@@ -103,6 +103,7 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
   - Sektör kuralları artık mag-veri `data/sektorler.json`'dan okunur (tek yerden yönetim).
   - **Firebase kuralları değişti** (kisisel, ortak, vitrin, musteri, talep) → ☁ → kuralı kopyala → Firebase Rules → Publish.
   - Yapılamayanlar: uygulama kapalıyken bildirim (ücretli sunucu gerekir; yerine takvim), sevkiyat entegrasyonu (sevkiyat index.html'i gerekli), tüm arayüzün çevirisi (şimdilik sadece PDF).
+- **v10.1 (30.10.2026) — e-posta:** Tarama sonuçlarında e-posta: OpenStreetMap'te kayıtlıysa doğrudan gelir (kendi veri, Geoapify, Overpass). Yoksa ve web sitesi varsa "🔎 E-posta bul" (tek firma) veya seçilenlerde "✉ E-posta bul" (toplu) web sitesinin ana sayfasını ve iletişim sayfasını tarar (ücretsiz açık aracı sunucular: allorigins, corsproxy, r.jina.ai; [at]/(at) gibi gizlemeler çözülür). Filtre: E-posta var / yok / "yok ama web sitesi var". Listeye eklenince e-posta kayda geçer; kayıtta "🔎 Web'den e-posta bul". CSV'ye E-posta sütunu. mag-veri kayıtlarına 10. alan olarak e-posta eklendi (bir sonraki derlemede).
 - **Alan adı notu (30.10.2026):** magambalaj.com Natro'da (NS1/NS2.NATROHOST.COM). İleride `pazar.magambalaj.com` → Cloudflare Pages için Natro DNS'e CNAME `pazar` → `mag-pazar-analiz.pages.dev` eklenecek (siteyi kuranlarla birlikte yapılacak); sonra Firebase "Authorized domains"a eklenip program deposu gizlenebilir.
 
 ## Google Haritalar anahtarı nasıl alınır (isteğe bağlı)
