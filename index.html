@@ -119,7 +119,7 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <div class="card">
 <div class="step"><i>2</i>Ne kadar uzağa?</div>
 <div class="seg" id="trseg"><button data-r="0.5">500 m</button><button data-r="1">1 km</button><button data-r="2">2 km</button><button data-r="3">3 km</button><button data-r="5">5 km</button><button data-r="10">10 km</button><button data-r="15">15 km</button><button data-r="25">25 km</button></div>
-<input id="trad" type="hidden" value="2"><div class="mu" id="tsekN" style="margin-top:6px" hidden></div>
+<input id="trad" type="hidden" value="2"><div class="mu" id="tsekil" style="margin-top:6px" hidden></div>
 <div class="row" style="margin-top:4px"><span class="mu">veya istediğin mesafeyi yaz:</span><input id="trc" type="number" inputmode="decimal" min="0.1" max="300" step="0.1" placeholder="örn. 7,5" style="width:110px"><b>km</b></div>
 </div>
 <div class="card">
@@ -363,11 +363,11 @@ const TSEK=[
  {gr:"Mağazalar",k:"pet",ad:"Pet shop",geo:["pet.shop","commercial.pet"],osm:[["shop","^pet$"]],g:["pet shop"]},
  {gr:"Mağazalar",k:"spor",ad:"Spor / Outdoor",geo:["commercial.outdoor_and_sport"],osm:[["shop","^(sports|outdoor)$"]],g:["spor mağazası"]},
  {gr:"Mağazalar",k:"avm",ad:"AVM / Büyük mağaza",geo:["commercial.shopping_mall","commercial.department_store","commercial.discount_store"],osm:[["shop","^(mall|department_store|variety_store)$"]],g:["avm"]},
- {gr:"Sanayi / Toptan",k:"fabrika",ad:"Fabrika / Üretim tesisi",geo:["production"],osm:[["man_made","^works$"],["industrial","."]],g:["fabrika"]},
+ {gr:"Sanayi / Toptan",k:"fabrika",ad:"Fabrika / Üretim tesisi",geo:["production"],osm:[["man_made","^works$"],["industrial","."],["building","^(industrial|factory|manufacture)$"],["landuse","^industrial$"]],g:["fabrika"]},
  {gr:"Sanayi / Toptan",k:"atolye",ad:"Atölye / İmalathane",geo:["service.carpenter","service.blacksmith"],osm:[["craft","."]],g:["atölye imalathane"]},
  {gr:"Sanayi / Toptan",k:"toptan",ad:"Toptancı",geo:["commercial.trade"],osm:[["shop","^(wholesale|trade)$"]],g:["toptancı"]},
- {gr:"Sanayi / Toptan",k:"depo",ad:"Depo / Lojistik / Kargo",geo:["office.logistics"],osm:[["industrial","^(warehouse|logistics)$"],["office","^(logistics|courier)$"]],g:["lojistik depo"]},
- {gr:"Sanayi / Toptan",k:"ambalaj",ad:"Ambalaj / Plastik",geo:[],geoAd:["ambalaj","plastik","poşet"],osm:[["shop","^packaging$"]],g:["ambalaj plastik"]},
+ {gr:"Sanayi / Toptan",k:"depo",ad:"Depo / Lojistik / Kargo",geo:["office.logistics"],osm:[["industrial","^(warehouse|logistics)$"],["office","^(logistics|courier)$"],["building","^warehouse$"]],g:["lojistik depo"]},
+ {gr:"Sanayi / Toptan",k:"ambalaj",ad:"Ambalaj / Plastik",geo:[],geoAd:["ambalaj","plastik","poşet"],osm:[["shop","^packaging$"],["name","ambalaj|po[sş]et|packag"]],g:["ambalaj plastik"]},
  {gr:"Sanayi / Toptan",k:"matbaa",ad:"Matbaa / Reklam",geo:["service.advertising","office.advertising_agency"],osm:[["craft","^printer$"],["shop","^copyshop$"]],g:["matbaa"]},
  {gr:"Sanayi / Toptan",k:"hirdavat",ad:"Hırdavat / Nalbur / Yapı",geo:["commercial.houseware_and_hardware.hardware_and_tools","commercial.houseware_and_hardware.doityourself","commercial.houseware_and_hardware.building_materials"],osm:[["shop","^(hardware|doityourself|paint|tiles|building_materials)$"]],g:["nalbur"]},
  {gr:"Sanayi / Toptan",k:"tarim",ad:"Tarım / Zirai",geo:["commercial.agrarian"],osm:[["shop","^agrarian$"]],g:["zirai ilaç"]},
@@ -378,7 +378,8 @@ const TSEK=[
  {gr:"Hizmet",k:"saglik",ad:"Klinik / Hastane / Diş",geo:["healthcare.clinic_or_praxis","healthcare.dentist","healthcare.hospital"],osm:[["amenity","^(clinic|dentist|hospital|doctors)$"]],g:["klinik"]},
  {gr:"Hizmet",k:"veteriner",ad:"Veteriner",geo:["pet.veterinary"],osm:[["amenity","^veterinary$"]],g:["veteriner"]},
  {gr:"Hizmet",k:"egitim",ad:"Okul / Kurs",geo:["education"],osm:[["amenity","^(school|college|kindergarten|language_school|driving_school)$"]],g:["okul"]},
- {gr:"Hizmet",k:"ofis",ad:"Şirket / Ofis",geo:["office.company"],osm:[["office","^company$"]],g:["şirket"]}
+ {gr:"Hizmet",k:"ofis",ad:"Şirket / Ofis",geo:["office.company","office"],osm:[["office","."]],g:["şirket"]},
+ {gr:"Hizmet",k:"ozel",ad:"Diğer işletmeler (sektörü belirsiz)",geo:[],osm:[],g:[]}
 ];
 const SEK=[...new Set([...TSEK.map(s=>s.ad),"Dürümcü/Restoran","Tekstil/Konfeksiyon","Mağaza","Diğer"])];
 const ESKI_SEK={"Market":"Market / Süpermarket","Depo/Lojistik":"Depo / Lojistik / Kargo","Fırın/Pastane":"Fırın / Ekmek","Kafe":"Kafe / Kahveci","Kuruyemiş/Şarküteri":"Kuruyemiş","Büfe/Tekel":"Büfe / Tekel / Gazeteci","Hırdavat":"Hırdavat / Nalbur / Yapı"};
@@ -1186,7 +1187,7 @@ function taraInitUI(){
  sekSummary();$("trad").value=String(tara.r);const pre=[...document.querySelectorAll("#trseg button")].some(b=>+b.dataset.r===+tara.r);document.querySelectorAll("#trseg button").forEach(b=>b.classList.toggle("on",+b.dataset.r===+tara.r));if(document.activeElement!==$("trc"))$("trc").value=pre?"":String(tara.r);
  $("trad").value=String(tara.r);$("tkw").value=tara.kw||"";
  $("tcen").textContent=tara.c?`${tara.c.ad||"Seçilen nokta"} (${tara.c.lat.toFixed(4)}, ${tara.c.lon.toFixed(4)})`:"henüz seçilmedi";
- const sk=tara.sekil;$("tsekN").hidden=!sk;if(sk){$("tsekN").textContent=(sk.tip==="alan"?"⬠ Haritada çizdiğin alan taranacak":"〰 Çizdiğin yolun iki yanı ("+kmTxt(sk.gen/2000)+") taranacak")+". Bir mesafeye dokunursan normal daireye döner.";document.querySelectorAll("#trseg button").forEach(b=>b.classList.remove("on"))}
+ const sk=tara.sekil;$("tsekil").hidden=!sk;if(sk){$("tsekil").textContent=(sk.tip==="alan"?"⬠ Haritada çizdiğin alan taranacak":"〰 Çizdiğin yolun iki yanı ("+kmTxt(sk.gen/2000)+") taranacak")+". Bir mesafeye dokunursan normal daireye döner.";document.querySelectorAll("#trseg button").forEach(b=>b.classList.remove("on"))}
  renderFav();
 }
 function renderTaraG(){
@@ -1437,7 +1438,7 @@ async function ovFetch(ep,q,ms){
 }
 async function osmSearch(c,rKm,secs,kw){
  const a=`(around:${Math.round(rKm*1000)},${c.lat},${c.lon})`,parts=[];
- secs.forEach(s=>s.osm.forEach(([k,re])=>parts.push(`nwr["${k}"~"${re}"]${a};`)));
+ secs.forEach(s=>s.osm.forEach(([k,re])=>parts.push(`nwr["${k}"~"${re}"${k==="name"?",i":""}]${a};`)));
  if(kw)parts.push(`nwr["name"~"${kw.replace(/["\\]/g,"")}",i]${a};`);
  const q=`[out:json][timeout:30];(${parts.join("")});out center tags 3000;`;
  const EPS=["https://overpass-api.de/api/interpreter","https://overpass.private.coffee/api/interpreter","https://maps.mail.ru/osm/tools/overpass/api/interpreter","https://overpass.kumi.systems/api/interpreter"];
@@ -1447,7 +1448,7 @@ async function osmSearch(c,rKm,secs,kw){
   try{j=await ovFetch(EPS[i],q,35000)}catch(e){errs.push((i+1)+". sunucu: "+e.message)}}
  if(!j)throw new Error("Ücretsiz harita sunucularının hepsi şu an meşgul ("+errs.join("; ")+"). Birkaç dakika sonra tekrar dene veya mesafeyi küçült.");
  return(j.elements||[]).map(e=>{const t=e.tags||{};if(!t.name)return null;const lat=e.lat??(e.center&&e.center.lat),lon=e.lon??(e.center&&e.center.lon);if(lat==null)return null;
-  const s=secs.find(s=>s.osm.some(([k,re])=>t[k]&&new RegExp(re).test(t[k])));
+  const s=secs.find(s=>s.osm.some(([k,re])=>t[k]&&new RegExp(re,k==="name"?"i":"").test(t[k])));
   const sokak=[t["addr:street"],t["addr:housenumber"]].filter(Boolean).join(" No:");
   return{id:"o"+e.type[0]+e.id,ad:t.name,sek:s?s.k:"ozel",lat,lon,adres:[t["addr:neighbourhood"]||t["addr:quarter"],sokak].filter(Boolean).join(", "),
    il:[t["addr:district"]||t["addr:suburb"],t["addr:city"]||t["addr:province"]].filter(Boolean).join(" / "),

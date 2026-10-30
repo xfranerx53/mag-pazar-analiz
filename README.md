@@ -85,6 +85,7 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
   - *Taranmış yerler:* son 200 tarama (alan/yol şekli dahil) seçim haritasında gri, sonuç haritasında kesikli gösterilir. "Yeni açılan" hesabı da çizilen şekle göre yapılır.
   - *Para birimi ve ülke telefon kodu* (Ayarlar → Satış ve pazar hesapları): tüm tutarlar ve ₺ yazan etiketler seçilen para birimine döner; WhatsApp'ta 0'la başlayan/kodsuz numaralara ülke kodu eklenir, +… ve 00… numaralar olduğu gibi kalır.
   - *Kayıtlar haritası:* durum / sektör / satışçı süzgeci; "🧭 Görünen alandan rota" haritada görünen ve tam konumu olan firmalardan ziyaret rotası çıkarır.
+- **v9.1 (30.10.2026):** Düzeltme: "X sektör seçili" sayısı 0 görünüyordu (aynı kimlik iki yerde). Yeni sektör "Diğer işletmeler (sektörü belirsiz)": veride olup hiçbir sektöre girmeyen işletmeler artık seçilerek görülebilir. Fabrika: adı olan sanayi binaları ve sanayi alanları (OSB) da; Depo: depo binaları; Ambalaj: adında ambalaj/poşet/packaging geçenler; Şirket/Ofis: tüm ofis türleri. Aynı kurallar mag-veri sektorler.json ve build.py'ye de işlendi (bir sonraki derlemede geçerli).
 - **Alan adı notu (30.10.2026):** magambalaj.com Natro'da (NS1/NS2.NATROHOST.COM). İleride `pazar.magambalaj.com` → Cloudflare Pages için Natro DNS'e CNAME `pazar` → `mag-pazar-analiz.pages.dev` eklenecek (siteyi kuranlarla birlikte yapılacak); sonra Firebase "Authorized domains"a eklenip program deposu gizlenebilir.
 
 ## Google Haritalar anahtarı nasıl alınır (isteğe bağlı)
