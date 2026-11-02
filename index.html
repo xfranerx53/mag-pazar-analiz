@@ -3195,7 +3195,8 @@ function ajStok(){const out=[];hamL().forEach((h,i)=>{if(h.stok===""||h.stok==nu
  return l.concat(ek).sort((a,b)=>(SEVR[a.sev]-SEVR[b.sev])||((b.etki||0)-(a.etki||0)))}}
 
 /* --- 🎪 FIRSAT AVCISI: Google'da yeni açılış, ihale, fuar, etkinlik --- */
-const firsatBolge=()=>((ayar.otonom&&ayar.otonom.firsatBolge)||"Silivri, Büyükçekmece, Çatalca, Beylikdüzü, Esenyurt, Arnavutköy (İstanbul) ve Tekirdağ (Çorlu, Çerkezköy, Marmaraereğlisi)");
+const firsatIlce=()=>arr(ayar.otonom&&ayar.otonom.firsatIlceler).filter(Boolean);
+const firsatBolge=()=>(firsatIlce().length?firsatIlce().join(", "):(ayar.otonom&&ayar.otonom.firsatBolge)||"Silivri, Büyükçekmece, Çatalca, Beylikdüzü, Esenyurt, Arnavutköy (İstanbul) ve Tekirdağ (Çorlu, Çerkezköy, Marmaraereğlisi)");
 /* Fırsat = poşete ihtiyacı doğacak somut durum: kamu poşet/çöp torbası ihalesi, bölgede yeni açılan işletme, ambalaj/gıda fuarı. Gerisi atılır. */
 const F_NEG=/mezar|faili meçhul|dosyası|tutuk|dava|sanık|cezaevi|hapis|duruşma|mahkeme|cinayet|öldür|cenaze|kaza|yaralı|gözaltı|soruşturma|operasyon|deprem|seçim|parti|miting|dernek|lise|okul|üniversite|kayıt|futbol|maç|spor kulüb|yangın|hastalık|vefat|polis|jandarma|uyuşturucu/i;
 function firsatTur(h){const t=h.baslik+" "+h.ozet;if(F_NEG.test(h.baslik))return null;
@@ -3204,8 +3205,9 @@ function firsatTur(h){const t=h.baslik+" "+h.ozet;if(F_NEG.test(h.baslik))return
  if(/açıldı|açılış|açılıyor|açılacak|yeni şube|hizmete gir|kapılarını aç|açtı/i.test(t)&&/market|süpermarket|\bbim\b|a101|şok market|migros|carrefour|file market|mağaza|avm|restoran|fırın|kasap|manav|toptan|kafe|cafe|pastane|lokanta|gıda|hipermarket|zincir/i.test(t))return"acilis";
  return null}
 async function firsatAra(){const b=firsatBolge();
- const il=b.replace(/\(([^)]*)\)/g,",$1").split(/,|;| ve /).map(t=>t.trim()).filter(t=>t.length>2&&!/^(istanbul|tekirdağ)$/i.test(t)).slice(0,4);if(!il.length)il.push("Silivri");
- const isler=[...il.slice(0,3).map(t=>()=>haberAra(`${t} yeni market açıldı when:90d`)),...il.slice(0,2).map(t=>()=>haberAra(`${t} açılış restoran OR fırın OR market OR AVM when:90d`)),
+ const uz=t=>{const z=typeof ILCELER!=="undefined"&&ILCELER.find(i=>i[0]===t);const m=ayar.otonom&&ayar.otonom.merkez;return z&&m?hav(+m.lat,+m.lon,z[2],z[3]):z?hav(41.07,28.28,z[2],z[3]):999};
+ const il=(firsatIlce().length?firsatIlce().map(t=>t.replace(/\s*\(.*\)\s*/,"")).sort((a,b)=>uz(a)-uz(b)):b.replace(/\(([^)]*)\)/g,",$1").split(/,|;| ve /).map(t=>t.trim()).filter(t=>t.length>2&&!/^(istanbul|tekirdağ)$/i.test(t))).slice(0,5);if(!il.length)il.push("Silivri");
+ const isler=[...il.slice(0,5).map(t=>()=>haberAra(`${t} yeni market açıldı when:90d`)),...il.slice(0,2).map(t=>()=>haberAra(`${t} açılış restoran OR fırın OR market OR AVM when:90d`)),
   ()=>haberAra("poşet alımı ihalesi when:60d"),()=>haberAra("çöp torbası alımı ihalesi when:60d"),()=>webAra(`site:ilan.gov.tr poşet alımı`),()=>webAra(`site:ilan.gov.tr "çöp torbası" alımı`),
   ()=>haberAra("ambalaj fuarı İstanbul when:120d"),()=>haberAra("gıda perakende fuarı İstanbul when:120d")];
  const bitis=TARAYICI?Date.now()+45000:0;
@@ -3223,7 +3225,8 @@ HABERLER: ${JSON.stringify(l.map((h,i)=>({i,tur:h.tur,baslik:h.baslik,ozet:h.oze
    l=arr(j.l).map(o=>{const h=l[+o.i];return h?{...h,firma:o.firma||null,yer:o.yer||"",neden:o.neden||"",oneri:o.oneri||""}:null}).filter(Boolean);yontem="Haberler + ilan.gov.tr, yapay zekâ süzdü"}
   catch(e){hata=e.message}}
  if(!ulasti)throw Object.assign(new Error("Haber kaynaklarına bu cihazdan ulaşılamadı."),{ulasilamadi:1});
- return{t:Date.now(),bolge:b,l:l.slice(0,12),kaynaklar:[],yontem,not:hata,tarandi:ham.length}}
+ const tekil=(o,i,a)=>{const k=nrm(o.firma||"");return!k||a.findIndex(p=>nrm(p.firma||"")===k)===i};
+ return{t:Date.now(),bolge:b,l:l.filter(tekil).slice(0,12),kaynaklar:[],yontem,not:hata,tarandi:ham.length}}
 
 /* --- 🎨 İÇERİK ÜRETİCİ: haftalık paylaşım planı --- */
 async function icerikPlani(konu){
@@ -3535,6 +3538,33 @@ Object.assign(A,{stkay:(_,i)=>{const l=hamL(),h=l[+i];if(!h)return;document.quer
   if(!h.tedEp){alert("Bu hammaddenin tedarikçi e-postası yok. Stok ekranında 'Tedarikçi e-posta' alanını doldur.");ajFiltre="stok";go("ajan");return}
   sohb.push({r:"ai",m:`📦 ${h.ad} için tedarikçiye sipariş e-postası hazırladım. Kontrol et, ✅ Yap dersen gönderilir.`,t:Date.now(),eylemler:[{tip:"tedarik",to:h.tedEp,konu:`${h.ad} sipariş talebi — ${imza()}`,metin:f.msg.replace(/\s*$/,"")}]});sohKaydet();ajFiltre="ofis";go("ajan");sohCiz()}});
 
+/* --- 🗺 Fırsat bölgesi: haritadan ilçe seç --- */
+const ILCELER=[["Silivri","İstanbul",41.074,28.247],["Çatalca","İstanbul",41.143,28.461],["Büyükçekmece","İstanbul",41.021,28.585],["Beylikdüzü","İstanbul",40.982,28.640],["Esenyurt","İstanbul",41.034,28.676],["Arnavutköy","İstanbul",41.185,28.740],["Avcılar","İstanbul",40.979,28.722],["Başakşehir","İstanbul",41.093,28.802],["Küçükçekmece","İstanbul",41.000,28.780],["Bağcılar","İstanbul",41.039,28.856],["Sultangazi","İstanbul",41.106,28.867],["Esenler","İstanbul",41.043,28.876],["Bahçelievler","İstanbul",41.000,28.860],["Gaziosmanpaşa","İstanbul",41.067,28.912],["Eyüpsultan","İstanbul",41.048,28.934],["Bakırköy","İstanbul",40.980,28.872],["Zeytinburnu","İstanbul",40.994,28.904],["Güngören","İstanbul",41.019,28.876],["Bayrampaşa","İstanbul",41.035,28.912],["Sarıyer","İstanbul",41.168,29.057],
+ ["Çorlu","Tekirdağ",41.159,27.800],["Çerkezköy","Tekirdağ",41.285,28.000],["Kapaklı","Tekirdağ",41.330,27.977],["Marmaraereğlisi","Tekirdağ",40.970,27.955],["Ergene","Tekirdağ",41.190,27.700],["Saray","Tekirdağ",41.443,27.921],["Süleymanpaşa","Tekirdağ",40.978,27.511],["Muratlı","Tekirdağ",41.172,27.501],["Hayrabolu","Tekirdağ",41.213,27.106],["Malkara","Tekirdağ",40.891,26.902],["Şarköy","Tekirdağ",40.612,27.115],
+ ["Lüleburgaz","Kırklareli",41.404,27.356],["Babaeski","Kırklareli",41.432,27.093],["Vize","Kırklareli",41.573,27.766],["Pınarhisar","Kırklareli",41.623,27.521],["Kırklareli Merkez","Kırklareli",41.735,27.225],["Edirne Merkez","Edirne",41.677,26.556],["Uzunköprü","Edirne",41.267,26.688],["Keşan","Edirne",40.856,26.630]];
+let fbSec=null,fbMap=null,fbLay=null;
+function fbMerkez(){const m=ayar.otonom&&ayar.otonom.merkez;return m&&isFinite(+m.lat)?[+m.lat,+m.lon]:[41.0701,28.2851]}
+async function bolgeHarita(){fbSec=new Set(firsatIlce().length?firsatIlce():["Silivri","Çatalca","Büyükçekmece","Beylikdüzü","Esenyurt","Arnavutköy","Çorlu","Çerkezköy","Marmaraereğlisi"].map(a=>{const z=ILCELER.find(i=>i[0]===a);return z?a+" ("+z[1]+")":a}));
+ if(!$("dlgFb"))document.body.insertAdjacentHTML("beforeend",`<dialog id="dlgFb" class="sheet"><b style="font-size:17px">🗺 Fırsat bölgesi</b><div class="mu">İlçelere dokunarak seç ya da kaldır. Listede olmayan bir yere dokunursan o ilçe eklenir. Mavi nokta fabrika.</div>
+  <div id="fbMap" style="height:52vh;border-radius:10px;margin:8px 0"></div>
+  <div class="row" style="align-items:center"><span class="mu">Fabrikaya</span><input id="fbKm" type="range" min="10" max="120" step="5" value="35" style="flex:1"><b id="fbKmT">35 km</b><button data-a="fbkm">içindekileri seç</button></div>
+  <div class="chips" id="fbCh" style="margin:8px 0"></div><div class="row"><button class="p" data-a="fbkay">💾 Kaydet</button><button data-a="fbtem">Temizle</button><button onclick="this.closest('dialog').close()">Vazgeç</button></div></dialog>`);
+ $("dlgFb").showModal();fbCiz();
+ try{loadCss(LCSS);await loadScript(LJS)}catch(e){$("fbMap").innerHTML=`<div class="warn">Harita yüklenemedi: ${esc(e.message)}</div>`;return}
+ if(!fbMap){fbMap=L.map("fbMap").setView(fbMerkez(),9);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(fbMap);fbLay=L.layerGroup().addTo(fbMap);
+  fbMap.on("click",async e=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=tr&zoom=10&lat=${e.latlng.lat}&lon=${e.latlng.lng}`);const j=await r.json(),a=j.address||{};
+   const ilce=a.county||a.town||a.city_district||a.district||a.municipality||a.city,il=a.province||a.state||"";if(!ilce){tost("Burada ilçe bulunamadı");return}
+   const ad=String(ilce).replace(/ (İlçesi|Merkez İlçesi)$/,"")+(il&&il!==ilce?" ("+il.replace(/ İli$/,"")+")":"");fbSec.has(ad)?fbSec.delete(ad):fbSec.add(ad);fbCiz()}catch(err){tost("Konum adı alınamadı: "+err.message)}})}
+ setTimeout(()=>{fbMap.invalidateSize();fbMap.setView(fbMerkez(),9);fbCiz()},120)}
+function fbCiz(){const ch=$("fbCh");if(ch)ch.innerHTML=[...fbSec].map(a=>`<button class="on" data-a="fbsil" data-id="${esc(a)}">${esc(a)} ✕</button>`).join("")||'<span class="mu">Henüz ilçe seçilmedi.</span>';
+ if(!fbLay||!window.L)return;fbLay.clearLayers();L.circleMarker(fbMerkez(),{radius:8,color:"#1d4ed8",fillOpacity:1}).bindTooltip("Fabrika").addTo(fbLay);
+ const km=+(($("fbKm")||{}).value||35);L.circle(fbMerkez(),{radius:km*1000,color:"#1d4ed8",weight:1,fillOpacity:.04,interactive:false}).addTo(fbLay);
+ ILCELER.forEach(([a,il,la,lo])=>{const k=a+" ("+il+")",on=fbSec.has(k);L.circleMarker([la,lo],{radius:on?10:7,color:on?"#067647":"#667085",fillColor:on?"#12b76a":"#98a2b3",fillOpacity:.85,weight:2}).bindTooltip(a,{permanent:on,direction:"top",offset:[0,-8]}).on("click",ev=>{L.DomEvent.stopPropagation(ev);fbSec.has(k)?fbSec.delete(k):fbSec.add(k);fbCiz()}).addTo(fbLay)})}
+document.addEventListener("input",e=>{if(e.target.id==="fbKm"){$("fbKmT").textContent=e.target.value+" km";fbCiz()}});
+Object.assign(A,{fbsil:a=>{fbSec.delete(a);fbCiz()},fbtem:()=>{fbSec.clear();fbCiz()},
+ fbkm:()=>{const km=+$("fbKm").value,[la,lo]=fbMerkez();ILCELER.forEach(([a,il,y,x])=>{if(hav(la,lo,y,x)<=km)fbSec.add(a+" ("+il+")")});fbCiz()},
+ fbkay:()=>{if(!fbSec.size){alert("En az bir ilçe seç.");return}ayar.otonom=Object.assign({},ayar.otonom||{},{firsatIlceler:[...fbSec]});saveAyar();$("dlgFb").close();renderAjan();tost(`✅ ${fbSec.size} ilçe kaydedildi. Fırsat Avcısı bu ilçelerde arar.`,4000)}});
+
 /* --- 🎪 FIRSAT ve 🎨 İÇERİK ekranları --- */
 const FT={acilis:"🏪",ihale:"🏛",fuar:"🎪",etkinlik:"🎉",haber:"📰"};
 let fMesgul=false,iMesgul=false;
@@ -3543,11 +3573,11 @@ async function sunucudaYap(gorevler,ek){if(!gizB.ghToken||!root)return false;try
 async function firsatCalistir(){if(fMesgul)return;fMesgul=true;ajFiltre="firsat";go("ajan");aiBas=Date.now();aiAdim="Haberler ve ihaleler taranıyor";
  try{const r=await firsatAra();OF.firsat=r;await root.child("ajan/firsat").set(r).catch(()=>{});tost(r.l.length?`🎪 ${r.l.length} fırsat bulundu`:"Bu sefer işine yarar fırsat çıkmadı",4000)}
  catch(e){if(await sunucudaYap(["firsat"]))tost("🌐 Bu cihazdan haber sitelerine ulaşılamadı; aramayı sunucudaki ajan yapıyor. 2-4 dakika içinde sonuç burada görünür.",8000);else alert("Fırsat araması yapılamadı: "+e.message)}fMesgul=false;aiAdim="";renderAjan()}
-function firsatSayfa(){const f0=OF.firsat,f=f0?{...f0,l:arr(f0.l).filter(o=>["ihale","acilis","fuar"].includes(o.tur)&&firsatTur({baslik:o.baslik||"",ozet:o.ozet||o.neden||""}))}:null;
- return`<div class="card"><div class="mu">Bölge: ${esc(firsatBolge())}</div><div class="row"><button class="p" data-a="fara" ${fMesgul?"disabled":""}>🔎 ${fMesgul?"Aranıyor…":"Şimdi ara"}</button><button data-a="fbol">📍 Bölgeyi değiştir</button></div>${fMesgul?'<div class="aiSure mu"></div>':""}<div class="mu">Gece ajanı haftada bir kendisi arar. Bulunan yeni işletmeyi tek dokunuşla müşteri listesine ekleyebilirsin.</div></div>
+function firsatSayfa(){const f0=OF.firsat,f=f0?{...f0,l:arr(f0.l).filter(o=>["ihale","acilis","fuar"].includes(o.tur)&&firsatTur({baslik:o.baslik||"",ozet:o.ozet||o.neden||""})).filter((o,i,a)=>{const k=nrm(o.firma||"");return!k||a.findIndex(p=>nrm(p.firma||"")===k)===i})}:null;
+ return`<div class="card"><div class="mu">Bölge: ${esc(firsatBolge())}</div><div class="row"><button class="p" data-a="fara" ${fMesgul?"disabled":""}>🔎 ${fMesgul?"Aranıyor…":"Şimdi ara"}</button><button data-a="fbol">🗺 Bölgeyi haritadan seç</button></div>${fMesgul?'<div class="aiSure mu"></div>':""}<div class="mu">Gece ajanı haftada bir kendisi arar. Bulunan yeni işletmeyi tek dokunuşla müşteri listesine ekleyebilirsin.</div></div>
  ${f&&!arr(f.l).length?`<div class="empty">${saatTxt(f.t)} araması: ${f.tarandi||arr(f0.l).length} haber/ilan tarandı, işine yarayacak fırsat çıkmadı. Boş haber göstermiyorum; gece ajanı haftada bir yeniden bakar.</div>`:""}${f&&arr(f.l).length?`<div class="mu" style="margin:4px">${saatTxt(f.t)} araması${f.yontem?" • "+esc(f.yontem):""}${f.not?" • yapay zekâ: "+esc(f.not):""}</div>`+arr(f.l).map((o,i)=>`<div class="card"><h3>${FT[o.tur]||"📌"} ${esc(o.baslik||"")}</h3><div class="mu">${[o.firma,o.yer,o.tarih,o.kaynak].filter(Boolean).map(esc).join(" • ")}</div><div>${esc(o.neden||o.ozet||"")}</div>${o.oneri?`<div><b>Ne yapmalı:</b> ${esc(o.oneri)}</div>`:""}
   <div class="row">${o.tur!=="fuar"?`<button data-a="fekle" data-i="${i}">+ Müşteri listesine ekle</button>`:""}${/^https?:/.test(o.link||"")?`<a class="btn" target="_blank" rel="noopener" href="${esc(o.link)}">📰 Haberi aç</a>`:""}</div></div>`).join("")+(arr(f.kaynaklar).length?`<div class="mu">Kaynaklar: ${arr(f.kaynaklar).map(k=>`<a target="_blank" rel="noopener" href="${esc(k.uri)}">${esc(k.title)}</a>`).join(" • ")}</div>`:""):`<div class="empty">Henüz arama yapılmadı.</div>`}`}
-Object.assign(A,{fara:()=>firsatCalistir(),fbol:()=>{const v=prompt("Fırsat aranacak bölge (ilçeleri virgülle yaz):",firsatBolge());if(v&&v.trim()){ayar.otonom=Object.assign({},ayar.otonom||{},{firsatBolge:v.trim()});saveAyar();renderAjan()}},
+Object.assign(A,{fara:()=>firsatCalistir(),fbol:()=>bolgeHarita(),
  fekle:(_,i)=>{const o=arr(OF.firsat&&OF.firsat.l)[+i];if(!o)return;const ad=(o.firma||o.baslik||"").trim();if(!ad)return;if(data.some(x=>normF(x.firma)===normF(ad))){tost("Bu firma zaten listede");return}
   put({id:uid_(),c:Date.now(),firma:ad,sektor:"Diğer",durum:"Yeni",il:o.yer||"",adres:o.yer||"",kaynak:"🎪 Fırsat avcısı",oncelik:"Sıcak",not:[o.neden,o.oneri].filter(Boolean).join(" — ")});tost("✅ "+ad+" listeye eklendi")}});
 async function icerikCalistir(konu){if(iMesgul)return;if(!aiKey()){alert("Önce yapay zekâ anahtarını gir (Kurulum 1).");return}iMesgul=true;ajFiltre="icerik";go("ajan");aiBas=Date.now();aiAdim="Paylaşımlar yazılıyor";
