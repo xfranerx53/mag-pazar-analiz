@@ -91,6 +91,7 @@ dialog.sheet[open]{display:flex}
 .sohbet #sohL{display:flex;flex-direction:column;gap:8px;max-height:58vh;overflow:auto}.sb{padding:9px 12px;border-radius:14px;max-width:88%;line-height:1.45}.sb.ben{align-self:flex-end;background:var(--pr);color:var(--on);border-bottom-right-radius:4px}.sb.ai{align-self:flex-start;background:var(--ac);border-bottom-left-radius:4px}
 .chip{border-radius:999px;padding:6px 11px;font-size:13px}.ajai{background:var(--ac);border-radius:8px;padding:10px;margin:6px 0;line-height:1.5}.warn-c{border-left:4px solid var(--or)}
 .kur.tamam{opacity:.75}.kurh{display:flex;align-items:center;gap:8px;margin-bottom:6px}.kurn{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--pr);color:var(--on);align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:0 0 auto}.kur.tamam .kurn{background:var(--gr)}.kur .mu a{color:var(--pr);font-weight:600}
+#analiz .card,#analiz2 .card{overflow-x:auto}@media(max-width:560px){#stats{grid-template-columns:repeat(3,1fr)}#stats .st{padding:8px 4px}#stats .st b{font-size:17px}}.tb{min-width:0}
 .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.menu-grid button{padding:20px 10px;font-size:15px;line-height:1.6}
 .selbar{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));z-index:15;background:var(--pr);color:var(--on);padding:9px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
 .selbar button{padding:6px 12px;font-size:14px}
@@ -170,7 +171,7 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 <div id="bulk" class="card" hidden>
 <b><span id="bn">0</span> kayıt seçili</b> <span class="mu">— seçtiklerine toplu değişiklik yap</span>
 <div class="bar"><select id="bdur"></select><select id="bonc"></select><select id="bsek"></select><select id="bown" hidden></select><input id="bson" type="date" title="Sonraki arama tarihi"></div>
-<div class="row"><button class="p" onclick="bulkApply()">Uygula</button><button onclick="callStart([...sel])">📞 Sırayla ara</button><button onclick="wbStart(leadItems([...sel]))">💬 WhatsApp</button><button class="d" id="bdel" onclick="bulkDel()">Seçilenleri sil</button><button onclick="sel.clear();render()">Seçimi bırak</button></div>
+<div class="row"><button class="p" onclick="bulkApply()">Uygula</button><button onclick="callStart([...sel])">📞 Sırayla ara</button><button onclick="wbStart(leadItems([...sel]))">💬 WhatsApp</button><button onclick="kampanyaAc([...sel])">✨ Kampanya mesajı</button><button onclick="listeEpBul([...sel])">✉ E-posta bul</button><button onclick="listeRota([...sel])">🗺 Rota</button><button class="d" id="bdel" onclick="bulkDel()">Seçilenleri sil</button><button onclick="sel.clear();render()">Seçimi bırak</button></div>
 </div>
 <div id="list"></div>
 </div>
@@ -500,7 +501,7 @@ applyTema();
 
 /* ---------- seçim listeleri ---------- */
 opts($("fs"),SEK,"Tüm sektörler");opts($("fd"),DUR,"Tüm durumlar");opts($("fp"),ONC.slice(1),"Tüm öncelikler");
-$("so").innerHTML='<option value="c">Yeni eklenen önce</option><option value="s">Sonraki arama tarihi</option><option value="a">Firma A-Z</option><option value="b">Bakiye (yüksek)</option><option value="y">📍 Bana en yakın</option>';
+$("so").innerHTML='<option value="z">⭐ Önce kazandıracaklar</option><option value="c">Yeni eklenen önce</option><option value="s">Sonraki arama tarihi</option><option value="a">Firma A-Z</option><option value="b">Bakiye (yüksek)</option><option value="y">📍 Bana en yakın</option>';
 opts($("sektor"),SEK);opts($("durum"),DUR);opts($("gdur"),DUR);opts($("kayip"),KAYIP);opts($("gkay"),KAYIP);opts($("u_bir"),BIRIM);
 $("oncelik").innerHTML=ONC.map(x=>`<option value="${x}">${x||"—"}</option>`).join("");
 $("ft").innerHTML='<option value="">Tüm teklifler</option>'+TDUR.map(x=>`<option>${x}</option>`).join("");
@@ -601,11 +602,11 @@ function hist(x){
 function card(x,ck){
  const od=x.sonraki&&x.sonraki<today(),wa=waNum(x.telefon),bk=bakiye(x);
  return `<div class="card"><h3>${ck?`<input type="checkbox" class="ck" data-sel="${x.id}" ${sel.has(x.id)?"checked":""}>`:""}${esc(x.firma)} ${x.oncelik?`<span class="pr ${esc(x.oncelik)}">${esc(x.oncelik)}</span>`:""}</h3>
- <span class="tag">${esc(x.sektor)}</span><span class="tag">${esc(x.durum)}</span>${x.aramayin?`<span class="tag warn">⛔ Aramayın${x.aramayin.neden?": "+esc(x.aramayin.neden):""}</span>`:""}${x.izin==="Çıkış yaptı"?'<span class="tag warn">İzin: Çıkış yaptı</span>':x.izin==="Var"?'<span class="tag">İzin: Var</span>':""}${x.sonraki?`<span class="tag ${od?"warn":""}">📞 ${fd(x.sonraki)}${od?" (gecikti)":""}</span>`:""}${bk>0.5?`<span class="tag warn">Bakiye ${TL(bk)}</span>`:""}${cloudOn()&&isAdmin()&&x.sahipAd?`<span class="tag">👤 ${esc(x.sahipAd)}</span>`:""}${x.kayip?`<span class="tag">Kayıp: ${esc(x.kayip)}</span>`:""}${x.mesafe!=null?`<span class="tag">📍 ${x.mesafe} km</span>`:""}${x.puan?`<span class="tag">★ ${x.puan}</span>`:""}${x.numune&&!numuneDone(x)?`<span class="tag">🎁 Numune ${fd(x.numune.tar)}</span>`:""}${uzMap.has(x.id)?`<span class="tag ok">Sana ${kmTxt(uzMap.get(x.id))}</span>`:""}${x.vade?`<span class="tag">Vade ${esc(x.vade)} gün</span>`:""}
+ <span class="tag">${esc(x.sektor)}</span><span class="tag">${esc(x.durum)}</span>${x.aramayin?`<span class="tag warn">⛔ Aramayın${x.aramayin.neden?": "+esc(x.aramayin.neden):""}</span>`:""}${x.izin==="Çıkış yaptı"?'<span class="tag warn">İzin: Çıkış yaptı</span>':x.izin==="Var"?'<span class="tag">İzin: Var</span>':""}${x.sonraki?`<span class="tag ${od?"warn":""}">📞 ${fd(x.sonraki)}${od?" (gecikti)":""}</span>`:""}${bk>0.5?`<span class="tag warn">Bakiye ${TL(bk)}</span>`:""}${cloudOn()&&isAdmin()&&x.sahipAd?`<span class="tag">👤 ${esc(x.sahipAd)}</span>`:""}${x.kayip?`<span class="tag">Kayıp: ${esc(x.kayip)}</span>`:""}${x.mesafe!=null?`<span class="tag">📍 ${x.mesafe} km</span>`:""}${x.puan?`<span class="tag">★ ${x.puan}</span>`:""}${x.aday!=null&&["Yeni","İletişim kuruldu","İlgileniyor"].includes(x.durum)?`<span class="tag ${x.aday>=60?"ok":""}" title="Aday puanı">⭐ ${x.aday}</span>`:""}${typeof sonTemas==="function"?sonTemas(x):""}${x.numune&&!numuneDone(x)?`<span class="tag">🎁 Numune ${fd(x.numune.tar)}</span>`:""}${uzMap.has(x.id)?`<span class="tag ok">Sana ${kmTxt(uzMap.get(x.id))}</span>`:""}${x.vade?`<span class="tag">Vade ${esc(x.vade)} gün</span>`:""}
  <div class="mu">${[x.yetkili,x.il,x.telefon,x.eposta].filter(Boolean).map(esc).join(" • ")}</div>
  ${x.adres?`<div class="mu">📍 ${esc(x.adres)}</div>`:""}${x.rakip?`<div class="mu">Rakip: ${esc(x.rakip)}${x.rakipFiyat?" • "+TL2(x.rakipFiyat):""}</div>`:""}${x.not?`<div class="mu">${esc(x.not)}</div>`:""}
  <div class="row">${digits(x.telefon)&&!x.aramayin?`<a class="btn" href="tel:${digits(x.telefon)}">Ara</a>`:""}${wa&&!x.aramayin?`<button data-a="wa" data-id="${x.id}">WhatsApp</button>`:""}${addr(x)||x.konum?`<a class="btn" target="_blank" rel="noopener" href="${x.konum?"https://www.google.com/maps/search/?api=1&query="+x.konum.lat+","+x.konum.lon:mapUrl(x)}">Harita</a>`:""}${/^https?:/i.test(x.web||"")?`<a class="btn" target="_blank" rel="noopener" href="${esc(x.web)}">Web</a>`:""}${x.foto?`<button data-a="foto" data-id="${x.id}">📷</button>`:""}
- <button data-a="gor" data-id="${x.id}">+ Görüşme</button></div><details class="more"><summary>⋯ Diğer işlemler</summary><div class="row"><button data-a="tek" data-id="${x.id}">+ Teklif</button><button data-a="sip" data-id="${x.id}">+ Sipariş</button>${arr(x.siparis).length?`<button data-a="pay" data-id="${x.id}">+ Ödeme</button>`:""}<button data-a="ziy" data-id="${x.id}">📍 Buradayım (ziyaret)</button><button data-a="num" data-id="${x.id}">🎁 Numune bıraktım</button><button data-a="edit" data-id="${x.id}">Düzenle</button>${x.sonraki?`<button data-a="ical" data-id="${x.id}">📅 Takvime ekle</button>`:""}<button data-a="slink" data-id="${x.id}">🔗 Sipariş linki / QR</button>${x.konum?`<button data-a="osmn" data-id="${x.id}">🌍 OpenStreetMap'e bildir</button>`:""}${x.web&&!x.eposta?`<button data-a="lmail" data-id="${x.id}">🔎 Web'den e-posta bul</button>`:""}<button data-a="nocall" data-id="${x.id}">${x.aramayin?"✅ Aramayın listesinden çıkar":"⛔ Aramayın listesine al"}</button>${isAdmin()?`<button data-a="del" data-id="${x.id}">Sil</button>`:""}</div></details>${hist(x)}</div>`;
+ <button data-a="gor" data-id="${x.id}">+ Görüşme</button>${typeof aiKey==="function"&&aiKey()?`<button data-a="koc" data-id="${x.id}">✨ Satış koçu</button>`:""}</div><details class="more"><summary>⋯ Diğer işlemler</summary><div class="row"><button data-a="tek" data-id="${x.id}">+ Teklif</button><button data-a="sip" data-id="${x.id}">+ Sipariş</button>${arr(x.siparis).length?`<button data-a="pay" data-id="${x.id}">+ Ödeme</button>`:""}<button data-a="ziy" data-id="${x.id}">📍 Buradayım (ziyaret)</button><button data-a="num" data-id="${x.id}">🎁 Numune bıraktım</button><button data-a="edit" data-id="${x.id}">Düzenle</button>${x.sonraki?`<button data-a="ical" data-id="${x.id}">📅 Takvime ekle</button>`:""}<button data-a="slink" data-id="${x.id}">🔗 Sipariş linki / QR</button>${x.konum?`<button data-a="osmn" data-id="${x.id}">🌍 OpenStreetMap'e bildir</button>`:""}${x.web&&!x.eposta?`<button data-a="lmail" data-id="${x.id}">🔎 Web'den e-posta bul</button>`:""}<button data-a="nocall" data-id="${x.id}">${x.aramayin?"✅ Aramayın listesinden çıkar":"⛔ Aramayın listesine al"}</button>${isAdmin()?`<button data-a="del" data-id="${x.id}">Sil</button>`:""}</div></details>${hist(x)}</div>`;
 }
 
 /* ================= ekranlar ================= */
@@ -818,6 +819,7 @@ function render(){try{paraLabels()}catch(e){}
  if(so==="y"){}else if(so==="a")r.sort((a,b)=>a.firma.localeCompare(b.firma,"tr"));
  else if(so==="s")r.sort((a,b)=>(a.sonraki||"9999").localeCompare(b.sonraki||"9999"));
  else if(so==="b")r.sort((a,b)=>bakiye(b)-bakiye(a));
+ else if(so==="z"){const F=firsatHazirla();r.sort((a,b)=>F(b)-F(a))}
  else r.sort((a,b)=>(b.c||0)-(a.c||0));
  shown=r.map(x=>x.id);
  [...sel].forEach(i=>{if(!data.some(x=>x.id===i))sel.delete(i)});
@@ -854,7 +856,7 @@ function renderTeklif(){
  const all=allT(),f=$("ft").value,l=all.filter(o=>!f||o.t.durum===f);
  const sum=n=>all.filter(o=>o.t.durum===n).reduce((s,o)=>s+docTop(o.t),0);
  $("tstats").innerHTML=[["Beklemede",sum("Beklemede")],["Kabul",sum("Kabul")],["Red",sum("Red")]].map(a=>`<div class="st"><b>${TL(a[1])}</b><span>${a[0]}</span></div>`).join("");
- $("tlist").innerHTML=l.length?l.map(o=>{const c=o.t.kalemler?calc(o.t):null;return `<div class="card"><h3>${esc(o.x.firma)} <span class="mu">${esc(o.t.no||"")}</span></h3><div>${kalemOzet(o.t)}</div><div><b>${TL2(docTop(o.t))}</b>${c&&c.kdv?` <span class="mu">(KDV dahil)</span>`:""}${c&&c.kar!=null?` <span class="mu">• kâr ${TL(c.kar)} (%${c.mNet?Math.round(c.kar/c.mNet*100):0})</span>`:""}</div><div class="mu">${fd(o.t.tar)}${o.t.not?" • "+esc(o.t.not):""}${o.t.sNo?" • Sipariş: "+esc(o.t.sNo):""}</div>
+ $("tlist").innerHTML=l.length?l.map(o=>{const c=o.t.kalemler?calc(o.t):null;return `<div class="card"><h3>${esc(o.x.firma)} <span class="mu">${esc(o.t.no||"")}</span></h3><div>${kalemOzet(o.t)}</div><div><b>${TL2(docTop(o.t))}</b>${c&&c.kdv?` <span class="mu">(KDV dahil)</span>`:""}${c&&c.kar!=null?` <span class="mu">• kâr ${TL(c.kar)} (%${c.mNet?Math.round(c.kar/c.mNet*100):0})</span>${o.t.durum==="Beklemede"&&c.mNet&&c.kar/c.mNet*100<AJ().minMarj?` <span class="tag warn">🛡 kâr kuralın altında</span>`:""}`:""}</div><div class="mu">${fd(o.t.tar)}${o.t.not?" • "+esc(o.t.not):""}${o.t.sNo?" • Sipariş: "+esc(o.t.sNo):""}</div>
  <div class="row"><select data-ts="${o.x.id}" data-i="${o.i}" style="width:auto">${TDUR.map(d=>`<option ${d===o.t.durum?"selected":""}>${d}</option>`).join("")}</select><button data-a="tpr" data-id="${o.x.id}" data-i="${o.i}">🖨 Yazdır / PDF</button><button data-a="tedit" data-id="${o.x.id}" data-i="${o.i}">Düzenle</button>${o.t.sNo?"":`<button data-a="t2s" data-id="${o.x.id}" data-i="${o.i}">→ Siparişe çevir</button>`}<button data-a="delt" data-id="${o.x.id}" data-i="${o.i}">Sil</button></div></div>`}).join(""):`<div class="empty">Teklif yok. Kayıt kartındaki "+ Teklif" ile ekleyin.</div>`;
 }
 function renderSiparis(){try{renderTalep()}catch(e){}
@@ -2083,7 +2085,8 @@ document.querySelectorAll("dialog").forEach(d=>{let dn=false;
  d.addEventListener("mousedown",e=>{dn=e.target===d&&out(e)});
  d.addEventListener("click",e=>{if(dn&&e.target===d&&out(e)){if(d===dlgG)recStop(true);d.close()}dn=false});
 });
-if(SIPT){musteriSayfasi()}else{render();initCloud();vIndex().catch(()=>{});pinBaslat()}
+/* başlangıç: tüm modüller tanımlandıktan sonra, dosyanın sonunda çalışır (v13) */
+function __baslat(){if(SIPT){musteriSayfasi()}else{render();initCloud();vIndex().catch(()=>{});pinBaslat()}}
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 if(!SIPT){setTimeout(()=>{if(!root)notifyToday()},2500);setInterval(()=>notifyToday(),36e5)}
 
@@ -2100,6 +2103,7 @@ const AJLER=[
  {k:"teklif",ik:"📨",ad:"Teklif Takipçisi",ac:"Cevapsız kalan teklifleri zamanında hatırlatır."},
  {k:"tekrar",ik:"🔁",ad:"Tekrar Sipariş",ac:"Poşeti bitmek üzere olan müşteriyi rakipten önce yakalar."},
  {k:"uyuyan",ik:"😴",ad:"Uyuyan Müşteri",ac:"Sipariş vermeyi bırakan müşterileri geri kazanmaya çalışır."},
+ {k:"capraz",ik:"🧩",ad:"Çapraz Satış",ac:"Müşteriye, aynı sektördekilerin aldığı ama onun hiç almadığı ürünü önerir."},
  {k:"avci",ik:"🎯",ad:"Müşteri Avcısı",ac:"Listedeki en değerli yeni adayları her gün sıraya koyar."},
  {k:"ham",ik:"🧪",ad:"Hammadde",ac:"Hammadde fiyat değişiminin ürün kârına etkisini izler."}
 ];
@@ -2123,6 +2127,13 @@ function ajFiyat(){const R=AJ(),out=[];
    out.push({ag:"fiyat",id:x.id,sev:marj<0?"kritik":"onemli",bas:`${x.firma} • ${t.no||"teklif"} • ${k.urun}`,
     det:`Satış ${TL2(net)} • maliyet ${TL2(mNow)} → kâr %${Math.round(marj)} (kuralımız en az %${R.minMarj}).${zam?` Teklif verildikten sonra maliyet ${TL2(k.maliyet)} → ${TL2(mNow)} oldu.`:""} En az ${TL2(alt)} olmalı.`,
     etki:(+k.mik||0)*Math.max(0,alt-net),act:[{a:"tedit",id:x.id,i,lb:"✎ Teklifi düzelt"}]})})}));
+ data.forEach(x=>{if(x.durum!=="Müşteri"||x.aramayin)return;const s=arr(x.siparis).filter(sipAktif).sort((a,b)=>(a.tar||"").localeCompare(b.tar||""));const son=s[s.length-1];if(!son||daysSince(son.tar||today())>180)return;
+  const dus=[];let kayip=0;arr(toDoc(son).kalemler).forEach(k=>{const u=k.urunId?katalog.find(u=>u.id===k.urunId):katalog.find(u=>u.ad===k.urun);const m=u&&+u.maliyet;if(!m||!+k.fiyat)return;const net=(+k.fiyat)*(1-(+k.isk||0)/100),mj=(net-m)/net*100;if(mj>=R.minMarj)return;const alt=marjAlt(m,R.minMarj);dus.push({u:k.urun,net,alt,mj});kayip+=(+k.mik||0)*(alt-net)});
+  if(!dus.length)return;
+  out.push({ag:"fiyat",id:x.id,sev:dus.some(d=>d.mj<0)?"kritik":"onemli",bas:`${x.firma} • sonraki siparişte fiyat güncellenmeli`,
+   det:dus.map(d=>`${d.u}: son satış ${TL2(d.net)} → bugünkü maliyetle en az ${TL2(d.alt)} (şu an kâr %${Math.round(d.mj)})`).join(" • "),etki:kayip,
+   msg:`${selam(x)} hammadde fiyatlarındaki artış nedeniyle bir sonraki siparişinizden itibaren ${dus.map(d=>d.u+" birim fiyatımız "+TL2(d.alt)).join(", ")} olacaktır. Anlayışınız için teşekkür ederiz; sorunuz olursa memnuniyetle görüşürüz. ${imza()}`,
+   act:[{a:"sip",id:x.id,lb:"+ Sipariş"}]})});
  katalog.forEach((u,i)=>{if(!+u.maliyet||!+u.fiyat)return;const marj=(u.fiyat-u.maliyet)/u.fiyat*100;if(marj>=R.minMarj)return;
   const q=satilan90(u),alt=marjAlt(u.maliyet,R.minMarj);
   out.push({ag:"fiyat",sev:marj<0?"kritik":"onemli",bas:`Liste fiyatı düşük: ${u.ad}`,
@@ -2197,16 +2208,30 @@ function ajHam(){const R=AJ(),out=[];
     det:`${NUM(p)} → ${NUM(h.fiyat)} (${fd(son[0])}) • bağlı ${bag.length} ürün${dus.length?` • hedef kârın altına düşenler: ${dus.map(u=>u.ad).join(", ")}`:""}${ch>0?" • Açık tekliflerini Fiyat Bekçisi kontrol ediyor.":" • Rakiplerden önce fiyat avantajını kullanabilirsin."}`,etki:0,act:[{a:"ajgo",id:"urun",lb:"Ürünler"}]})}});
  return out}
 
+/* --- 🧩 Çapraz Satış --- */
+function ajCapraz(){const out=[],mus=data.filter(x=>x.durum==="Müşteri"&&!x.aramayin);
+ const aldi=x=>{const s=new Set();arr(x.siparis).filter(sipAktif).forEach(o=>arr(toDoc(o).kalemler).forEach(k=>{const u=k.urunId?katalog.find(u=>u.id===k.urunId):katalog.find(u=>u.ad===k.urun);if(u)s.add(u.id)}));return s};
+ const AL=new Map(mus.map(x=>[x.id,aldi(x)]));
+ mus.forEach(x=>{const ben=AL.get(x.id);if(!ben.size)return;const es=mus.filter(y=>y.id!==x.id&&y.sektor&&y.sektor===x.sektor);if(!es.length)return;
+  const say={};es.forEach(y=>AL.get(y.id).forEach(u=>{if(!ben.has(u))say[u]=(say[u]||0)+1}));
+  const en=Object.entries(say).filter(([,n])=>n>=Math.max(1,Math.ceil(es.length*0.3))).sort((a,b)=>b[1]-a[1])[0];if(!en)return;
+  const u=katalog.find(k=>k.id===en[0]);if(!u)return;let top=0,n=0;
+  es.forEach(y=>arr(y.siparis).filter(sipAktif).forEach(o=>arr(toDoc(o).kalemler).forEach(k=>{if(k.urunId===u.id||k.urun===u.ad){top+=(+k.mik||0)*(+k.fiyat||0);n++}})));
+  out.push({ag:"capraz",id:x.id,sev:"bilgi",bas:`${x.firma} • ${u.ad} da alabilir`,det:`Aynı sektördeki ${es.length} müşterinin ${en[1]} tanesi bunu da alıyor; bu firma hiç almadı.${n?" Emsal sipariş ≈ "+TL(top/n)+".":""}`,etki:n?top/n:0,
+   msg:`${selam(x)} ${x.sektor?x.sektor+" müşterilerimizin":"Müşterilerimizin"} çoğu bizden ${u.ad} da alıyor. Bir sonraki siparişinize birlikte ekleyelim mi? İsterseniz numune de getirelim. ${imza()}`,
+   act:[{a:"sip",id:x.id,lb:"+ Sipariş"},{a:"tek",id:x.id,lb:"+ Teklif"}]})});
+ return out}
+
 /* --- 👔 Müdür --- */
 const AJKAP="mag_ajkapat";
 const ajKey=f=>f.ag+"|"+(f.id||"")+"|"+f.bas;
 function ajKapali(){const o=lsJ(AJKAP,{}),t=today();let d=false;for(const k in o)if(o[k]<=t){delete o[k];d=true}if(d)ls.set(AJKAP,JSON.stringify(o));return o}
 function ajCalistir(){const all=[];const run=(k,f)=>{try{f().forEach(o=>all.push(o))}catch(e){console.warn("ajan",k,e)}};
- run("fiyat",ajFiyat);run("tahsilat",ajTahsilat);run("teklif",ajTeklif);run("tekrar",ajTekrar);run("uyuyan",ajUyuyan);run("avci",ajAvci);run("ham",ajHam);
+ run("fiyat",ajFiyat);run("tahsilat",ajTahsilat);run("teklif",ajTeklif);run("tekrar",ajTekrar);run("uyuyan",ajUyuyan);run("capraz",ajCapraz);run("avci",ajAvci);run("ham",ajHam);
  const kap=ajKapali();ajSon=Date.now();
  return all.filter(f=>!kap[ajKey(f)]).sort((a,b)=>(SEVR[a.sev]-SEVR[b.sev])||((b.etki||0)-(a.etki||0)))}
 function ajMasada(l){const s=k=>l.filter(f=>f.ag===k).reduce((a,f)=>a+(f.etki||0),0);
- return[["💰 Vadesi geçen alacak",s("tahsilat")],["🔁 Beklenen tekrar sipariş",s("tekrar")],["📨 Açık tekliflerden olası",s("teklif")],["😴 Uyuyanlardan aylık",s("uyuyan")],["🛡 Düşük fiyattan kayıp",s("fiyat")]]}
+ return[["💰 Vadesi geçen alacak",s("tahsilat")],["🔁 Beklenen tekrar sipariş",s("tekrar")],["📨 Açık tekliflerden olası",s("teklif")],["😴 Uyuyanlardan aylık",s("uyuyan")],["🧩 Çapraz satış fırsatı",s("capraz")],["🛡 Düşük fiyattan kayıp",s("fiyat")]]}
 function ajRapor(l){l=l||ajCalistir();const d=new Date(),m=ajMasada(l).filter(a=>a[1]>=1),top=l.filter(f=>f.sev!=="bilgi").slice(0,7);
  let t=`👔 ${imza()} • Müdür raporu • ${fd(today())}\n`;
  t+=`\n${l.length} iş bulundu: `+AJLER.filter(a=>a.k!=="mudur").map(a=>[a,l.filter(f=>f.ag===a.k).length]).filter(z=>z[1]).map(z=>z[0].ik+" "+z[1]).join("  ")+"\n";
@@ -2314,7 +2339,7 @@ async function aiSor(sys,mesajlar,o){o=o||{};if(!aiKey())throw new Error("Önce 
  const bek=(o.toplu?7000:1200)-(Date.now()-aiSon);if(bek>0)await uyu(bek);
  const mods=await aiModeller();let son="";
  for(const m of mods.slice(0,4)){aiSon=Date.now();
-  const body={systemInstruction:{parts:[{text:sys}]},contents:mesajlar.map(x=>({role:x.r==="ai"?"model":"user",parts:[{text:x.m}]})),generationConfig:{temperature:o.sicak??0.4,maxOutputTokens:o.max||4096}};
+  const body={systemInstruction:{parts:[{text:sys}]},contents:mesajlar.map(x=>({role:x.r==="ai"?"model":"user",parts:[{text:x.m}]})),generationConfig:Object.assign({temperature:o.sicak??0.4,maxOutputTokens:o.max||4096},o.json?{responseMimeType:"application/json"}:{})};
   let r,j;try{r=await fetch(AIB+"models/"+m+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":aiKey()},body:JSON.stringify(body)});j=await r.json().catch(()=>({}))}catch(e){son="Bağlantı hatası: "+e.message;continue}
   if(r.ok){const t=arr(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts).map(p=>p.text||"").join("").trim();if(t){ls.set("mag_aison",m);return t}son="Boş cevap geldi ("+((j.candidates&&j.candidates[0]&&j.candidates[0].finishReason)||"?")+").";continue}
   son=aiHata(j,r.status);if(r.status===400&&/API key/i.test(son))break;if([401,403,429,404,500,503].includes(r.status))continue;break}
@@ -2472,6 +2497,173 @@ window.ajOzel={sohbet:sohbetHtml,kurulum:kurulumHtml};window.ajMudurEk=mudurEk;
 document.addEventListener("click",e=>{const b=e.target.closest("[data-ajf]");if(b&&b.dataset.ajf==="kurulum")kurKontrol()});
 if(new URLSearchParams(location.search).get("git")==="ajan")setTimeout(()=>go("ajan"),300);
 
+/* ================= v13 — 🚀 KAZANDIRAN ÖZELLİKLER =================
+   Satış koçu, akıllı görüşme notu, fiyat danışmanı, kampanya mesajı, bölge yorumu,
+   akıllı sıralama, toplu e-posta bulma. Yapay zekâ kısımları v12'deki anonimleştirmeyi kullanır. */
+function aiJson(t){t=String(t||"").trim().replace(/^```(?:json)?\s*/i,"").replace(/```\s*$/,"");try{return JSON.parse(t)}catch(e){}const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1))}catch(e){}}throw new Error("Yapay zekâ cevabı okunamadı, tekrar dene.")}
+const gunOnce=t=>t?Math.floor((Date.now()-t)/864e5):null;
+
+/* --- ⭐ akıllı sıralama: önce para getirecek kayıtlar --- */
+function firsatHazirla(){const ro=new Map(reorderList().map(o=>[o.x.id,o])),mm=(ayar.ajan&&ayar.ajan.vade)||30,t=today();
+ const memo=new Map();
+ return x=>{if(memo.has(x.id))return memo.get(x.id);let p=0;
+  if(x.aramayin)p-=1000;if(x.durum==="İlgilenmiyor")p-=200;
+  const bk=bakiye(x);if(bk>0.5){const s=arr(x.siparis).filter(sipAktif).map(o=>o.tar).filter(Boolean).sort();const ilk=s[0];if(ilk&&daysSince(ilk)>(+x.vade||mm))p+=60+Math.min(40,Math.log10(bk+1)*8);else p+=10}
+  const r=ro.get(x.id);if(r)p+=45+Math.max(0,10-Math.abs(r.kalan));
+  const tk=arr(x.teklif).filter(q=>q.durum==="Beklemede");if(tk.length)p+=35+Math.min(15,Math.log10(docAra(tk[0])+1)*3);
+  if(x.sonraki&&x.sonraki<=t)p+=30;
+  p+=x.oncelik==="Sıcak"?25:x.oncelik==="Ilık"?10:0;
+  p+={"İlgileniyor":20,"Teklif verildi":15,"İletişim kuruldu":8,"Müşteri":12,"Yeni":0}[x.durum]||0;
+  p+=(x.aday||0)*0.3;if(digits(x.telefon))p+=3;
+  memo.set(x.id,p);return p}}
+function sonTemas(x){const g=arr(x.gorus).reduce((m,o)=>Math.max(m,+o.t||0),0);if(!g)return"";const d=gunOnce(g);return `<span class="tag ${d>30&&["İlgileniyor","Teklif verildi","İletişim kuruldu"].includes(x.durum)?"warn":""}" title="Son görüşme">🗣 ${d===0?"bugün":d+" gün önce"}</span>`}
+
+/* --- toplu: e-posta bul, rota --- */
+function listeEpBul(ids){const l=ids.map(i=>data.find(v=>v.id===i)).filter(Boolean);const w=l.filter(x=>x.web&&!x.eposta);
+ if(!w.length){alert(l.some(x=>x.eposta)?"Seçtiklerinin e-postası zaten var ya da web sitesi yok.":"Seçtiklerinin hiçbirinin web sitesi yok. E-posta sadece web sitesi olan firmalarda aranabilir.\n\nİpucu: Gece ajanı her sabah web sitesi olan kayıtlarda e-postayı kendisi de arıyor.");return}
+ go("tara");epBul(w.map(x=>({id:"L"+x.id,ad:x.firma,web:x.web,lead:x.id})))}
+function listeRota(ids){const l=ids.map(i=>data.find(v=>v.id===i)).filter(x=>x&&x.konum&&isFinite(x.konum.lat));if(!l.length){alert("Seçtiklerinin konumu kayıtlı değil.");return}
+ const go_=pts=>window.open("https://www.google.com/maps/dir/"+pts.map(x=>x.konum.lat+","+x.konum.lon).join("/"),"_blank");
+ const at=(p0)=>{const r=[],k=[...l];let c=p0;while(k.length){k.sort((a,b)=>hav(c.lat,c.lon,a.konum.lat,a.konum.lon)-hav(c.lat,c.lon,b.konum.lat,b.konum.lon));const n=k.shift();r.push(n);c=n.konum}return r};
+ getPos(p=>go_(at(p).slice(0,10)),()=>go_(at(l[0].konum).slice(0,10)));if(l.length>10)alert("Google Haritalar bir rotada en fazla 10 durak alır; en yakın 10 açıldı.")}
+
+/* --- ortak yapay zekâ penceresi --- */
+document.body.insertAdjacentHTML("beforeend",`<dialog id="dlgAI" class="wide"><form onsubmit="return false"><b id="aiT">✨</b><div id="aiB" class="ajai" style="min-height:60px;margin-top:8px"></div><div class="row" id="aiBt"></div><div class="row"><button type="button" onclick="dlgAI.close()">Kapat</button></div></form></dialog>`);
+const dlgAI=document.getElementById("dlgAI");dlgAI.addEventListener("click",e=>{if(e.target===dlgAI)dlgAI.close()});
+function aiPencere(baslik,html,butonlar){$("aiT").textContent=baslik;$("aiB").innerHTML=html;$("aiBt").innerHTML=butonlar||"";if(!dlgAI.open)dlgAI.showModal()}
+const yukleniyor=m=>`<div class="mu">👔 ${esc(m||"Müdür düşünüyor…")}</div>`;
+
+/* --- ✨ Satış koçu: bu firmaya nasıl satarım? --- */
+function sektorEmsal(x){const k=x.sektor;const es=data.filter(y=>y.id!==x.id&&y.sektor===k&&y.durum==="Müşteri");const urun={};
+ es.forEach(y=>arr(y.siparis).filter(sipAktif).forEach(s=>arr(toDoc(s).kalemler).forEach(q=>{const a=anon(q.urun);(urun[a]=urun[a]||{musteri:new Set(),fiyatlar:[],miktar:0});urun[a].musteri.add(y.id);urun[a].fiyatlar.push(+q.fiyat||0);urun[a].miktar+=+q.mik||0})));
+ return{ayniSektordeMusteriSayisi:es.length,aldiklariUrunler:Object.entries(urun).map(([u,o])=>({urun:u,musteriSayisi:o.musteri.size,ortFiyat:Math.round(o.fiyatlar.reduce((a,b)=>a+b,0)/o.fiyatlar.length*100)/100,toplamMiktar:o.miktar}))}}
+function firmaOzet(x){aiKodla();const s=arr(x.siparis).filter(sipAktif).sort((a,b)=>(a.tar||"").localeCompare(b.tar||""));const k=sekK(x);
+ return{kod:kodOf(x),sektor:x.sektor||"",durum:x.durum,ilce:x.il||"",oncelik:x.oncelik||"",adayPuani:x.aday??null,tahminiAylikPosetKg:k?tuk(k):null,mesafeKm:x.mesafe??null,
+  siparisler:s.slice(-6).map(o=>({tarih:fd(o.tar),tutar:Math.round(docAra(o)),kalemler:arr(toDoc(o).kalemler).map(q=>({urun:anon(q.urun),miktar:+q.mik||0,birim:q.birim||"",fiyat:+q.fiyat||0}))})),
+  teklifler:arr(x.teklif).slice(-3).map(t=>({tarih:fd(t.tar),durum:t.durum,kalemler:anon(kalemOzet(t,true))})),
+  gorusmeler:arr(x.gorus).slice(-6).map(g=>({tarih:fd(fmt(new Date(g.t))),tip:g.tip||"",not:anon(g.not||"").slice(0,160)})),
+  bakiye:Math.round(bakiye(x)),gecikmisAlacak:Math.round(vadeDurum(x).tut),rakip:anon(x.rakip||""),rakipFiyat:x.rakipFiyat||null,kayipSebebi:x.kayip||"",not:anon(x.not||"").slice(0,200)}}
+const katalogOzet=()=>katalog.slice(0,60).map(u=>({urun:anon(u.ad),tur:u.tip||"",ebat:u.ebat||"",mikron:u.kal||"",birim:u.birim||"",listeFiyati:+u.fiyat||0,maliyet:+u.maliyet||0,enAzFiyat:+u.maliyet?marjAlt(u.maliyet,AJ().minMarj):null}));
+async function satisKocu(id){const x=data.find(v=>v.id===id);if(!x)return;
+ aiPencere("✨ Satış koçu — "+x.firma,yukleniyor("Firmanın geçmişine ve sektörüne bakıyorum…"));
+ try{const bilgi={firma:firmaOzet(x),sektorEmsali:sektorEmsal(x),urunlerimiz:katalogOzet(),kurallar:{asgariKarMarji:AJ().minMarj,hedefKarMarji:ayar.hedefMarj??25},bugun:fd(today())};
+  const t=await aiSor(`Sen MAG AMBALAJ'ın (Silivri, plastik poşet üreticisi) deneyimli satış koçusun. Saha satışçısına bu firma için Türkçe, kısa ve uygulanabilir bir satış planı yaz.
+Başlıklar (her biri 1-3 madde):
+**Durum** — firma şu an nerede, fırsat ne kadar büyük (₺/ay tahmini, verilerden).
+**Ne satmalı** — hangi ürünlerimiz, hangi miktarda; neden (sektör emsali, geçmiş).
+**Fiyat** — önerilen fiyat; ASLA "enAzFiyat"ın altına inme; rakip fiyatı varsa onu da düşün.
+**Açılış cümlesi** — telefonda söylenecek 1-2 cümle.
+**İtirazlar** — 2-3 olası itiraz ve kısa cevabı.
+**Sonraki adım** — tarihle.
+Firma kodla verildi (F12 gibi); firmayı kodla an. Veride olmayanı uydurma.`,[{r:"ben",m:JSON.stringify(bilgi)}],{max:3000});
+  aiPencere("✨ Satış koçu — "+x.firma,aiHtml(t),`${waNum(x.telefon)?`<button class="p" data-a="kocwa" data-id="${x.id}">💬 Bu plana göre WhatsApp mesajı yaz</button>`:""}${digits(x.telefon)?`<a class="btn" href="tel:${digits(x.telefon)}">📞 Ara</a>`:""}<button data-a="gor" data-id="${x.id}">+ Görüşme</button><button data-a="tek" data-id="${x.id}">+ Teklif</button>`)}
+ catch(e){aiPencere("✨ Satış koçu",`<div class="warn">⚠ ${esc(e.message)}</div>`)}}
+async function kocWa(id){const x=data.find(v=>v.id===id);if(!x)return;const once=$("aiB").innerHTML;$("aiB").insertAdjacentHTML("beforeend",yukleniyor("Mesaj yazılıyor…"));
+ try{const g=await aiSor(`MAG AMBALAJ adına bu firmaya ilk/sonraki WhatsApp mesajının GÖVDESİNİ yaz. Türkçe, samimi, saygılı, 2-4 cümle, en fazla 1 emoji. Selam ve imza yazma. Firma adını/kodunu yazma. Fiyat yazma (görüşmede konuşulacak). Sonunda kolay cevaplanacak bir soru olsun.`,[{r:"ben",m:JSON.stringify({firma:firmaOzet(x),sektorEmsali:sektorEmsal(x)})}],{sicak:0.7,max:1500});
+  const m=`${selam(x)} ${deanon(g).replace(/^\s*merhaba[^,.!]*[,.!]\s*/i,"").trim()} ${imza()}`;
+  $("aiB").innerHTML=once+`<hr><b>💬 Mesaj</b><textarea id="kocM" rows="5" style="width:100%">${esc(m)}</textarea>`;
+  $("aiBt").innerHTML=`<button class="p" data-a="kocgon" data-id="${x.id}">💬 WhatsApp'ta aç</button><button data-a="gor" data-id="${x.id}">+ Görüşme</button>`}
+ catch(e){alert(e.message);$("aiB").innerHTML=once}}
+function kocGonder(id){const x=data.find(v=>v.id===id),m=$("kocM").value.trim();if(!x||!m)return;ajWaAc({id,ag:"Satış koçu",msg:m});dlgAI.close()}
+
+
+/* --- ✨ Akıllı görüşme notu: nottan durum / tarih / öncelik --- */
+let gAi=null;
+{const g=document.getElementById("gnot");if(g)g.insertAdjacentHTML("afterend",`<div class="row" id="gAiR"><button type="button" onclick="akilliNot()">✨ Nottan doldur</button><span class="mu" id="gAiS">Notu yaz → durum, öncelik, sonraki arama ve takip mesajı önerilir.</span></div>`)}
+async function akilliNot(){const not=$("gnot").value.trim();if(!not){alert("Önce görüşme notunu yaz (ne konuştunuz?).");return}const x=data.find(v=>v.id===gId);if(!x)return;
+ $("gAiS").textContent="👔 okunuyor…";
+ try{const j=aiJson(await aiSor(`Bir poşet üreticisinin satışçısı müşteriyle görüştü ve not aldı. Notu oku, SADECE şu JSON'u döndür:
+{"durum": "${DUR.join('" | "')}", "oncelik": "Sıcak" | "Ilık" | "Soğuk", "sonrakiGun": sayı (kaç gün sonra tekrar aranmalı, 0-90), "kayipSebebi": "" ya da kısa sebep (sadece İlgilenmiyor ise), "ozet": "tek cümle", "takipMesaji": "müşteriye gönderilecek kısa WhatsApp mesajı gövdesi (selam/imza yok) ya da boş"}`,
+  [{r:"ben",m:JSON.stringify({mevcutDurum:x.durum,sektor:x.sektor||"",not:anon(not),bugun:fd(today())})}],{json:true,sicak:0.2,max:1500}));
+  if(DUR.includes(j.durum)){$("gdur").value=j.durum;$("gdur").dispatchEvent(new Event("change"))}
+  if(isFinite(+j.sonrakiGun)&&j.durum!=="İlgilenmiyor")$("gson").value=plus(Math.max(0,Math.min(90,Math.round(+j.sonrakiGun))));
+  if(j.kayipSebebi&&$("gkay")){const o=[...$("gkay").options].find(o=>o.value.toLocaleLowerCase("tr").includes(String(j.kayipSebebi).toLocaleLowerCase("tr").slice(0,5)));if(o)$("gkay").value=o.value}
+  gAi={id:gId,oncelik:["Sıcak","Ilık","Soğuk"].includes(j.oncelik)?j.oncelik:"",mesaj:j.takipMesaji?`${selam(x)} ${deanon(j.takipMesaji).trim()} ${imza()}`:""};
+  $("gAiS").innerHTML=`✅ ${esc(deanon(j.ozet||""))} ${gAi.oncelik?"• öncelik: <b>"+esc(gAi.oncelik)+"</b>":""}${gAi.mesaj?` • kaydedince takip mesajı önerilecek`:""}`}
+ catch(e){$("gAiS").textContent="⚠ "+e.message}}
+{const _o=openG;openG=function(id,tip){gAi=null;const s=$("gAiS");if(s)s.textContent="Notu yaz → durum, öncelik, sonraki arama ve takip mesajı önerilir.";$("gAiR").hidden=!aiKey();return _o(id,tip)}}
+{const _s=saveG;saveG=async function(){const a=gAi;await _s();gAi=null;if(!a||a.id==null)return;const x0=data.find(v=>v.id===a.id);if(!x0)return;
+ if(a.oncelik&&x0.oncelik!==a.oncelik){const x={...x0};x.oncelik=a.oncelik;put(x)}
+ if(a.mesaj&&waNum(x0.telefon)&&!x0.aramayin)aiPencere("✨ Takip mesajı — "+x0.firma,`<textarea id="kocM" rows="5" style="width:100%">${esc(a.mesaj)}</textarea><div class="mu">İstersen düzelt, sonra WhatsApp'ta aç.</div>`,`<button class="p" data-a="kocgon" data-id="${x0.id}">💬 WhatsApp'ta aç</button>`)}}
+
+/* --- ✨ Fiyat danışmanı (teklif / sipariş penceresi) --- */
+{const t=document.getElementById("dTot");if(t)t.closest(".card").insertAdjacentHTML("afterend",`<div id="dAI" class="row" style="margin-top:6px"><button type="button" onclick="fiyatDanis()">✨ Fiyat danışmanı</button><span class="mu" id="dAIs">Maliyet, müşteri geçmişi, emsal ve rakip fiyatına göre fiyat önerir.</span></div><div id="dAIb"></div>`)}
+{const _od=openDoc;openDoc=function(...a){const r=_od(...a);const b=$("dAIb");if(b)b.innerHTML="";const d=$("dAI");if(d)d.hidden=!aiKey();return r}}
+async function fiyatDanis(){if(!dk)return;const x=data.find(v=>v.id===dk.id);if(!x)return;const R=AJ();
+ const ks=dk.kalemler.map((k,i)=>{const u=k.urunId?katalog.find(u=>u.id===k.urunId):katalog.find(u=>u.ad===k.urun);const m=u&&+u.maliyet?+u.maliyet:+k.maliyet||0;
+  const gecmis=[],emsal=[];data.forEach(y=>arr(y.siparis).filter(sipAktif).forEach(s=>arr(toDoc(s).kalemler).forEach(q=>{if(q.urun!==k.urun&&!(u&&q.urunId===u.id))return;(y.id===x.id?gecmis:emsal).push(+q.fiyat||0)})));
+  const st=a=>a.length?{adet:a.length,en_dusuk:Math.min(...a),ort:Math.round(a.reduce((s,v)=>s+v,0)/a.length*100)/100,en_yuksek:Math.max(...a)}:null;
+  return{i,urun:anon(k.urun),miktar:+k.mik||0,birim:k.birim||"",suankiFiyat:+k.fiyat||null,iskontoYuzde:+k.isk||0,maliyet:m||null,enAzFiyat:m?marjAlt(m,R.minMarj):null,hedefFiyat:m?oner(m):null,listeFiyati:u?+u.fiyat||null:null,buMusterininGecmisFiyatlari:st(gecmis),digerMusterilerinFiyatlari:st(emsal)}}).filter(k=>String(k.urun).trim());
+ if(!ks.length){alert("Önce kalem ekle.");return}
+ $("dAIs").textContent="👔 hesaplıyor…";$("dAIb").innerHTML="";
+ try{const j=aiJson(await aiSor(`Sen poşet üreticisi MAG AMBALAJ'ın fiyat danışmanısın. Her kalem için kârı en yükseğe çıkarıp müşteriyi kaçırmayacak birim fiyat öner.
+Kurallar: maliyeti bilinen kalemde fiyat ASLA enAzFiyat'ın altında olamaz. Yeni müşteride ilk sipariş için hafif rekabetçi, sadık müşteride geçmiş fiyatın altına inme. Rakip fiyatı varsa ona göre konumla. Büyük miktarda küçük indirim olabilir.
+SADECE JSON döndür: {"kalemler":[{"i":sayı,"fiyat":sayı,"gerekce":"kısa"}],"genel":"1-2 cümle strateji"}`,
+  [{r:"ben",m:JSON.stringify({firma:{kod:kodOf(x),sektor:x.sektor||"",durum:x.durum,siparisSayisi:arr(x.siparis).filter(sipAktif).length,rakip:anon(x.rakip||""),rakipFiyat:x.rakipFiyat||null},kurallar:{asgariKarMarji:R.minMarj,hedefKarMarji:ayar.hedefMarj??25},kalemler:ks})}],{json:true,sicak:0.2,max:2000}));
+  window.__fd=arr(j.kalemler).map(o=>{const k=ks.find(q=>q.i===+o.i);if(!k)return null;let f=Math.round(+o.fiyat*100)/100;if(!(f>0))return null;let alt=false;if(k.enAzFiyat&&f<k.enAzFiyat){f=k.enAzFiyat;alt=true}return{i:k.i,f,g:deanon(o.gerekce||"")+(alt?" (kâr kuralı için yükseltildi)":""),u:deanon(k.urun),eski:k.suankiFiyat}}).filter(Boolean);
+  $("dAIs").textContent="";
+  $("dAIb").innerHTML=`<div class="ajai">${window.__fd.map(o=>`<div>• <b>${esc(o.u)}</b>: ${o.eski?TL2(o.eski)+" → ":""}<b>${TL2(o.f)}</b> <span class="mu">${esc(o.g)}</span></div>`).join("")}${j.genel?`<div class="mu" style="margin-top:6px">${esc(deanon(j.genel))}</div>`:""}</div><div class="row"><button type="button" class="p" onclick="fiyatUygula()">✔ Önerilen fiyatları uygula</button></div>`}
+ catch(e){$("dAIs").textContent="⚠ "+e.message}}
+function fiyatUygula(){arr(window.__fd).forEach(o=>{if(dk.kalemler[o.i])dk.kalemler[o.i].fiyat=o.f});renderRows();$("dAIb").innerHTML=`<div class="mu">✔ Uygulandı. Kontrol edip kaydet.</div>`}
+
+/* --- ✨ Kampanya mesajı (toplu, kişiye özel {firma} {yetkili}) --- */
+document.body.insertAdjacentHTML("beforeend",`<dialog id="dlgK" class="wide"><form onsubmit="return false"><b>✨ Kampanya mesajı</b><div class="mu" id="kHedef"></div>
+<label>Amaç</label><select id="kAmac"><option>Tanıtım — fabrikadan aracısız poşet</option><option>Numune teklifi</option><option>Geri kazanım — uzun süredir sipariş vermeyenler</option><option>Tekrar sipariş hatırlatması</option><option>Fiyat güncellemesi (hammadde zammı)</option><option>Yeni ürün / baskılı poşet tanıtımı</option><option>Bayram / sezon kampanyası</option></select>
+<label>Eklemek istediğin (isteğe bağlı)</label><input id="kEk" placeholder="ör. ilk siparişe %5 indirim, 2 günde teslim, ücretsiz logo baskı tasarımı">
+<div class="row"><button type="button" class="p" onclick="kampanyaYaz()">✨ 3 mesaj yaz</button><span class="mu" id="kS"></span></div><div id="kV"></div>
+<div class="row"><button type="button" onclick="dlgK.close()">Kapat</button></div></form></dialog>`);
+const dlgK=document.getElementById("dlgK");dlgK.addEventListener("click",e=>{if(e.target===dlgK)dlgK.close()});
+let kIds=[];
+function kampanyaAc(ids){kIds=ids.slice();if(!aiKey()){alert("Yapay zekâ bağlı değil: Ajanlar → 🛠 Kurulum → 1. adım.");return}
+ const l=kIds.map(i=>data.find(v=>v.id===i)).filter(Boolean),wa=l.filter(x=>waNum(x.telefon)&&x.izin!=="Çıkış yaptı"&&!x.aramayin);
+ const sek={};l.forEach(x=>sek[x.sektor||"?"]=(sek[x.sektor||"?"]||0)+1);
+ $("kHedef").innerHTML=`${l.length} firma seçili • WhatsApp'a uygun: <b>${wa.length}</b> • ${Object.entries(sek).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>esc(k)+" "+v).join(", ")}`;
+ $("kV").innerHTML="";$("kS").textContent="";dlgK.showModal()}
+async function kampanyaYaz(){const l=kIds.map(i=>data.find(v=>v.id===i)).filter(Boolean);if(!l.length)return;$("kS").textContent="👔 yazıyor…";$("kV").innerHTML="";
+ const sek={},dur={};l.forEach(x=>{sek[x.sektor||"?"]=(sek[x.sektor||"?"]||0)+1;dur[x.durum]=(dur[x.durum]||0)+1});
+ try{const j=aiJson(await aiSor(`MAG AMBALAJ (Silivri, plastik poşet üreticisi: atlet, rulo manav, kasap/dürüm poşeti, baskılı/baskısız torba) için toplu WhatsApp kampanya mesajı yaz.
+- 3 farklı üslupta (kısa-net, samimi-esnaf, profesyonel) mesaj; her biri 2-4 cümle, en fazla 1 emoji.
+- Mesaj "Merhaba {yetkili}," ile başlasın; firma adı gerekirse {firma} yaz (program her firmaya göre doldurur). Başka yer tutucu kullanma.
+- Sonunda "MAG AMBALAJ" imzası ve kısa bir soru. Uydurma fiyat/indirim yazma; sadece verilen eklemeyi kullan.
+- Ticari ileti: sona kısa "Bu tür mesaj istemiyorsanız 'İPTAL' yazmanız yeterli." ekle.
+SADECE JSON: {"mesajlar":[{"ad":"kısa ad","metin":"..."}]}`,
+  [{r:"ben",m:JSON.stringify({amac:$("kAmac").value,ekleme:anon($("kEk").value),hedefKitle:{firmaSayisi:l.length,sektorler:sek,durumlar:dur}})}],{json:true,sicak:0.8,max:2500}));
+  const m=arr(j.mesajlar).filter(o=>o&&o.metin).slice(0,3);if(!m.length)throw new Error("Mesaj üretilemedi, tekrar dene.");window.__km=m;
+  $("kS").textContent="";
+  $("kV").innerHTML=m.map((o,i)=>`<div class="card"><b>${esc(o.ad||("Mesaj "+(i+1)))}</b><textarea id="kM${i}" rows="5" style="width:100%">${esc(deanon(o.metin))}</textarea><div class="mu">Önizleme: ${esc(fillT(deanon(o.metin),{firma:(l[0]||{}).firma||"",yetkili:(l[0]||{}).yetkili||""}))}</div><div class="row"><button type="button" class="p" onclick="kampanyaBaslat(${i})">💬 Bu mesajla gönderime başla</button></div></div>`).join("")}
+ catch(e){$("kS").textContent="⚠ "+e.message}}
+function kampanyaBaslat(i){const t=$("kM"+i).value.trim();if(!t)return;const ad="✨ "+$("kAmac").value.split(" —")[0]+" ("+fd(today()).slice(0,5)+")";
+ ayar.sablon=arr(ayar.sablon).filter(s=>!String(s.ad).startsWith("✨ ")||s.ad!==ad);ayar.sablon.push({ad,metin:t});if(isAdmin())saveAyar();else ls.set("mag_ayar",JSON.stringify(ayar));
+ dlgK.close();wbStart(leadItems(kIds));const ix=ayar.sablon.findIndex(s=>s.ad===ad);if(ix>=0){$("wbT").value=String(ix);renderWB()}}
+
+/* --- ✨ Tarama sonucunu yorumla (bölge stratejisi) --- */
+async function bolgeYorum(){const l=taraFiltered();if(!l.length){alert("Önce tarama yap.");return}
+ aiPencere("✨ Bölge yorumu",yukleniyor("Tarama sonuçlarına bakıyorum…"));
+ const sek={};l.forEach(p=>{const k=secAd(p.sek);const o=sek[k]=sek[k]||{firma:0,telefonlu:0,cep:0,zincir:0,rakip:0,listede:0,tahminiKgAy:0};o.firma++;if(p.tel)o.telefonlu++;if(isMobile(p.tel))o.cep++;if(isChain(p))o.zincir++;if(isRival(p))o.rakip++;if(inList(p))o.listede++;o.tahminiKgAy+=isRival(p)?0:tuk(p.sek)});
+ const top=l.filter(p=>!inList(p)&&!isRival(p)).map(p=>({p,s:adayPuan(p)})).sort((a,b)=>b.s-a.s).slice(0,15);const kod=new Map(top.map((o,i)=>["T"+(i+1),o.p.ad]));
+ try{const t=await aiSor(`Poşet üreticisi MAG AMBALAJ'ın satış müdürüsün. Bir bölgede yapılan işletme taramasının özetini yorumla. Türkçe, kısa:
+**Bölgenin değeri** (aylık tahmini kg ve ₺; ₺/kg verildiyse kullan)
+**Önce hangi sektörler** (neden)
+**İlk aranacak 5 firma** (T kodlarıyla; neden)
+**Saha planı** (telefon mu ziyaret mi, kaç günde, hangi sırayla)
+**Dikkat** (zincir, rakip, telefonsuzlar)
+Veride olmayanı uydurma.`,[{r:"ben",m:JSON.stringify({yaricapKm:+tara.r||null,toplamFirma:l.length,sektorler:sek,ortalamaKgFiyati:+ayar.kgFiyat||null,enIyiAdaylar:top.map((o,i)=>({kod:"T"+(i+1),sektor:secAd(o.p.sek),adayPuani:o.s,km:Math.round((o.p.km||0)*10)/10,cepTelefonu:isMobile(o.p.tel),googleYorumSayisi:o.p.puanN||0}))})}],{max:2500});
+  const html=aiHtml(t).replace(/\bT(\d{1,2})\b/g,m=>kod.has(m)?"<b>"+esc(kod.get(m))+"</b>":m);
+  aiPencere("✨ Bölge yorumu",html,`<button class="p" onclick="dlgAI.close();taraTopEkle()">+ İlk 15 adayı listeye ekle</button>`);window.__tt=top.map(o=>o.p)}
+ catch(e){aiPencere("✨ Bölge yorumu",`<div class="warn">⚠ ${esc(e.message)}</div>`)}}
+function taraTopEkle(){const l=arr(window.__tt).filter(p=>!inList(p));if(!l.length){alert("Hepsi zaten listede.");return}if(!regionOk(l))return;putMany(l.map(toLead),l.length+" aday listeye eklendi (bölge yorumu)");renderTara()}
+{const t=document.getElementById("tstat");if(t)t.insertAdjacentHTML("afterend",`<div class="row" id="tAiR" hidden style="margin:-4px 2px 10px"><button class="p" onclick="bolgeYorum()">✨ Bu bölgeyi yorumla</button><span class="mu">Önce hangi sektör, ilk aranacak 5 firma, saha planı.</span></div>`)}
+{const _rt=renderTara;renderTara=function(...a){const r=_rt(...a);try{$("tAiR").hidden=!(aiKey()&&arr(tara.res).length)}catch(e){}return r}}
+
+/* --- 📅 Haftalık strateji (gece ajanı Pazartesi yazar) --- */
+let haftaRapor=null,haftaOkundu=0;
+async function haftaYukle(){if(!root||Date.now()-haftaOkundu<60e3)return;haftaOkundu=Date.now();try{haftaRapor=(await root.child("ajan/rapor/hafta").once("value")).val();if(tab==="ajan")renderAjan()}catch(e){}}
+{const _me=window.ajMudurEk;window.ajMudurEk=l=>(haftaRapor&&haftaRapor.metin?`<details class="card"><summary><b>📅 Haftalık strateji</b> <span class="mu">${fdt(haftaRapor.t)}</span></summary><div class="ajai">${aiHtml(haftaRapor.metin)}</div></details>`:"")+(_me?_me(l):"")}
+{const _g=go;go=function(t){_g(t);if(t==="ajan")haftaYukle()}}
+
+Object.assign(A,{koc:id=>satisKocu(id),kocwa:id=>kocWa(id),kocgon:id=>kocGonder(id)});
+
+__baslat();
 /* eski adreste (pages.dev) yalnızca bu cihazda kayıt varsa: önce yedek, sonra yeni adres */
 if(window.__ESKI_ADRES){const T=window.__ESKI_ADRES;document.body.insertAdjacentHTML("afterbegin",`<div style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px"><div class="card" style="max-width:420px"><h3>📍 Programın adresi değişti</h3><p>Yeni ve tek adres:<br><b>xfranerx53.github.io/mag-pazar-analiz</b></p><p class="mu">Bu eski adreste bulutla eşitlenmemiş kayıtların var. Önce yedeği indir, yeni adreste ☁ Bulut / Araçlar → yedekten geri yükle ile aç.</p><div class="row"><button class="p" onclick="exportJson()">📥 Yedeği indir</button><button onclick="location.replace('${T}')">Yeni adrese git ›</button></div></div></div>`)}
 </script></body></html>

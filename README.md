@@ -132,9 +132,22 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
 - Dosyalar: `ajan-gece.mjs` + `.github/workflows/ajan-gece.yml`. Her gün 08:12 (Türkiye) ve Actions → "Ajan sabah raporu" → **Run workflow** ile elle.
 - Ajan kuralları **index.html'den okunur** (v11 AJAN MERKEZİ bloğu + v12 yapay zekâ bloğu) — kural değişince betiği ayrıca güncellemek gerekmez. Yardımcı fonksiyonlar da adlarıyla index.html'den alınır (adı değişirse betikteki YARDIMCI listesi güncellenmeli).
 - Secrets (Settings → Secrets and variables → Actions): `FB_EMAIL`, `FB_PASSWORD` (ajanın kendi hesabı; ilk çalışmada kendisi açar → Yönetim'den **Yönetici** yapılmalı), `VAPID_PRIVATE`, `GEMINI_KEY` (isteğe bağlı: rapora Müdür yorumu).
-- Yaptığı: girer → leads/ayar/katalog/users okur → ajanları çalıştırır → `ajan/rapor/son` yazar (programda Müdür ekranında "🌙 Gece ajanının raporu") → yöneticilerin abone cihazlarına bildirim (eskimiş abonelikleri siler).
+- Yaptığı: girer → leads/ayar/katalog/users okur → ajanları çalıştırır → `ajan/rapor/son` yazar → (Pazartesi) haftalık strateji → web sitelerinden e-posta bulur (programda Müdür ekranında "🌙 Gece ajanının raporu") → yöneticilerin abone cihazlarına bildirim (eskimiş abonelikleri siler).
 - Depo herkese açık: betik **log'a müşteri bilgisi yazmaz** (sadece sayılar).
 - GitHub, depoda 60 gün hiç değişiklik olmazsa zamanlanmış görevi durdurur; durursa Actions sekmesinden yeniden açılır.
+
+- **v13 (02.11.2026) — kullanılabilirlik + kazandıran yapay zekâ özellikleri:**
+  - *Müşteri listesi toplu işlem:* ✨ Kampanya mesajı, ✉ E-posta bul (web sitesi olanlar), 🗺 Rota (seçilenler, en yakından, 10 durak).
+  - *⭐ Önce kazandıracaklar* sıralaması (varsayılan): vadesi geçen alacak, sipariş zamanı gelen, bekleyen teklif, bugün aranacak, öncelik, durum ve aday puanına göre.
+  - *Kart:* aday puanı ve son görüşmeden geçen gün etiketi (30+ gün ilgilenen/teklifli ise kırmızı); "✨ Satış koçu" düğmesi.
+  - *✨ Satış koçu:* firmanın sipariş/görüşme geçmişi + aynı sektördeki müşterilerin aldıkları + ürün maliyetleri → durum, ne satmalı, fiyat (en az kâr kuralı), açılış cümlesi, itirazlar, sonraki adım; tek dokunuşla WhatsApp mesajı.
+  - *✨ Akıllı görüşme notu:* not yazılınca durum, öncelik, sonraki arama tarihi ve kayıp sebebi doldurulur; kaydedince takip mesajı önerilir.
+  - *✨ Fiyat danışmanı* (teklif/sipariş penceresi): müşterinin geçmiş fiyatları, diğer müşterilerin fiyatları, liste fiyatı, maliyet ve rakip fiyatına göre kalem kalem fiyat; asgari kâr kuralının altı programca engellenir; "Uygula".
+  - *✨ Kampanya mesajı:* amaç seç (tanıtım, numune, geri kazanım, fiyat güncellemesi, sezon…) → 3 mesaj ({firma}/{yetkili} ile kişiye özel, İPTAL cümlesiyle) → şablonlara kaydedip toplu WhatsApp.
+  - *✨ Bölge yorumu* (tarama sonrası): sektör bazında değer, ilk aranacak 5 firma (T kodları telefonda ada çevrilir), saha planı; "İlk 15 adayı listeye ekle".
+  - *Yeni ajanlar:* 🧩 Çapraz Satış (aynı sektördeki müşterilerin %30+'ının aldığı ama bu müşterinin hiç almadığı ürün); 🛡 Fiyat Bekçisi'ne "sonraki siparişte fiyat güncellenmeli" (son sipariş fiyatı bugünkü maliyetle asgari kârın altındaysa, hazır fiyat güncelleme mesajı).
+  - *Gece ajanı:* ✉ e-posta avcısı (web sitesi olup e-postası olmayan en çok 30 kayıt/gece, ana sayfa + iletişim sayfası; bulunamazsa 30 gün tekrar denenmez; `eposta`, `epKaynak`, `epDenendi`) ve 📅 haftalık strateji (Pazartesi ya da son rapor 7 günden eskiyse → `ajan/rapor/hafta`, Müdür ekranında).
+  - *Düzeltmeler:* Analiz tabloları telefonda sayfayı yana taşırmıyor; liste özet kutuları 3 sütun; teklif listesinde kâr kuralının altındakilere "🛡" etiketi; program başlangıcı tüm modüller yüklendikten sonra (`__baslat`); yapay zekâ JSON cevap modu. sw.js önbellek mag-v19.
 
 ## Kâr modeli — ücretsiz ajan yol haritası
 Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullanılırsa, ileride kendi altyapımızla değiştirilebilecek şekilde bağlanır (Geoapify → mag-veri örneğinde olduğu gibi).

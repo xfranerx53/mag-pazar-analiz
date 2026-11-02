@@ -32,7 +32,7 @@ function blok(bas, son) {
   return html.slice(a, b);
 }
 const YARDIMCI = ["arr", "pad", "fmt", "today", "plus", "fd", "fdt", "ym", "tsDay", "daysSince", "PARA", "TL", "TL2", "NUM", "esc", "digits", "ulkeKod", "waNum",
-  "toDoc", "calc", "docTop", "docAra", "sipAktif", "ciro", "odenen", "bakiye", "lastBuy", "kalemOzet", "TUK_DEF", "tuk", "oner", "hamL", "TSEK", "sleepers", "reorderList"];
+  "toDoc", "calc", "docTop", "docAra", "sipAktif", "ciro", "odenen", "bakiye", "lastBuy", "kalemOzet", "TUK_DEF", "tuk", "oner", "hamL", "TSEK", "sleepers", "reorderList", "EPRE", "epCikar"];
 const goruldu = new Set(), kodlar = [];
 for (const ad of YARDIMCI) { const p = parca(ad); if (!goruldu.has(p.i)) { goruldu.add(p.i); kodlar.push([p.i, p.kod]); } }
 kodlar.sort((a, b) => a[0] - b[0]);
@@ -94,7 +94,7 @@ const isAdmin=()=>false;
 ${kodlar.map(k => k[1]).join("\n")}
 ${CEKIRDEK}
 ${AI}
-globalThis.__api={ajCalistir,ajRapor,ajMasada,AJAD,aiSor,AISYS,deanon,aiKey};`;
+globalThis.__api={ajCalistir,ajRapor,ajMasada,AJAD,aiSor,AISYS,deanon,aiKey,epCikar,anon,aiKodla,ciro,bakiye,sipAktif,docTop,daysSince,today};`;
 Object.assign(ctx, { bellek, __ayar: ayar, __data: data, __katalog: katalog || [], __users: users || {} });
 vm.runInContext(kaynak, ctx, { filename: "ajan-cekirdek.js" });
 const X = ctx.__api;
@@ -117,6 +117,52 @@ const TL = n => new Intl.NumberFormat("tr-TR", { style: "currency", currency: ay
 const rapor = { t: Date.now(), tarih: new Date().toISOString().slice(0, 10), metin, yorum, sayi: l.length, acil, onemli, masada: Math.round(masada) };
 try { await yaz("ajan/rapor/son", g.tok, rapor); log("Rapor buluta yazıldı"); }
 catch (e) { dur("Rapor buluta yazılamadı (" + e.message + "). Firebase kuralını güncelle: programda ☁ → Kuralı kopyala → Firebase Rules → Publish."); }
+
+/* ---------- 📅 haftalık strateji (Pazartesi ya da 7 günden eskiyse) ---------- */
+let hafta = null; try { hafta = await oku("ajan/rapor/hafta", g.tok); } catch (e) { }
+if (X.aiKey() && (new Date().getDay() === 1 || !hafta || Date.now() - (hafta.t || 0) > 6.5 * 864e5)) {
+  try {
+    X.aiKodla();
+    const gun7 = Date.now() - 7 * 864e5, sek = {}, kayip = {}, h = { yeniKayit: 0, gorusme: 0, teklif: 0, siparis: 0, siparisTutar: 0, tahsilat: 0, yeniMusteri: 0 };
+    for (const x of data) {
+      const k = x.sektor || "?"; const o = sek[k] = sek[k] || { kayit: 0, gorusulen: 0, teklifVerilen: 0, musteri: 0, ciro: 0 };
+      o.kayit++; if ((x.gorus || []).length || x.durum !== "Yeni") o.gorusulen++; if (Object.values(x.teklif || {}).length) o.teklifVerilen++; if (x.durum === "Müşteri") { o.musteri++; o.ciro += Math.round(X.ciro(x)); }
+      if (x.kayip) kayip[x.kayip] = (kayip[x.kayip] || 0) + 1;
+      if ((x.c || 0) > gun7) h.yeniKayit++; if ((x.mt || 0) > gun7) h.yeniMusteri++;
+      h.gorusme += Object.values(x.gorus || {}).filter(q => (q.t || 0) > gun7).length;
+      h.teklif += Object.values(x.teklif || {}).filter(q => q.tar && X.daysSince(q.tar) < 7).length;
+      for (const q of Object.values(x.siparis || {})) if (q.tar && X.daysSince(q.tar) < 7 && X.sipAktif(q)) { h.siparis++; h.siparisTutar += Math.round(X.docTop(q)); }
+      h.tahsilat += Object.values(x.odeme || {}).filter(q => q.tar && X.daysSince(q.tar) < 7).reduce((a, q) => a + (+q.tutar || 0), 0);
+    }
+    const metin = X.deanon(await X.aiSor(X.AISYS(), [{ r: "ben", m: "HAFTALIK STRATEJİ RAPORU yaz. Ek veri: " + JSON.stringify({ gecenHafta: h, sektorPerformansi: sek, kayipSebepleri: kayip }) +
+      "\nBaşlıklar: **Geçen hafta** (2-3 madde, rakamla) • **Para nerede** (hangi sektör/müşteri kazandırıyor, hangisi zarar/boşa emek) • **Bu hafta 5 hedef** (ölçülebilir: kaç arama, kaç teklif, hangi sektörde tarama, hangi fiyat güncellemesi) • **Fiyat** (zam/indirim önerisi) • **Uyarı**. En fazla 20 satır." }], { max: 4000 }));
+    await yaz("ajan/rapor/hafta", g.tok, { t: Date.now(), metin });
+    log("Haftalık strateji yazıldı");
+  } catch (e) { log("Haftalık strateji atlandı:", e.message); }
+}
+
+/* ---------- ✉ gece e-posta avcısı (web sitesi olup e-postası olmayan kayıtlar) ---------- */
+{
+  const aday = data.filter(x => x.web && !x.eposta && !x.aramayin && (!x.epDenendi || X.daysSince(x.epDenendi) > 30)).slice(0, +env("EPOSTA_LIMIT") || 30);
+  const getir = async u => { const c = new AbortController(), t = setTimeout(() => c.abort(), 12000);
+    try { const r = await fetch(u, { signal: c.signal, redirect: "follow", headers: { "User-Agent": "Mozilla/5.0 (compatible; MAGAmbalajBot/1.0)", "Accept-Language": "tr,en" } }); return r.ok ? (await r.text()).slice(0, 800000) : ""; }
+    catch (e) { return ""; } finally { clearTimeout(t); } };
+  let bulunan = 0;
+  for (const x of aday) {
+    let u = String(x.web).trim(); if (!/^https?:/i.test(u)) u = "https://" + u;
+    let host = ""; try { host = new URL(u).hostname.replace(/^www\./, ""); } catch (e) { }
+    let h = await getir(u); if (!h && u.startsWith("https://")) h = await getir(u.replace("https://", "http://"));
+    let l = h ? X.epCikar(h) : [];
+    if (!l.length && h) {
+      const lk = [...new Set([...h.matchAll(/href=["']?([^"' >]+)/gi)].map(m => m[1]).filter(z => /(iletisim|contact|kontakt|bize-ulasin|hakkimizda|about)/i.test(z)))].slice(0, 2);
+      for (const k of lk) { try { const hh = await getir(new URL(k, u).href); l = X.epCikar(hh); if (l.length) break; } catch (e) { } }
+    }
+    l.sort((a, b) => (b.endsWith(host) ? 1 : 0) - (a.endsWith(host) ? 1 : 0));
+    const yama = l.length ? { eposta: l[0], epKaynak: "web (gece ajanı)", epDenendi: X.today(), u: Date.now() } : { epDenendi: X.today() };
+    try { await yaz("leads/" + x.id, g.tok, yama, "PATCH"); if (l.length) bulunan++; } catch (e) { }
+  }
+  if (aday.length) log("E-posta avcısı:", aday.length, "web sitesi tarandı •", bulunan, "e-posta bulundu");
+}
 
 /* ---------- 🔔 bildirim ---------- */
 const priv = env("VAPID_PRIVATE"), pub = ayar.vapidPub;
