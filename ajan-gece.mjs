@@ -9,6 +9,7 @@ import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 
 const env = k => (process.env[k] || "").trim();
+const BASLA = Date.now(), dakika = () => (Date.now() - BASLA) / 60000; // 25 dk sınırı var: ağır işler süre bütçesine uyar
 const log = (...a) => console.log("•", ...a);
 // Son çalışmanın sonucu buluta yazılır (ajan/sonCalisma) → program GitHub'a girmeden gösterir
 let DURUM_URL = null;
@@ -655,6 +656,7 @@ if (calis("risk")) {
     const aday = ozel ? data.filter(x => ozel.has(x.id)).slice(0, 10) : data.filter(x => !x.aramayin && ["Teklif verildi", "İlgileniyor", "Müşteri"].includes(x.durum) && (!x.risk || Date.now() - (x.risk.t || 0) > 90 * 864e5))
       .sort((a, b) => (a.risk ? 1 : 0) - (b.risk ? 1 : 0) || X.bakiye(b) - X.bakiye(a)).slice(0, lim);
     for (const x of aday) {
+      if (dakika() > 12) { rHata = rHata || "süre bitti, kalanı sonraki turda"; break; }
       try { const r = await X.riskAnaliz(x); await guncelle(x, { risk: r }); n++; if (r.seviye === "risk") { riskli++; SICAK.push("🛡 " + x.firma + ": " + r.karar); } }
       catch (e) { log("Risk analizi atlandı"); rHata = e.message; if (/429|kota|sınır/i.test(e.message)) break; }
     }
@@ -666,6 +668,7 @@ if (calis("risk")) {
 /* ---------- 🎪 Fırsat avcısı + 🎨 içerik (haftada bir) ---------- */
 for (const [k, yol, fn, ik, yazi] of [["firsat", "ajan/firsat", () => X.firsatAra(), "🎪", r => `${r.l.length} fırsat buldu (yeni açılış, ihale, fuar, etkinlik)`], ["icerik", "ajan/icerik", () => X.icerikPlani(""), "🎨", r => `Bu haftanın ${r.l.length} sosyal medya paylaşımını yazdı`]]) {
   if (!calis(k) || !X.aiKey()) continue;
+  if (dakika() > 15) { GSON[k] = { t: Date.now(), metin: "Süre yetmedi, sonraki turda yapılacak" }; continue; }
   const eski = await okuG(yol);
   if (!(SECILI && SECILI.has(k)) && eski && Date.now() - (eski.t || 0) < 6.5 * 864e5) continue;
   try { const r = await fn(); await yaz(yol, g.tok, r); not_(ik, yazi(r), k); log(k, "yazıldı"); } catch (e) { log(k, "atlandı:", String(e.message).slice(0, 60)); GSON[k] = { t: Date.now(), metin: "⚠ Yapılamadı: " + String(e.message).slice(0, 140) }; }
