@@ -101,6 +101,7 @@ dialog.sheet[open]{display:flex}
 #kapi{position:fixed;inset:0;z-index:9000;background:var(--bg);overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px 30px}#kapi[hidden]{display:none!important}
 .kapik{width:100%;max-width:420px;background:var(--card);border:1px solid var(--br);border-radius:18px;padding:24px 20px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.08)}.kapik img{border-radius:16px}.kapik h2{margin:10px 0 2px;color:var(--pr)}#kapiD{margin:14px 0}#kapiF{text-align:left}#kapiF .warn{word-break:break-word}#kapiF .row{justify-content:flex-start}
 body.kapali .bnav,body.kapali header{visibility:hidden}
+.gvk{padding:10px 12px}.gvk.kapali{opacity:.55}.gvh{display:flex;align-items:center}.gvsw{display:flex;gap:10px;align-items:center;cursor:pointer;font-size:15px}.gvsw input{width:22px;height:22px}.gvr select{width:auto}.gvsec{display:flex;gap:8px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--br);cursor:pointer}.gvsec input{width:20px;height:20px}
 .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.menu-grid button{padding:20px 10px;font-size:15px;line-height:1.6}
 .selbar{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));z-index:15;background:var(--pr);color:var(--on);padding:9px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
 .selbar button{padding:6px 12px;font-size:14px}
@@ -829,6 +830,7 @@ function render(){try{paraLabels()}catch(e){}
  else if(so==="s")r.sort((a,b)=>(a.sonraki||"9999").localeCompare(b.sonraki||"9999"));
  else if(so==="b")r.sort((a,b)=>bakiye(b)-bakiye(a));
  else if(so==="z"){const F=firsatHazirla();r.sort((a,b)=>F(b)-F(a))}
+ else if(so==="aj")r.sort((a,b)=>(b.ajanSec?1:0)-(a.ajanSec?1:0)||(b.c||0)-(a.c||0));
  else r.sort((a,b)=>(b.c||0)-(a.c||0));
  shown=r.map(x=>x.id);
  [...sel].forEach(i=>{if(!data.some(x=>x.id===i))sel.delete(i)});
@@ -2923,6 +2925,85 @@ const FIRMA_EP="magambalajas@gmail.com";
 if(ayar.firma&&!ayar.firma.ep)ayar.firma.ep=FIRMA_EP;
 {let epTamam=false;const _r=render;render=function(){_r();if(!epTamam&&cloudState==="on"&&isAdmin()&&ayar.firma){epTamam=true;if(!ayar.firma.ep){ayar.firma.ep=FIRMA_EP;saveAyar()}}}}
 {const _b=baglantiHtml;baglantiHtml=function(){const h=_b();return gizB.gmailUser?h:h.replace('placeholder="magambalaj.satis@gmail.com" value=""',`placeholder="${FIRMA_EP}" value="${FIRMA_EP}"`)}}
+
+/* ================= v15 — 🎛 AJAN GÖREVLERİ: neyi yapıp neyi yapmayacaklarını sen seçersin =================
+   Ayar: ayar.otonom.gorevler[k] = {acik, zaman: sabah|her|elle, hedef: hepsi|secili}
+   Elle çalıştırma: ajan/istek = {t, gorevler:[…]} yazılır, sonra GitHub'da başlatılır; ajan yalnızca seçilenleri yapar. */
+const GOREVLER=[
+ {g:"📋 Liste ve takip",l:[
+  {k:"tarama",ik:"🎯",ad:"Yeni müşteri bul",ac:"Fabrika çevresini kendi verimizden tarar, en iyi adayları listeye ekler (Kurulum 7'deki yarıçap/sayı/sektör)."},
+  {k:"epbul",ik:"✉",ad:"E-posta adresi bul",ac:"Web sitesi olup e-postası olmayan firmaların sitesine girip e-posta bulur."},
+  {k:"takip",ik:"🔄",ad:"Takibi ayarla",ac:"Sonraki arama tarihini ve önceliği kendisi düzenler (ilgilenen, teklifli, sipariş zamanı gelen, uyuyan, borçlu)."},
+  {k:"rota",ik:"🗺",ad:"Ziyaret rotası çıkar",ac:"Bugün aranacak/sıcak firmalardan fabrikadan başlayan en kısa 10 duraklı rota hazırlar."}]},
+ {g:"✍ Mesaj hazırlama",l:[
+  {k:"taslak",ik:"✍",ad:"WhatsApp mesajlarını hazır yaz",ac:"En önemli işler için firmaya özel mesaj yazar; Bugün ekranında sadece 'Gönder'e basarsın.",ai:1}]},
+ {g:"📧 E-postayı kendisi gönderir",l:[
+  {k:"tanitim",ik:"👋",ad:"Tanıtım e-postası",ac:"E-postası olan YENİ adaylara bizi tanıtır, numune teklif eder.",ep:1},
+  {k:"takipEp",ik:"🔁",ad:"Takip e-postası",ac:"Tanıtıma 5 gün cevap vermeyenlere bir kez nazikçe tekrar yazar.",ep:1},
+  {k:"teklifEp",ik:"📨",ad:"Teklif hatırlatma",ac:"Cevapsız bekleyen teklifleri hatırlatır.",ep:1},
+  {k:"numuneEp",ik:"🎁",ad:"Numune takibi",ac:"Numune bırakılandan 5 gün sonra görüş ister.",ep:1},
+  {k:"tekrarEp",ik:"📦",ad:"Sipariş zamanı hatırlatma",ac:"Sipariş aralığı dolan müşteriye 'stoğunuz azalmış olabilir' der.",ep:1},
+  {k:"caprazEp",ik:"🧩",ad:"Ürün önerisi (çapraz satış)",ac:"Aynı sektördekilerin aldığı ama müşterinin almadığı ürünü önerir.",ep:1},
+  {k:"uyuyanEp",ik:"😴",ad:"Geri kazanım",ac:"Uzun süredir sipariş vermeyen müşteriye yazar.",ep:1},
+  {k:"tahsilatEp",ik:"💰",ad:"Ödeme hatırlatma",ac:"Vadesi 3+ gün geçen alacak için kibar hatırlatma (haftada en çok 1).",ep:1},
+  {k:"fiyatEp",ik:"🛡",ad:"Fiyat güncelleme bildirimi",ac:"Hammadde zammıyla kârı düşen müşteriye yeni fiyatı bildirir.",ep:1}]},
+ {g:"📊 Okuma, rapor, bildirim",l:[
+  {k:"gelen",ik:"📨",ad:"Gelen cevapları oku",ac:"E-posta cevaplarını okur: İPTAL → Aramayın; ilgilenen → sıcak bildirim + Gmail'de cevap taslağı.",gm:1},
+  {k:"rapor",ik:"📋",ad:"Müdür raporu",ac:"Günün işlerini paraya etkisine göre sıralar, planı yazar."},
+  {k:"haftalik",ik:"📅",ad:"Haftalık strateji",ac:"Pazartesi geçen haftanın özetini ve bu haftanın hedeflerini yazar.",ai:1},
+  {k:"bildirim",ik:"🔔",ad:"Telefona bildirim",ac:"Sabah özeti ve sıcak gelişmeleri telefona gönderir."}]}];
+const GV_VARS={tarama:{acik:true,zaman:"sabah"},epbul:{acik:true,zaman:"sabah"},takip:{acik:true,zaman:"sabah"},rota:{acik:false,zaman:"sabah"},gelen:{acik:true,zaman:"her"},rapor:{acik:true,zaman:"sabah"},taslak:{acik:true,zaman:"sabah"},
+ tanitim:{acik:true,zaman:"sabah",hedef:"hepsi"},takipEp:{acik:true,zaman:"sabah",hedef:"hepsi"},teklifEp:{acik:true,zaman:"sabah",hedef:"hepsi"},numuneEp:{acik:false,zaman:"sabah",hedef:"hepsi"},tekrarEp:{acik:false,zaman:"sabah",hedef:"hepsi"},caprazEp:{acik:false,zaman:"sabah",hedef:"hepsi"},uyuyanEp:{acik:false,zaman:"sabah",hedef:"hepsi"},tahsilatEp:{acik:false,zaman:"sabah",hedef:"hepsi"},fiyatEp:{acik:false,zaman:"sabah",hedef:"hepsi"},haftalik:{acik:true,zaman:"sabah"},bildirim:{acik:true,zaman:"her"}};
+const gvAl=()=>{const o={},G=(ayar.otonom&&ayar.otonom.gorevler)||{};for(const k in GV_VARS)o[k]=Object.assign({},GV_VARS[k],G[k]||{});if(ayar.otonom&&ayar.otonom.tarama===false&&!G.tarama)o.tarama.acik=false;return o};
+const gorevTum=()=>GOREVLER.flatMap(g=>g.l);
+let gorevSon={};
+{const _gy=gizliYukle;gizliYukle=async function(){await _gy();if(!root||!isAdmin())return;try{const[a,b]=await Promise.all([root.child("ajan/gorevSon").once("value"),root.child("ajan/rota").once("value")]);gorevSon=a.val()||{};window.__rota=b.val()}catch(e){}}}
+AJLER.splice(2,0,{k:"gorev",ik:"🎛",ad:"Görevler",ac:"Ajanların hangi işleri, ne zaman ve hangi firmalarla yapacağını sen seçersin."});
+function gorevUyari(d){if(d.ep&&!(gizB.gmailUser&&gizB.gmailPass))return"📧 Gmail bağlı değil (Kurulum 7b)";if(d.gm&&!(gizB.gmailUser&&gizB.gmailPass))return"📧 Gmail bağlı değil";if((d.ep||d.ai)&&!aiKey())return"🧠 Yapay zekâ anahtarı yok (Kurulum 1)";return""}
+function gorevHtml(){const V=gvAl(),adm=isAdmin(),O=Object.assign({eposta:"deneme",gunlukEposta:20},ayar.otonom||{}),sec=data.filter(x=>x.ajanSec).length;
+ let h=`<div class="card ajg"><b>🎛 Ajanlar ne yapsın?</b><div class="mu">Her görevi aç/kapat, ne zaman çalışacağını seç. <b>Her sabah</b> = 08:12 turu • <b>Günde 3 kez</b> = 08:12, 13:12, 18:12 • <b>Sadece elle</b> = yalnızca "▶ Çalıştır"da seçersen.<br>
+ E-posta görevlerinde <b>Hedef</b>: <b>Tüm liste</b> ya da <b>Sadece ajana verdiklerim</b> (Müşteriler → seç → Toplu işlem → 🤖 Ajana ver). Şu an ajana verilen: <b>${sec}</b> firma.<br>
+ E-posta modu: <b>${O.eposta==="acik"?"Açık (firmalara gider)":O.eposta==="kapali"?"Kapalı":"Deneme (sana gelir)"}</b> • günde en çok <b>${O.gunlukEposta}</b> e-posta • firmaya günde en çok 1 <button data-a="akkur">Değiştir</button></div>
+ <div class="row" style="margin-top:8px"><button class="p" data-a="ajcal">▶ Şimdi çalıştır (görev seç)</button>${adm?`<button class="p" data-a="gvkay">💾 Kaydet</button>`:""}</div></div>`;
+ for(const g of GOREVLER){h+=`<h4>${g.g}</h4>`;
+  for(const d of g.l){const v=V[d.k],s=gorevSon[d.k],u=gorevUyari(d);
+   h+=`<div class="card gvk ${v.acik?"":"kapali"}"><div class="gvh"><label class="gvsw"><input type="checkbox" data-gv="${d.k}" data-gf="acik" ${v.acik?"checked":""} ${adm?"":"disabled"}><span>${d.ik} <b>${d.ad}</b></span></label></div>
+   <div class="mu">${d.ac}</div>
+   <div class="row gvr"><select data-gv="${d.k}" data-gf="zaman" ${adm?"":"disabled"}><option value="sabah" ${v.zaman==="sabah"?"selected":""}>Her sabah</option><option value="her" ${v.zaman==="her"?"selected":""}>Günde 3 kez</option><option value="elle" ${v.zaman==="elle"?"selected":""}>Sadece elle</option></select>${d.ep?`<select data-gv="${d.k}" data-gf="hedef" ${adm?"":"disabled"}><option value="hepsi" ${v.hedef!=="secili"?"selected":""}>Hedef: Tüm liste</option><option value="secili" ${v.hedef==="secili"?"selected":""}>Hedef: Sadece ajana verdiklerim</option></select>`:""}</div>
+   ${u?`<div class="warn" style="font-size:13px">${u}</div>`:""}${s?`<div class="mu" style="font-size:12px">Son: ${fdt(s.t)} — ${esc(s.metin)}</div>`:""}</div>`}}
+ return h}
+window.ajOzel.gorev=gorevHtml;
+function gvTopla(){const V=gvAl();document.querySelectorAll("[data-gv]").forEach(e=>{const k=e.dataset.gv,f=e.dataset.gf;if(!V[k])return;V[k][f]=e.type==="checkbox"?e.checked:e.value});return V}
+document.addEventListener("change",e=>{const t=e.target;if(t.dataset&&t.dataset.gv){const c=t.closest(".gvk");if(c&&t.dataset.gf==="acik")c.classList.toggle("kapali",!t.checked);const b=document.querySelector('[data-a="gvkay"]');if(b){b.textContent="💾 Kaydet (değişti)";b.classList.add("p")}}});
+
+/* --- ▶ Çalıştırırken görev seçme penceresi --- */
+document.body.insertAdjacentHTML("beforeend",`<dialog id="dlgGv" class="wide"><form onsubmit="return false"><b>▶ Ajanlar şimdi ne yapsın?</b><div class="mu">İşaretli görevler hemen çalışır (2-5 dk). Kalıcı ayar için 🎛 Görevler ekranını kullan.</div>
+<div class="row" style="margin:6px 0"><button type="button" onclick="gvSecTum(true)">Hepsini seç</button><button type="button" onclick="gvSecTum(false)">Hiçbirini</button><button type="button" onclick="gvSecTum('acik')">Açık olanlar</button></div><div id="gvL"></div>
+<div class="row"><button type="button" class="p" onclick="gvBaslat()">▶ Seçilenleri çalıştır</button><button type="button" onclick="dlgGv.close()">Vazgeç</button></div></form></dialog>`);
+const dlgGv=document.getElementById("dlgGv");dlgGv.addEventListener("click",e=>{if(e.target===dlgGv)dlgGv.close()});
+function gvAc(){if(!isAdmin()||!root){alert("Bunun için yönetici hesabıyla giriş yapmalısın.");return}const V=gvAl(),son=lsJ("mag_gvsec",null);
+ $("gvL").innerHTML=GOREVLER.map(g=>`<div class="mu" style="margin:8px 0 2px"><b>${g.g}</b></div>`+g.l.map(d=>{const u=gorevUyari(d),on=son?son.includes(d.k):V[d.k].acik;return `<label class="gvsec"><input type="checkbox" data-gs="${d.k}" ${on?"checked":""}> ${d.ik} ${d.ad}${u?` <span class="warn" style="font-size:12px">${u}</span>`:""}</label>`}).join("")).join("");dlgGv.showModal()}
+function gvSecTum(v){const V=gvAl();document.querySelectorAll("[data-gs]").forEach(e=>e.checked=v==="acik"?!!V[e.dataset.gs].acik:v)}
+async function gvBaslat(){const l=[...document.querySelectorAll("[data-gs]:checked")].map(e=>e.dataset.gs);if(!l.length){alert("En az bir görev seç.");return}
+ ls.set("mag_gvsec",JSON.stringify(l));try{await root.child("ajan/istek").set({t:Date.now(),gorevler:l,kim:me.ad||me.email||""})}catch(e){alert("Görev listesi kaydedilemedi: "+e.message+(/permission/i.test(e.message)?"\n\nFirebase kuralını yeniden yayınla (☁ → Kuralı kopyala → Publish).":""));return}
+ dlgGv.close();ajanlariCalistir()}
+A.ajcal=()=>{if(!gizB.ghToken){ajanlariCalistir();return}gvAc()};
+A.gvkay=()=>{if(!isAdmin())return;const V=gvTopla();ayar.otonom=Object.assign({},ayar.otonom||{},{gorevler:V});delete ayar.otonom.tarama;saveAyar();renderAjan();tost("✅ Görev ayarları kaydedildi")};
+
+/* --- 🤖 Ajana ver: listedeki seçili firmaları ajanların hedefine koy --- */
+{const b=document.querySelector('#bulk button[onclick="kampanyaAc([...sel])"]');if(b)b.insertAdjacentHTML("beforebegin",`<button onclick="ajanaVer([...sel],true)">🤖 Ajana ver</button><button onclick="ajanaVer([...sel],false)">Ajandan al</button>`)}
+function ajanaVer(ids,v){const l=ids.map(i=>data.find(x=>x.id===i)).filter(Boolean).map(x=>{const o={...x};if(v)o.ajanSec=Date.now();else delete o.ajanSec;return o});if(!l.length)return;
+ putMany(l,`${l.length} firma ${v?"ajanlara verildi":"ajanlardan alındı"}`);sel.clear();render();tost(v?`🤖 ${l.length} firma ajanlara verildi. Görevler'de hedefi "Sadece ajana verdiklerim" olan görevler bunlarla çalışır.`:`${l.length} firma ajanlardan alındı`,5000)}
+{const _c=card;card=function(x,ck){let h=_c(x,ck);if(x.ajanSec)h=h.replace('<div class="card musk"><h3>','<div class="card musk"><h3><span class="tag ok" title="Ajanlara verildi">🤖</span> ');return h}}
+{const so=$("so");if(so&&!so.querySelector('option[value="aj"]'))so.insertAdjacentHTML("beforeend",'<option value="aj">🤖 Ajana verdiklerim önce</option>')}
+
+
+/* --- Bugün: ziyaret rotası kartı --- */
+{const _ra=renderAkis;renderAkis=function(){_ra();try{const r=window.__rota;if(r&&r.tarih===today()&&r.url){const k=document.querySelector("#akisL .ajg");if(k)k.insertAdjacentHTML("afterend",`<div class="card"><b>🗺 Bugünün ziyaret rotası</b> <span class="mu">${arr(r.firmalar).length} firma: ${arr(r.firmalar).slice(0,4).map(f=>esc(f.firma)).join(", ")}${arr(r.firmalar).length>4?"…":""}</span><div class="row"><a class="btn p" target="_blank" rel="noopener" href="${esc(r.url)}">Haritada aç</a></div></div>`)}}catch(e){}}}
+/* --- Diğer menüsüne Görevler --- */
+{const g=document.querySelector("#s-diger .menu-grid");if(g)g.insertAdjacentHTML("afterbegin",`<button data-a="gvgit" class="ajm" style="background:var(--gr);border-color:var(--gr)">🎛 Ajan görevleri — neyi yapsınlar?</button>`)}
+A.gvgit=()=>{ajFiltre="gorev";go("ajan");gizliYukle().then(()=>{if(tab==="ajan")renderAjan()})};
+document.addEventListener("click",e=>{const b=e.target.closest('[data-ajf="gorev"]');if(b)gizliYukle().then(()=>{if(tab==="ajan"&&ajFiltre==="gorev")renderAjan()})});
 
 __baslat();
 if(!SIPT){const _g=new URLSearchParams(location.search).get("git");if(_g&&_g!=="ajan")setTimeout(()=>go(_g),300);else if(!_g)go("akis")}

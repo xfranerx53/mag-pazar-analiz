@@ -123,9 +123,24 @@ const okuG = async p => { try { return await oku(p, g.tok); } catch (e) { return
 let D = (await okuG("ajan/durum")) || {};
 const ilkCalisma = D.tarih !== BUGUN || env("TAM") === "1" || env("GITHUB_EVENT_NAME") === "workflow_dispatch";
 if (D.tarih !== BUGUN) D = { tarih: BUGUN, epN: 0, taramaR: D.taramaR || 0, sonGelen: D.sonGelen || 0 };
+const sabahTuru = D.sabah !== BUGUN;
+/* ---------- 🎛 Görev seçimi: programdaki "Görevler" ekranı (ayar.otonom.gorevler) + elle çalıştırmada seçilenler (ajan/istek) ---------- */
+const GOREV_VARS = { tarama: { acik: true, zaman: "sabah" }, epbul: { acik: true, zaman: "sabah" }, takip: { acik: true, zaman: "sabah" }, rota: { acik: false, zaman: "sabah" },
+  gelen: { acik: true, zaman: "her" }, rapor: { acik: true, zaman: "sabah" }, taslak: { acik: true, zaman: "sabah" },
+  tanitim: { acik: true, zaman: "sabah", hedef: "hepsi" }, takipEp: { acik: true, zaman: "sabah", hedef: "hepsi" }, teklifEp: { acik: true, zaman: "sabah", hedef: "hepsi" },
+  numuneEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, tekrarEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, caprazEp: { acik: false, zaman: "sabah", hedef: "hepsi" },
+  uyuyanEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, tahsilatEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, fiyatEp: { acik: false, zaman: "sabah", hedef: "hepsi" },
+  haftalik: { acik: true, zaman: "sabah" }, bildirim: { acik: true, zaman: "her" } };
+const GV = {}; for (const k in GOREV_VARS) GV[k] = Object.assign({}, GOREV_VARS[k], (O.gorevler || {})[k] || {});
+if (O.tarama === false && !(O.gorevler || {}).tarama) GV.tarama.acik = false;
+const elle = env("GITHUB_EVENT_NAME") === "workflow_dispatch";
+let ISTEK = null; if (elle) { ISTEK = await okuG("ajan/istek"); if (!ISTEK || Date.now() - (ISTEK.t || 0) > 20 * 60e3) ISTEK = null; else await yaz("ajan/istek", g.tok, null).catch(() => { }); }
+const SECILI = ISTEK && Array.isArray(ISTEK.gorevler) ? new Set(ISTEK.gorevler) : null;
+const RAN = new Set(), GSON = {};
+const calis = k => { const v = GV[k]; if (!v) return false; const r = SECILI ? SECILI.has(k) : elle ? !!v.acik : !!v.acik && (v.zaman === "her" || (v.zaman === "sabah" && sabahTuru)); if (r) RAN.add(k); return r; };
 const GUN = ((await okuG("ajan/gunluk/" + BUGUN)) || {}).isler || [];
 const GUN0 = GUN.length; // bu turdan önceki kayıtlar
-const not_ = (ik, metin) => { GUN.push({ ik, metin, t: Date.now() }); };
+const not_ = (ik, metin, k) => { GUN.push({ ik, metin, t: Date.now() }); if (k) GSON[k] = { t: Date.now(), metin }; };
 const SICAK = []; // hemen bildirilecek sıcak gelişmeler
 const durumYaz = () => yaz("ajan/durum", g.tok, D).catch(e => log("durum yazılamadı:", e.message));
 async function guncelle(x, alan) {
@@ -134,10 +149,10 @@ async function guncelle(x, alan) {
 }
 const sonGor = x => X.arr(x.gorus).reduce((m, q) => Math.max(m, +q.t || 0), 0);
 const gorusEkle = (x, tip, not) => { const l = X.arr(x.gorus); l.push({ t: Date.now(), tip, not, kim: "🤖 Ajan" }); return l; };
-log(ilkCalisma ? "Günün ilk çalışması (tam tur)" : "Gün içi tur (gelen kutusu + e-posta)");
+log((elle ? "Elle çalıştırma" : sabahTuru ? "Günün ilk turu" : "Gün içi tur") + " • görevler: " + Object.keys(GV).filter(k => calis(k)).join(", ")); RAN.clear();
 
 /* ---------- 🔄 1) Takibi kendisi ayarlar ---------- */
-if (ilkCalisma) {
+if (calis("takip")) {
   let n = 0;
   const ro = new Map(X.reorderList().map(o => [o.x.id, o])), sl = new Set(X.sleepers().map(o => o.x.id));
   for (const x of data) {
@@ -153,12 +168,12 @@ if (ilkCalisma) {
     for (const k of Object.keys(ch)) if (ch[k] === x[k]) delete ch[k];
     if (Object.keys(ch).length) { try { await guncelle(x, ch); n++; } catch (e) { } }
   }
-  if (n) not_("🔄", `${n} kaydın takip tarihini ve önceliğini kendisi ayarladı`);
+  if (n) not_("🔄", `${n} kaydın takip tarihini ve önceliğini kendisi ayarladı`, "takip");
   log("Takip ayarı:", n, "kayıt");
 }
 
 /* ---------- 🎯 2) Yeni müşteri adaylarını kendisi bulur (kendi verimizden) ---------- */
-if (ilkCalisma && O.tarama !== false) {
+if (calis("tarama")) {
   const M = O.merkez;
   if (!M || !isFinite(+M.lat) || !isFinite(+M.lon)) { log("Otomatik tarama atlandı: fabrika konumu seçilmemiş (Kurulum → Otonom ajanlar)"); not_("⚠", "Otomatik tarama için fabrika konumu seçilmemiş (Ajanlar → 🛠 Kurulum → 7. adım)"); }
   else try {
@@ -203,13 +218,13 @@ if (ilkCalisma && O.tarama !== false) {
     if (Object.keys(yeniG).length) await yaz("ajan/gorulen", g.tok, yeniG, "PATCH").catch(() => { });
     if (temiz.length - sec.length < N && R < Rmax) D.taramaR = Math.min(Rmax, R + 5);
     const n = Object.keys(yeniG).length;
-    not_("🎯", n ? `${R} km içinde ${aday.length} işletmeye baktı, ${n} yeni müşteri adayı buldu ve listeye ekledi (en iyiler: ${sec.slice(0, 3).map(o => o.p.ad).join(", ")})` : `${R} km içinde yeni aday kalmadı${D.taramaR > R ? "; yarın " + D.taramaR + " km'ye genişleyecek" : ""}`);
+    not_("🎯", n ? `${R} km içinde ${aday.length} işletmeye baktı, ${n} yeni müşteri adayı buldu ve listeye ekledi (en iyiler: ${sec.slice(0, 3).map(o => o.p.ad).join(", ")})` : `${R} km içinde yeni aday kalmadı${D.taramaR > R ? "; yarın " + D.taramaR + " km'ye genişleyecek" : ""}`, "tarama");
     log("Otomatik tarama:", R, "km •", aday.length, "işletme •", n, "yeni aday eklendi");
   } catch (e) { log("Otomatik tarama hatası:", e.message); not_("⚠", "Otomatik tarama bu gece yapılamadı: " + e.message); }
 }
 
 /* ---------- ✉ 3) Web sitelerinden e-posta bulur ---------- */
-if (ilkCalisma) {
+if (calis("epbul")) {
   const aday = data.filter(x => x.web && !x.eposta && !x.aramayin && (!x.epDenendi || X.daysSince(x.epDenendi) > 30)).slice(0, +env("EPOSTA_LIMIT") || 30);
   const getir = async u => { const c = new AbortController(), t = setTimeout(() => c.abort(), 12000);
     try { const r = await fetch(u, { signal: c.signal, redirect: "follow", headers: { "User-Agent": "Mozilla/5.0 (compatible; MAGAmbalajBot/1.0)", "Accept-Language": "tr,en" } }); return r.ok ? (await r.text()).slice(0, 800000) : ""; }
@@ -227,7 +242,7 @@ if (ilkCalisma) {
     l.sort((a, b) => (b.endsWith(host) ? 1 : 0) - (a.endsWith(host) ? 1 : 0));
     try { await guncelle(x, l.length ? { eposta: l[0], epKaynak: "web (gece ajanı)", epDenendi: BUGUN } : { epDenendi: BUGUN }); if (l.length) bulunan++; } catch (e) { }
   }
-  if (bulunan) not_("✉", `${aday.length} firmanın web sitesine girdi, ${bulunan} e-posta adresi buldu`);
+  if (bulunan || aday.length) not_("✉", `${aday.length} firmanın web sitesine girdi, ${bulunan} e-posta adresi buldu`, "epbul");
   if (aday.length) log("E-posta avcısı:", aday.length, "site •", bulunan, "bulundu");
 }
 
@@ -242,7 +257,8 @@ const GENEL = /^(gmail|googlemail|hotmail|outlook|live|yahoo|yandex|icloud|msn|m
 const kimin = adr => { adr = String(adr || "").toLowerCase(); if (epMap.has(adr)) return epMap.get(adr); const d = adr.split("@")[1] || ""; if (!d || GENEL.test(d)) return null; for (const [e, x] of epMap) if (e.endsWith("@" + d)) return x; return null; };
 
 /* ---------- 📨 4) Gelen cevapları okur, sınıflar, Gmail'de cevap taslağı hazırlar ---------- */
-if (gmailVar) {
+if (calis("gelen") && !gmailVar) GSON.gelen = { t: Date.now(), metin: "Gmail bağlı değil (Kurulum 7b)" };
+if (gmailVar && calis("gelen")) {
   let ImapFlow, simpleParser;
   try { ({ ImapFlow } = await import("imapflow")); ({ simpleParser } = await import("mailparser")); } catch (e) { log("imapflow/mailparser yok, gelen kutusu atlandı"); }
   if (ImapFlow) {
@@ -294,7 +310,7 @@ SADECE JSON: {"tur":"ilgileniyor"|"soru"|"iptal"|"olumsuz"|"otomatik","ozet":"te
       D.sonGelen = Date.now();
     } catch (e) { log("Gmail gelen kutusu hatası:", e.message); if (/auth|credential|password|Invalid/i.test(e.message)) not_("⚠", "Gmail'e girilemedi: uygulama şifresini kontrol et (GMAIL_APP_PASSWORD)"); }
     finally { try { await cl.logout(); } catch (e) { } }
-    if (okunan) not_("📨", `${okunan} e-posta cevabı okudu (ilgilenen ${sinif.ilgileniyor || 0}, soru ${sinif.soru || 0}, iptal ${sinif.iptal || 0}, olumsuz ${sinif.olumsuz || 0})${taslak ? `; ${taslak} cevap taslağını Gmail'de Taslaklar'a hazırladı` : ""}`);
+    not_("📨", `${okunan} e-posta cevabı okudu (ilgilenen ${sinif.ilgileniyor || 0}, soru ${sinif.soru || 0}, iptal ${sinif.iptal || 0}, olumsuz ${sinif.olumsuz || 0})${taslak ? `; ${taslak} cevap taslağını Gmail'de Taslaklar'a hazırladı` : ""}`, "gelen");
     log("Gelen kutusu:", okunan, "cevap •", taslak, "taslak");
   }
 }
@@ -307,7 +323,8 @@ const acil = l.filter(f => f.sev === "kritik").length, onemli = l.filter(f => f.
 log("Bulunan iş:", l.length, "• acil:", acil, "• önemli:", onemli);
 const TL = n => new Intl.NumberFormat("tr-TR", { style: "currency", currency: ayar.para || "TRY", maximumFractionDigits: 0 }).format(n || 0);
 
-if (ilkCalisma) {
+if (calis("rapor") || calis("taslak")) {
+  if (calis("rapor")) {
   let yorum = "";
   if (X.aiKey()) {
     try { yorum = X.deanon(await X.aiSor(X.AISYS(), [{ r: "ben", m: "Bugünün planını çıkar: öncelik sırasıyla en fazla 6 madde (kim/kod, ne yapılacak, neden, ₺ etkisi). Sonunda tek cümle genel değerlendirme." }])); log("Müdür yorumu yazıldı"); }
@@ -316,52 +333,83 @@ if (ilkCalisma) {
   const rapor = { t: Date.now(), tarih: BUGUN, metin, yorum, sayi: l.length, acil, onemli, masada: Math.round(masada) };
   try { await yaz("ajan/rapor/son", g.tok, rapor); log("Rapor buluta yazıldı"); }
   catch (e) { dur("Rapor buluta yazılamadı (" + e.message + "). Firebase kuralını güncelle: programda ☁ → Kuralı kopyala → Firebase Rules → Publish."); }
-  not_("📋", `Müdür raporunu hazırladı: ${l.length} iş${acil ? ", " + acil + " acil" : ""}${masada >= 1 ? ", masada ≈ " + TL(masada) : ""}`);
+  not_("📋", `Müdür raporunu hazırladı: ${l.length} iş${acil ? ", " + acil + " acil" : ""}${masada >= 1 ? ", masada ≈ " + TL(masada) : ""}`, "rapor");
+  }
 
   /* ---------- ✍ 6) Her iş için mesajı hazır yazar ---------- */
-  if (X.aiKey()) {
+  if (calis("taslak") && !X.aiKey()) GSON.taslak = { t: Date.now(), metin: "Yapay zekâ anahtarı yok (Kurulum 1. adım)" };
+  if (X.aiKey() && calis("taslak")) {
     const isler = l.filter(f => f.msg && f.id).sort((a, b) => (a.sev === "bilgi") - (b.sev === "bilgi")).slice(0, Math.max(0, +O.taslakSayisi || 12));
     const ts = {}; let n = 0;
     for (const f of isler) {
       try { const m = await X.aiMesajYaz(f, true); if (m) { ts[crypto.createHash("sha1").update(X.ajKey(f)).digest("hex").slice(0, 20)] = { k: X.ajKey(f), m, d: BUGUN }; n++; } }
       catch (e) { log("mesaj yazılamadı:", e.message); if (/kota|429|sınır/i.test(e.message)) break; }
     }
-    if (n) { await yaz("ajan/taslak", g.tok, ts).catch(e => log("taslaklar yazılamadı:", e.message)); not_("✍", `${n} iş için firmaya özel mesajı hazır yazdı — sabah sadece "Gönder"e basman yeterli`); }
+    if (n) { await yaz("ajan/taslak", g.tok, ts).catch(e => log("taslaklar yazılamadı:", e.message)); not_("✍", `${n} iş için firmaya özel mesajı hazır yazdı — sabah sadece "Gönder"e basman yeterli`, "taslak"); }
     log("Hazır mesaj:", n);
   }
 }
 
-/* ---------- 📧 7) E-postayı kendisi gönderir (tanıtım + takip + teklif hatırlatma) ---------- */
-if (gmailVar) {
+/* ---------- 📧 7) E-postayı kendisi gönderir — Görevler ekranında seçilen türler ---------- */
+const EPT = ["teklifEp", "tahsilatEp", "tekrarEp", "numuneEp", "fiyatEp", "caprazEp", "uyuyanEp", "takipEp", "tanitim"].filter(k => calis(k));
+if (EPT.length && !gmailVar) for (const k of EPT) GSON[k] = { t: Date.now(), metin: "Gmail bağlı değil (Kurulum 7b)" };
+const TURA = { tanitim: ["tanitim", "ilk tanıtım e-postası: kendimizi tanıt, aracısız fabrika fiyatı ve hızlı teslimden bahset, numune bırakmayı teklif et"],
+  takipEp: ["takip", "cevapsız tanıtımdan sonra kısa, nazik ikinci e-posta"], teklifEp: ["teklif", "verdiğimiz teklifin nazik hatırlatması; soru veya değişiklik varsa güncelleyelim"],
+  tahsilatEp: ["tahsilat", "vadesi geçmiş ödeme için kibar, saygılı hatırlatma; verilen tutarı ve vade tarihini aynen yaz; baskı/tehdit yok; ödendiyse dikkate almayın de"],
+  tekrarEp: ["tekrar", "mevcut müşteriye: sipariş aralığına göre stoğu azalmış olabilir; geçen seferki ürünleri hazırlayalım mı diye sor"],
+  numuneEp: ["numune", "bıraktığımız numune hakkında görüş iste; beğendiyse sipariş/teklif öner"],
+  fiyatEp: ["fiyat", "hammadde maliyet artışı nedeniyle bir sonraki siparişten itibaren geçerli yeni birim fiyat bildirimi; verilen yeni fiyatları aynen yaz; nazik ve gerekçeli"],
+  caprazEp: ["capraz", "mevcut müşteriye, aynı sektördeki müşterilerimizin de aldığı ama onun almadığı ürünü öner; bir sonraki siparişe eklemeyi ya da numuneyi teklif et"],
+  uyuyanEp: ["uyuyan", "uzun süredir sipariş vermeyen eski müşteriyi geri kazan: özlediğimizi söyle, şu an ihtiyacını nereden karşıladığını sor, numune/özel teklif öner (fiyat uydurma)"] };
+const TUR_AD = { tanitim: "tanıtım", takip: "takip", teklif: "teklif hatırlatma", tahsilat: "ödeme hatırlatma", tekrar: "sipariş hatırlatma", numune: "numune takibi", fiyat: "fiyat güncelleme", capraz: "ürün önerisi", uyuyan: "geri kazanım" };
+if (gmailVar && EPT.length) {
   let nodemailer; try { nodemailer = (await import("nodemailer")).default; } catch (e) { log("nodemailer yok, gönderim atlandı"); }
   const mod = O.eposta === "acik" ? "acik" : "deneme";
   const sinir = mod === "acik" ? Math.max(0, +O.gunlukEposta || 20) : 3;
   const kalan = Math.max(0, sinir - (D.epN || 0));
+  if (!kalan) for (const k of EPT) GSON[k] = { t: Date.now(), metin: `Günlük e-posta sınırı doldu (${sinir})` };
+  if (!X.aiKey()) for (const k of EPT) GSON[k] = { t: Date.now(), metin: "Yapay zekâ anahtarı yok (Kurulum 1. adım)" };
   if (nodemailer && kalan > 0 && X.aiKey()) {
     const tp = nodemailer.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: GU, pass: GP } });
     const tg = +X.AJ().teklifGun || 3;
+    const bulgu = new Map(); for (const f of l) if (f.id) { if (!bulgu.has(f.id)) bulgu.set(f.id, []); bulgu.get(f.id).push(f); }
+    const roL = new Map(X.reorderList().map(o => [o.x.id, o])), slS = new Set(X.sleepers().map(o => o.x.id));
+    const yakin = (gec, tur, gun) => gec.some(q => q.tur === tur && Date.now() - q.t < gun * 864e5);
     const hedef = [];
     for (const x of data) {
       if (!x.eposta || x.aramayin || x.izin === "Çıkış yaptı" || x.durum === "İlgilenmiyor" || X.isChain({ ad: x.firma })) continue;
       const gec = X.arr(x.epGonderim), son = gec[gec.length - 1], cevapVar = x.epCevap && (!son || x.epCevap.t > son.t);
       if (cevapVar) continue;
       if (O.eposta !== "acik" && x.epDeneme) continue; // deneme modunda her firmaya bir kez örnek
+      if (son && Date.now() - son.t < 20 * 3600e3) continue; // firmaya günde en çok 1 e-posta
+      const ekle = (k, p, ek) => { if (!EPT.includes(k) || (GV[k].hedef === "secili" && !x.ajanSec)) return false; hedef.push({ x, k, tur: TURA[k][0], p, ...(ek || {}) }); return true; };
       const tk = X.arr(x.teklif).find(t => t.durum === "Beklemede" && t.tar && X.daysSince(t.tar) >= tg);
-      if (tk && !gec.some(q => q.tur === "teklif" && q.no === tk.no) && Date.now() - sonGor(x) > tg * 864e5) hedef.push({ x, tur: "teklif", tk, p: 3 });
-      else if (x.durum === "Yeni" && !gec.length) hedef.push({ x, tur: "tanitim", p: 1 + (x.aday || 0) / 100 });
-      else if (x.durum === "İletişim kuruldu" && gec.length === 1 && son.tur === "tanitim" && Date.now() - son.t > (+O.takipEpostasiGun || 5) * 864e5 && Date.now() - sonGor(x) > 3 * 864e5) hedef.push({ x, tur: "takip", p: 2 });
+      if (tk && !gec.some(q => q.tur === "teklif" && q.no === tk.no) && Date.now() - sonGor(x) > tg * 864e5 && ekle("teklifEp", 9, { tk })) continue;
+      const vd = X.vadeDurum(x); if (vd.tut > 0.5 && vd.enEski && vd.enEski.gec >= 3 && !yakin(gec, "tahsilat", 7) && ekle("tahsilatEp", 8, { vd })) continue;
+      const ro = roL.get(x.id); if (ro && ro.kalan <= 3 && !yakin(gec, "tekrar", 20) && ekle("tekrarEp", 7, { ro })) continue;
+      if (x.numune && x.numune.tar && X.daysSince(x.numune.tar) >= 5 && !X.arr(x.gorus).some(q => q.t > (x.numune.t || 0) + 36e5 && q.tip !== "Numune") && !yakin(gec, "numune", 60) && ekle("numuneEp", 6)) continue;
+      const fb = (bulgu.get(x.id) || []).find(f => f.ag === "fiyat" && /fiyat güncellenmeli/.test(f.bas)); if (fb && !yakin(gec, "fiyat", 45) && ekle("fiyatEp", 5, { f: fb })) continue;
+      const cb = (bulgu.get(x.id) || []).find(f => f.ag === "capraz"); if (cb && !yakin(gec, "capraz", 45) && ekle("caprazEp", 4, { f: cb })) continue;
+      if (slS.has(x.id) && !yakin(gec, "uyuyan", 45) && ekle("uyuyanEp", 3)) continue;
+      const tanSay = gec.filter(q => q.tur === "tanitim" || q.tur === "takip").length;
+      if (x.durum === "İletişim kuruldu" && tanSay === 1 && son && son.tur === "tanitim" && Date.now() - son.t > (+O.takipEpostasiGun || 5) * 864e5 && Date.now() - sonGor(x) > 3 * 864e5 && ekle("takipEp", 2)) continue;
+      if (x.durum === "Yeni" && !gec.length) ekle("tanitim", 1 + (x.aday || 0) / 100);
     }
     hedef.sort((a, b) => b.p - a.p);
-    let gonderilen = 0, hata = 0;
+    let gonderilen = 0, hata = 0; const say = {};
     for (const h of hedef.slice(0, kalan)) {
       const x = h.x;
       try {
         X.aiKodla();
-        const bilgi = { tur: { tanitim: "ilk tanıtım e-postası", takip: "cevapsız tanıtımdan sonra kısa, nazik ikinci e-posta", teklif: "verdiğimiz teklifin hatırlatması" }[h.tur], firma: { sektor: x.sektor || "", ilce: x.il || "", tahminiAylikKg: (() => { const t = X.TSEK.find(s => s.ad === x.sektor); return t ? X.tuk(t.k) : null; })() },
-          teklif: h.tk ? { no: h.tk.no || "", tarih: X.fd(h.tk.tar), kalemler: X.anon(X.kalemOzet(h.tk, true)), tutar: Math.round(X.docAra(h.tk)) } : null,
+        const s0 = X.arr(x.siparis).filter(X.sipAktif).sort((a, b) => (b.tar || "").localeCompare(a.tar || ""))[0];
+        const bilgi = { amac: TURA[h.k][1], firma: { sektor: x.sektor || "", ilce: x.il || "", durum: x.durum, tahminiAylikKg: (() => { const t = X.TSEK.find(s => s.ad === x.sektor); return t ? X.tuk(t.k) : null; })() },
+          teklif: h.tk ? { no: h.tk.no || "", tarih: X.fd(h.tk.tar), kalemler: X.anon(X.kalemOzet(h.tk, true)), tutar: TL(X.docAra(h.tk)) } : null,
+          odeme: h.vd ? { tutar: TL(h.vd.tut), vadeTarihi: X.fd(h.vd.enEski.due), gecikmeGun: h.vd.enEski.gec } : null,
+          sonSiparis: s0 && ["tekrar", "capraz", "uyuyan", "fiyat"].includes(h.tur) ? { tarih: X.fd(s0.tar), urunler: X.anon(X.kalemOzet(s0, true)) } : null,
+          ajanBulgusu: h.f ? X.anon(h.f.bas + " — " + h.f.det) : null,
           firmamiz: `${FIRMA}: Silivri'de kendi fabrikasında atlet, rulo (manav), kasap/dürüm, HDPE/LDPE, el geçme/kulplu, baskılı ve baskısız poşet üreticisi; aracısız fabrika fiyatı, hızlı teslim` };
-        const j = JSON.parse(String(await X.aiSor(`Bir poşet üreticisi adına işletmeye gönderilecek e-postayı yaz. Türkçe, kısa (60-110 kelime), samimi ama profesyonel; tek net teklif/soru ile bitir (ör. "numune bırakalım mı?").
-Firma adı yerine {FIRMA} yaz (program doldurur). Selamlama ("Merhaba,") ile başla; imza ve altbilgi YAZMA. Fiyat, indirim, tarih UYDURMA.
+        const j = JSON.parse(String(await X.aiSor(`Bir poşet üreticisi adına işletmeye gönderilecek e-postayı yaz. Amaç "amac" alanında. Türkçe, kısa (50-110 kelime), samimi ama profesyonel; tek net soru/teklif ile bitir.
+Firma adı yerine {FIRMA} yaz (program doldurur). "Merhaba," ile başla; imza ve altbilgi YAZMA. Verilen tutar/tarih/fiyatları aynen kullan; verilmeyen fiyat, indirim, tarih UYDURMA.
 SADECE JSON: {"konu":"en fazla 60 karakter, spam kelimesi yok","govde":"..."}`, [{ r: "ben", m: JSON.stringify(bilgi) }], { json: true, sicak: 0.7, max: 1500, toplu: true })).replace(/^```(?:json)?|```$/g, ""));
         const doldur = s => X.deanon(String(s || "")).replace(/\{FIRMA\}/g, x.firma).trim();
         let konu = doldur(j.konu).slice(0, 90), govde = doldur(j.govde);
@@ -369,26 +417,40 @@ SADECE JSON: {"konu":"en fazla 60 karakter, spam kelimesi yok","govde":"..."}`, 
         if (x.yetkili && /^merhaba\s*,/i.test(govde)) govde = govde.replace(/^merhaba\s*,/i, "Merhaba " + x.yetkili + ",");
         govde += "\n\nSaygılarımızla," + altBilgi();
         const deneme = mod !== "acik";
-        await tp.sendMail({ from: `"${FIRMA}" <${GU}>`, to: deneme ? GU : x.eposta, subject: deneme ? `[DENEME → ${x.firma} <${x.eposta}>] ${konu}` : konu, text: govde, headers: deneme ? {} : { "List-Unsubscribe": `<mailto:${GU}?subject=IPTAL>` } });
-        gonderilen++; D.epN = (D.epN || 0) + 1;
+        await tp.sendMail({ from: `"${FIRMA}" <${GU}>`, to: deneme ? GU : x.eposta, subject: deneme ? `[DENEME → ${x.firma} <${x.eposta}> • ${TUR_AD[h.tur]}] ${konu}` : konu, text: govde, headers: deneme ? {} : { "List-Unsubscribe": `<mailto:${GU}?subject=IPTAL>` } });
+        gonderilen++; say[h.k] = (say[h.k] || 0) + 1; D.epN = (D.epN || 0) + 1;
         if (deneme) { x.epDeneme = BUGUN; await guncelle(x, { epDeneme: BUGUN }).catch(() => { }); }
-        if (!deneme) {
-          const gec = [...X.arr(x.epGonderim), { t: Date.now(), tur: h.tur, konu, ...(h.tk ? { no: h.tk.no || "" } : {}) }].slice(-10);
-          const ch = { epGonderim: gec, gorus: gorusEkle(x, "E-posta", `🤖 Ajan ${h.tur === "tanitim" ? "tanıtım" : h.tur === "takip" ? "takip" : "teklif hatırlatma"} e-postası gönderdi: ${konu}`), sonraki: X.plus(h.tur === "teklif" ? 2 : 5) };
+        else {
+          const gec = [...X.arr(x.epGonderim), { t: Date.now(), tur: h.tur, konu, ...(h.tk ? { no: h.tk.no || "" } : {}) }].slice(-15);
+          const ch = { epGonderim: gec, gorus: gorusEkle(x, "E-posta", `🤖 Ajan ${TUR_AD[h.tur]} e-postası gönderdi: ${konu}`), sonraki: X.plus({ teklif: 2, tahsilat: 3, tekrar: 3, numune: 3 }[h.tur] || 5) };
           if (x.durum === "Yeni") ch.durum = "İletişim kuruldu";
           await guncelle(x, ch).catch(() => { });
         }
-      } catch (e) { hata++; log("e-posta gönderilemedi:", e.message); if (/auth|credential|Username and Password|535/i.test(e.message)) { not_("⚠", "Gmail ile gönderilemedi: uygulama şifresini kontrol et"); break; } if (/kota|429/i.test(e.message)) break; }
+      } catch (e) { hata++; log("e-posta gönderilemedi:", e.message); if (/auth|credential|Username and Password|535/i.test(e.message)) { not_("⚠", "Gmail ile gönderilemedi: uygulama şifresini kontrol et"); for (const k of EPT) GSON[k] = { t: Date.now(), metin: "Gmail'e girilemedi: uygulama şifresini kontrol et" }; break; } if (/kota|429/i.test(e.message)) break; }
     }
-    if (gonderilen) not_("📧", mod === "acik" ? `${gonderilen} firmaya e-postayı kendisi gönderdi (tanıtım/takip/teklif hatırlatma)` : `DENEME modu: ${gonderilen} örnek e-postayı sana (${GU}) gönderdi — beğenirsen Kurulum'da "Açık" yap`);
+    for (const k of EPT) if (say[k]) GSON[k] = { t: Date.now(), metin: `${say[k]} ${mod === "acik" ? "firmaya" : "deneme"} e-posta gönderdi` };
+    if (gonderilen) not_("📧", mod === "acik" ? `${gonderilen} firmaya e-postayı kendisi gönderdi (${Object.entries(say).map(([k, n]) => TUR_AD[TURA[k][0]] + " " + n).join(", ")})` : `DENEME modu: ${gonderilen} örnek e-postayı sana (${GU}) gönderdi — beğenirsen Kurulum'da "Açık" yap`);
     log("E-posta gönderimi:", gonderilen, mod, hata ? "• hata: " + hata : "");
   }
 }
 
+/* ---------- 🗺 Bugünün ziyaret rotası ---------- */
+if (calis("rota")) {
+  const M = O.merkez && isFinite(+O.merkez.lat) ? { lat: +O.merkez.lat, lon: +O.merkez.lon } : null;
+  const ad = data.filter(x => x.konum && isFinite(x.konum.lat) && !x.aramayin && x.durum !== "İlgilenmiyor" && ((x.sonraki && x.sonraki <= BUGUN) || (x.oncelik === "Sıcak" && ["Yeni", "İletişim kuruldu", "İlgileniyor"].includes(x.durum)) || (x.epCevap && Date.now() - x.epCevap.t < 3 * 864e5)));
+  if (M && ad.length) {
+    const sira = []; let c = M; const k = [...ad];
+    while (k.length && sira.length < 10) { k.sort((a, b) => X.hav(c.lat, c.lon, a.konum.lat, a.konum.lon) - X.hav(c.lat, c.lon, b.konum.lat, b.konum.lon)); const n = k.shift(); sira.push(n); c = n.konum; }
+    const url = "https://www.google.com/maps/dir/" + [M, ...sira.map(x => x.konum)].map(p => p.lat + "," + p.lon).join("/");
+    await yaz("ajan/rota", g.tok, { t: Date.now(), tarih: BUGUN, url, firmalar: sira.map(x => ({ id: x.id, firma: x.firma })) }).catch(() => { });
+    not_("🗺", `Bugünün ziyaret rotasını hazırladı: ${sira.length} firma (${sira.slice(0, 3).map(x => x.firma).join(", ")}${sira.length > 3 ? "…" : ""})`, "rota");
+  } else GSON.rota = { t: Date.now(), metin: M ? "Bugün ziyaret edilecek konumlu firma yok" : "Fabrika konumu seçilmemiş" };
+}
+
 /* ---------- 📅 8) Haftalık strateji ---------- */
-if (ilkCalisma) {
+if (calis("haftalik")) {
   let hafta = await okuG("ajan/rapor/hafta");
-  if (X.aiKey() && (new Date().getDay() === 1 || !hafta || Date.now() - (hafta.t || 0) > 6.5 * 864e5)) {
+  if (X.aiKey() && ((SECILI && SECILI.has("haftalik")) || new Date().getDay() === 1 || !hafta || Date.now() - (hafta.t || 0) > 6.5 * 864e5)) {
     try {
       X.aiKodla();
       const gun7 = Date.now() - 7 * 864e5, sek = {}, kayip = {}, h = { yeniKayit: 0, gorusme: 0, teklif: 0, siparis: 0, siparisTutar: 0, tahsilat: 0, yeniMusteri: 0, ajanEpostasi: 0, epostaCevabi: 0 };
@@ -406,13 +468,15 @@ if (ilkCalisma) {
       const m = X.deanon(await X.aiSor(X.AISYS(), [{ r: "ben", m: "HAFTALIK STRATEJİ RAPORU yaz. Ek veri: " + JSON.stringify({ gecenHafta: h, sektorPerformansi: sek, kayipSebepleri: kayip }) +
         "\nBaşlıklar: **Geçen hafta** (2-3 madde, rakamla) • **Para nerede** (hangi sektör/müşteri kazandırıyor, hangisi boşa emek) • **Bu hafta 5 hedef** (ölçülebilir) • **Fiyat** (zam/indirim önerisi) • **Ajanlara ayar önerisi** (tarama yarıçapı, sektör, e-posta sayısı) • **Uyarı**. En fazla 22 satır." }], { max: 4000 }));
       await yaz("ajan/rapor/hafta", g.tok, { t: Date.now(), metin: m });
-      not_("📅", "Haftalık strateji raporunu yazdı"); log("Haftalık strateji yazıldı");
+      not_("📅", "Haftalık strateji raporunu yazdı", "haftalik"); log("Haftalık strateji yazıldı");
     } catch (e) { log("Haftalık strateji atlandı:", e.message); }
   }
 }
 
 /* ---------- 📒 9) Ajan günlüğü + durum ---------- */
-if (ilkCalisma) D.rapor = BUGUN;
+if (!elle ? sabahTuru : !SECILI) D.sabah = BUGUN;
+for (const k of RAN) if (!GSON[k]) GSON[k] = { t: Date.now(), metin: "Çalıştı — yapacak iş yoktu" };
+if (Object.keys(GSON).length) await yaz("ajan/gorevSon", g.tok, GSON, "PATCH").catch(() => { });
 await durumYaz();
 if (GUN.length) await yaz("ajan/gunluk/" + BUGUN, g.tok, { t: Date.now(), isler: GUN.slice(-60) }).catch(e => log("günlük yazılamadı:", e.message));
 // 30 günden eski günlükleri sil
@@ -420,6 +484,7 @@ try { const gk = (await okuG("ajan/gunluk")) || {}; for (const k of Object.keys(
 
 /* ---------- 🔔 10) Bildirim ---------- */
 OZET = GUN.slice(GUN0).map(q => q.ik + " " + q.metin).join("\n").slice(0, 1500);
+if (!calis("bildirim")) { log("Bildirim görevi bu turda kapalı"); bitir(); }
 const priv = env("VAPID_PRIVATE") || String(GIZLI.vapidPriv || ""), pub = ayar.vapidPub;
 const ozetSatir = () => {
   const al = ik => GUN.filter(q => q.ik === ik && q.t > Date.now() - 3 * 3600e3).length;
@@ -431,7 +496,7 @@ if (!priv || !pub) { log("Bildirim atlandı: " + (!pub ? "programda bildirim ana
 let webpush; try { webpush = (await import("web-push")).default; } catch (e) { log("web-push paketi yok, bildirim atlandı"); bitir(); }
 try { webpush.setVapidDetails("mailto:info@magambalaj.com", pub, priv); } catch (e) { dur("VAPID_PRIVATE hatalı: programdaki 4. adımda üretilen gizli anahtarı aynen yapıştır (" + e.message + ")"); }
 const bildirimler = [];
-if (ilkCalisma) { const oz = ozetSatir(), ilk = l.find(f => f.sev !== "bilgi"); bildirimler.push({ title: "🤖 Ajanlar gece çalıştı", body: `${oz ? oz + "\n" : ""}Bugün ${l.length} iş${acil ? " (" + acil + " acil)" : ""}${ilk ? " • önce: " + ilk.bas : ""}`.slice(0, 230), url: "./?git=akis" }); }
+if (sabahTuru || elle) { const oz = ozetSatir(), ilk = l.find(f => f.sev !== "bilgi"); bildirimler.push({ title: "🤖 Ajanlar gece çalıştı", body: `${oz ? oz + "\n" : ""}Bugün ${l.length} iş${acil ? " (" + acil + " acil)" : ""}${ilk ? " • önce: " + ilk.bas : ""}`.slice(0, 230), url: "./?git=akis" }); }
 for (const s of SICAK.slice(0, 3)) bildirimler.push({ title: "🔥 Sıcak gelişme", body: s, url: "./?git=akis" });
 if (!bildirimler.length) { log("Gönderilecek bildirim yok"); bitir(); }
 let abone = (await okuG("ajan/abone")) || {};

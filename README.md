@@ -177,6 +177,12 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
 
 - **v14.4 (02.11.2026):** Kurulum 7b/8 "Kaydet" hataları artık sessiz kalmıyor: Firebase kuralı eskiyse (ajan altına yazma izni yok) ne yapılacağını söyleyen uyarı; GitHub "Kaydet ve dene" düğmesi "Deneniyor…" gösterir, sonucu ✅/❌ pencereyle bildirir; anahtardaki boşluklar temizlenir.
 
+- **v15 (02.11.2026) — 🎛 AJAN GÖREVLERİ:** Ajanlar → 🎛 Görevler (ve Diğer menüsünde yeşil düğme): 18 görev 4 grupta, her biri aç/kapat + zaman (Her sabah 08:12 / Günde 3 kez / Sadece elle) + e-posta görevlerinde hedef (Tüm liste / Sadece ajana verdiklerim); her görevin son sonucu (`ajan/gorevSon`) ve eksik bağlantı uyarısı (Gmail / yapay zekâ). Ayar `ayar.otonom.gorevler`.
+  - Görevler: 🎯 yeni müşteri bul, ✉ e-posta bul, 🔄 takibi ayarla, 🗺 ziyaret rotası (yeni; `ajan/rota`, Bugün ekranında "Haritada aç"), ✍ WhatsApp mesajları; e-posta: 👋 tanıtım, 🔁 takip, 📨 teklif hatırlatma, 🎁 numune takibi (yeni), 📦 sipariş zamanı (yeni), 🧩 ürün önerisi (yeni), 😴 geri kazanım (yeni), 💰 ödeme hatırlatma (yeni, haftada en çok 1), 🛡 fiyat güncelleme (yeni); 📨 gelen cevaplar, 📋 Müdür raporu, 📅 haftalık strateji, 🔔 bildirim. Yeni e-posta türleri varsayılan kapalı.
+  - ▶ Şimdi çalıştır → görev seçme penceresi (son seçim hatırlanır) → `ajan/istek` {t, gorevler} yazılır → ajan yalnızca seçilenleri yapar (20 dk geçerli, okununca silinir).
+  - 🤖 Ajana ver / Ajandan al (Müşteriler → toplu işlem) → `ajanSec`; kartta 🤖 etiketi; sıralama "🤖 Ajana verdiklerim önce".
+  - E-posta kuralları: firmaya günde en çok 1 e-posta, öncelik sırası teklif > ödeme > sipariş zamanı > numune > fiyat > ürün önerisi > geri kazanım > takip > tanıtım; tür başına tekrar aralığı (ödeme 7, sipariş 20, diğerleri 30-60 gün); deneme konusu türü de gösterir.
+
 ## Kâr modeli — ücretsiz ajan yol haritası
 Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullanılırsa, ileride kendi altyapımızla değiştirilebilecek şekilde bağlanır (Geoapify → mag-veri örneğinde olduğu gibi).
 1. ✅ **Ajan Merkezi (v11)** — kural tabanlı ajanlar, program içinde.
