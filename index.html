@@ -4,7 +4,7 @@
    Telefonda biriktirir (localStorage, en çok 40), giriş yapılmışsa 20 sn'de bir Firebase `mag_pazar/hata/` altına gönderir.
    Amaç: kullanıcı anlatmadan Claude'un hatayı görüp çözebilmesi. Yalnız yönetici okur (rules.json). Şifre/fotoğraf yazılmaz. */
 (function(){
-  var K="mag_hata",V="v17.4";
+  var K="mag_hata",V="v17.5";
   function oku(){try{return JSON.parse(localStorage.getItem(K))||[]}catch(e){return[]}}
   function cihaz(){var u=navigator.userAgent||"";return(/Android/.test(u)?"Android":/iPhone|iPad/.test(u)?"iOS":/Windows/.test(u)?"Windows":/Mac/.test(u)?"Mac":"diger")+" "+(/Edg\//.test(u)?"Edge":/Chrome\//.test(u)?"Chrome":/Safari\//.test(u)?"Safari":/Firefox\//.test(u)?"Firefox":"")+(matchMedia&&matchMedia("(display-mode: standalone)").matches?" (uygulama)":"")}
   function ekle(tur,m,s){try{m=String(m==null?"":m).replace(/\s+/g," ").trim().slice(0,400);if(!m)return;var l=oku(),son=l[l.length-1];
@@ -2113,11 +2113,15 @@ function offUi(){$("offl").hidden=navigator.onLine!==false}
 window.addEventListener("online",offUi);window.addEventListener("offline",offUi);offUi();
 
 /* ================= açılış ================= */
-document.querySelectorAll("dialog").forEach(d=>{let dn=false;
- const out=e=>{const r=d.getBoundingClientRect();return e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom};
- d.addEventListener("mousedown",e=>{dn=e.target===d&&out(e)});
- d.addEventListener("click",e=>{if(dn&&e.target===d&&out(e)){if(d===dlgG)recStop(true);d.close()}dn=false});
-});
+/* v17.5: HER pencere (sonradan eklenenler dahil) karartılmış arka plana dokununca kapanır — Vazgeç/İptal/Kapat/✕'a basılmış gibi. Pencerenin içine dokunmak kapatmaz. */
+(()=>{let bas=null;const SIRA=["Vazgeç","İptal","Kapat","✕","×","✖"];
+ const dis=(d,e)=>{const r=d.getBoundingClientRect();return e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom};
+ document.addEventListener("pointerdown",e=>{const d=e.target;bas=d&&d.tagName==="DIALOG"&&d.open&&dis(d,e)?d:null},true);
+ document.addEventListener("click",e=>{const d=e.target,b=bas;bas=null;if(!d||d!==b||d.tagName!=="DIALOG"||!d.open||!dis(d,e))return;
+  if(typeof dlgG!=="undefined"&&d===dlgG)try{recStop(true)}catch(_){}
+  const bl=[...d.querySelectorAll("button")].filter(x=>x.getClientRects().length);let k=null;
+  for(const t of SIRA){k=bl.find(x=>x.textContent.trim()===t);if(k)break}
+  if(k)k.click();if(d.open)d.close()},true)})();
 /* başlangıç: tüm modüller tanımlandıktan sonra, dosyanın sonunda çalışır (v13) */
 function __baslat(){if(SIPT){musteriSayfasi()}else{render();initCloud();vIndex().catch(()=>{});pinBaslat()}}
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
@@ -2594,7 +2598,7 @@ function listeRota(ids){const l=ids.map(i=>data.find(v=>v.id===i)).filter(x=>x&&
 
 /* --- ortak yapay zekâ penceresi --- */
 document.body.insertAdjacentHTML("beforeend",`<dialog id="dlgAI" class="wide"><form onsubmit="return false"><b id="aiT">✨</b><div id="aiB" class="ajai" style="min-height:60px;margin-top:8px"></div><div class="row" id="aiBt"></div><div class="row"><button type="button" onclick="dlgAI.close()">Kapat</button></div></form></dialog>`);
-const dlgAI=document.getElementById("dlgAI");dlgAI.addEventListener("click",e=>{if(e.target===dlgAI)dlgAI.close()});
+const dlgAI=document.getElementById("dlgAI");
 function aiPencere(baslik,html,butonlar){$("aiT").textContent=baslik;$("aiB").innerHTML=html;$("aiBt").innerHTML=butonlar||"";if(!dlgAI.open)dlgAI.showModal()}
 const yukleniyor=m=>`<div class="mu">👔 ${esc(m||"Müdür düşünüyor…")}</div><div class="mu aiSure">başlıyor…</div><div class="row"><button type="button" onclick="aiVazgec()">Vazgeç</button></div>`;
 
@@ -2677,7 +2681,7 @@ document.body.insertAdjacentHTML("beforeend",`<dialog id="dlgK" class="wide"><fo
 <label>Eklemek istediğin (isteğe bağlı)</label><input id="kEk" placeholder="ör. ilk siparişe %5 indirim, 2 günde teslim, ücretsiz logo baskı tasarımı">
 <div class="row"><button type="button" class="p" onclick="kampanyaYaz()">✨ 3 mesaj yaz</button><span class="mu" id="kS"></span></div><div id="kV"></div>
 <div class="row"><button type="button" onclick="dlgK.close()">Kapat</button></div></form></dialog>`);
-const dlgK=document.getElementById("dlgK");dlgK.addEventListener("click",e=>{if(e.target===dlgK)dlgK.close()});
+const dlgK=document.getElementById("dlgK");
 let kIds=[];
 function kampanyaAc(ids){kIds=ids.slice();if(!aiKey()){alert("Yapay zekâ bağlı değil: Ajanlar → 🛠 Kurulum → 1. adım.");return}
  const l=kIds.map(i=>data.find(v=>v.id===i)).filter(Boolean),wa=l.filter(x=>waNum(x.telefon)&&x.izin!=="Çıkış yaptı"&&!x.aramayin);
@@ -3003,7 +3007,7 @@ document.addEventListener("change",e=>{const t=e.target;if(t.dataset&&t.dataset.
 document.body.insertAdjacentHTML("beforeend",`<dialog id="dlgGv" class="wide"><form onsubmit="return false"><b>▶ Ajanlar şimdi ne yapsın?</b><div class="mu">İşaretli görevler hemen çalışır (2-5 dk). Kalıcı ayar için 🎛 Görevler ekranını kullan.</div>
 <div class="row" style="margin:6px 0"><button type="button" onclick="gvSecTum(true)">Hepsini seç</button><button type="button" onclick="gvSecTum(false)">Hiçbirini</button><button type="button" onclick="gvSecTum('acik')">Açık olanlar</button></div><div id="gvL"></div>
 <div class="row"><button type="button" class="p" onclick="gvBaslat()">▶ Seçilenleri çalıştır</button><button type="button" onclick="dlgGv.close()">Vazgeç</button></div></form></dialog>`);
-const dlgGv=document.getElementById("dlgGv");dlgGv.addEventListener("click",e=>{if(e.target===dlgGv)dlgGv.close()});
+const dlgGv=document.getElementById("dlgGv");
 function gvAc(){if(!isAdmin()||!root){alert("Bunun için yönetici hesabıyla giriş yapmalısın.");return}const V=gvAl(),son=lsJ("mag_gvsec",null);
  $("gvL").innerHTML=GOREVLER.map(g=>`<div class="mu" style="margin:8px 0 2px"><b>${g.g}</b></div>`+g.l.map(d=>{const u=gorevUyari(d),on=son?son.includes(d.k):V[d.k].acik;return `<label class="gvsec"><input type="checkbox" data-gs="${d.k}" ${on?"checked":""}> ${d.ik} ${d.ad}${u?` <span class="warn" style="font-size:12px">${u}</span>`:""}</label>`}).join("")).join("");dlgGv.showModal()}
 function gvSecTum(v){const V=gvAl();document.querySelectorAll("[data-gs]").forEach(e=>e.checked=v==="acik"?!!V[e.dataset.gs].acik:v)}
