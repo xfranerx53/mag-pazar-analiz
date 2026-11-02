@@ -136,7 +136,7 @@ const GOREV_VARS = { tarama: { acik: true, zaman: "sabah" }, epbul: { acik: true
   sevkiyat: { acik: true, zaman: "sabah" }, kuyruk: { acik: true, zaman: "her" }, hatirlat: { acik: true, zaman: "her" }, risk: { acik: true, zaman: "sabah" }, firsat: { acik: true, zaman: "sabah" }, icerik: { acik: true, zaman: "sabah" } };
 const GV = {}; for (const k in GOREV_VARS) GV[k] = Object.assign({}, GOREV_VARS[k], (O.gorevler || {})[k] || {});
 if (O.tarama === false && !(O.gorevler || {}).tarama) GV.tarama.acik = false;
-const elle = env("GITHUB_EVENT_NAME") === "workflow_dispatch";
+const elle = env("GITHUB_EVENT_NAME") === "workflow_dispatch" && env("ZAMANLI") !== "1"; // ZAMANLI=1: dış zamanlayıcıdan gelen otomatik tur (mesai kuralı geçerli)
 /* ---------- ⏰ Çalışma saatleri: GitHub her saat uyandırır; ajan sadece programda seçilen gün/saatte iş yapar ---------- */
 if (!elle && env("TAM") !== "1") {
   if (O.durdur) { log("⏸ Ajanlar tatilde (programda durduruldu) — iş yok"); process.exit(0); }
@@ -591,14 +591,15 @@ if (calis("haftalik")) {
 if (calis("risk")) {
   if (!X.aiKey()) GSON.risk = { t: Date.now(), metin: "Yapay zekâ anahtarı yok (Kurulum 1)" };
   else {
-    const lim = Math.max(0, Math.min(10, +O.riskGunluk || 4)); let n = 0, riskli = 0;
+    const lim = Math.max(0, Math.min(10, +O.riskGunluk || 4)); let n = 0, riskli = 0, rHata = "";
     const ozel = ISTEK && Array.isArray(ISTEK.riskIds) ? new Set(ISTEK.riskIds) : null; // programdan "bu firmayı araştır"
     const aday = ozel ? data.filter(x => ozel.has(x.id)).slice(0, 10) : data.filter(x => !x.aramayin && ["Teklif verildi", "İlgileniyor", "Müşteri"].includes(x.durum) && (!x.risk || Date.now() - (x.risk.t || 0) > 90 * 864e5))
       .sort((a, b) => (a.risk ? 1 : 0) - (b.risk ? 1 : 0) || X.bakiye(b) - X.bakiye(a)).slice(0, lim);
     for (const x of aday) {
       try { const r = await X.riskAnaliz(x); await guncelle(x, { risk: r }); n++; if (r.seviye === "risk") { riskli++; SICAK.push("🛡 " + x.firma + ": " + r.karar); } }
-      catch (e) { log("Risk analizi atlandı"); if (/429|kota|sınır/i.test(e.message)) break; }
+      catch (e) { log("Risk analizi atlandı"); rHata = e.message; if (/429|kota|sınır/i.test(e.message)) break; }
     }
+    if (!n && rHata) GSON.risk = { t: Date.now(), metin: "⚠ Araştırma yapılamadı: " + String(rHata).slice(0, 140) };
     if (n) not_("🛡", `${n} firmanın ödeme güvenini araştırdı${riskli ? `, ${riskli} tanesi riskli çıktı` : ", hepsi makul"}`, "risk");
     log("Risk analizi:", n, "firma", riskli ? "• riskli " + riskli : "");
   }
@@ -608,7 +609,7 @@ for (const [k, yol, fn, ik, yazi] of [["firsat", "ajan/firsat", () => X.firsatAr
   if (!calis(k) || !X.aiKey()) continue;
   const eski = await okuG(yol);
   if (!(SECILI && SECILI.has(k)) && eski && Date.now() - (eski.t || 0) < 6.5 * 864e5) continue;
-  try { const r = await fn(); await yaz(yol, g.tok, r); not_(ik, yazi(r), k); log(k, "yazıldı"); } catch (e) { log(k, "atlandı:", String(e.message).slice(0, 60)); }
+  try { const r = await fn(); await yaz(yol, g.tok, r); not_(ik, yazi(r), k); log(k, "yazıldı"); } catch (e) { log(k, "atlandı:", String(e.message).slice(0, 60)); GSON[k] = { t: Date.now(), metin: "⚠ Yapılamadı: " + String(e.message).slice(0, 140) }; }
 }
 
 /* ---------- 📒 9) Ajan günlüğü + durum ---------- */

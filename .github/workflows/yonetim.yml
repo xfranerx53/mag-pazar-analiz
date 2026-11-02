@@ -40,7 +40,7 @@ jobs:
           DB_URL: https://mag-pazar-default-rtdb.europe-west1.firebasedatabase.app
           KOK: "mag_pazar"
           KURAL_HTML: index.html
-          HARIC: "gizli,medya,yedek,abone"
+          HARIC: "gizli,medya,yedek,abone,aiKey,geoKey,googleKey,ghToken,gmailPass,sevkSifre"
       - name: Teşhisi özel depoya yaz
         if: env.ISLEM == 'teshis'
         env:

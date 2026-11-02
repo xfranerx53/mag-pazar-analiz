@@ -10,6 +10,10 @@ on:
   schedule:
     - cron: "17 * * * *"    # her saatin 17. dakikası (Türkiye saatiyle de :17)
   workflow_dispatch:
+    inputs:
+      zamanli:
+        description: "1 = dış zamanlayıcıdan otomatik tur (mesai saatlerine uyar)"
+        default: "0"
 
 permissions:
   contents: write
@@ -44,6 +48,7 @@ jobs:
       - name: Ajanları çalıştır
         run: node ajan-gece.mjs
         env:
+          ZAMANLI: ${{ github.event.inputs.zamanli }}
           FB_EMAIL: ${{ secrets.FB_EMAIL }}
           FB_PASSWORD: ${{ secrets.FB_PASSWORD }}
           VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
