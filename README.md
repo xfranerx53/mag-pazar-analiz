@@ -169,6 +169,8 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
   - *Workflow değişti:* 3 zamanlama, `nodemailer imapflow mailparser` kurulumu, GMAIL secrets, 25 dk süre.
   - *Düzeltmeler:* "⭐ Önce kazandıracaklar" vadesi geçmeyen bakiyeyi artık geciken saymıyor; toplu "E-posta bul" listeden ayrılmadan çalışır (ilerleme tostla); WhatsApp "Gönder" yalnızca cep numarasında (sabit hatta "Ara"); deneme modunda aynı firmaya ikinci örnek gitmez. sw.js mag-v20.
 
+- **v14.1 (02.11.2026):** Ajanlar ekranındaki üst düğmeler (Müdür … 🛠 Kurulum) artık yana kaymıyor, alt alta sarılıyor — bilgisayarda fareyle ulaşılamama sorunu giderildi. Diğer menüsüne doğrudan "🛠 Kurulum ve ajan ayarları" düğmesi eklendi.
+
 ## Kâr modeli — ücretsiz ajan yol haritası
 Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullanılırsa, ileride kendi altyapımızla değiştirilebilecek şekilde bağlanır (Geoapify → mag-veri örneğinde olduğu gibi).
 1. ✅ **Ajan Merkezi (v11)** — kural tabanlı ajanlar, program içinde.
