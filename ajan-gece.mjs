@@ -525,7 +525,8 @@ if (calis("risk")) {
   if (!X.aiKey()) GSON.risk = { t: Date.now(), metin: "Yapay zekâ anahtarı yok (Kurulum 1)" };
   else {
     const lim = Math.max(0, Math.min(10, +O.riskGunluk || 4)); let n = 0, riskli = 0;
-    const aday = data.filter(x => !x.aramayin && ["Teklif verildi", "İlgileniyor", "Müşteri"].includes(x.durum) && (!x.risk || Date.now() - (x.risk.t || 0) > 90 * 864e5))
+    const ozel = ISTEK && Array.isArray(ISTEK.riskIds) ? new Set(ISTEK.riskIds) : null; // programdan "bu firmayı araştır"
+    const aday = ozel ? data.filter(x => ozel.has(x.id)).slice(0, 10) : data.filter(x => !x.aramayin && ["Teklif verildi", "İlgileniyor", "Müşteri"].includes(x.durum) && (!x.risk || Date.now() - (x.risk.t || 0) > 90 * 864e5))
       .sort((a, b) => (a.risk ? 1 : 0) - (b.risk ? 1 : 0) || X.bakiye(b) - X.bakiye(a)).slice(0, lim);
     for (const x of aday) {
       try { const r = await X.riskAnaliz(x); await guncelle(x, { risk: r }); n++; if (r.seviye === "risk") { riskli++; SICAK.push("🛡 " + x.firma + ": " + r.karar); } }
