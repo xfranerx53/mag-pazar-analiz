@@ -4,7 +4,7 @@
    Telefonda biriktirir (localStorage, en çok 40), giriş yapılmışsa 20 sn'de bir Firebase `mag_pazar/hata/` altına gönderir.
    Amaç: kullanıcı anlatmadan Claude'un hatayı görüp çözebilmesi. Yalnız yönetici okur (rules.json). Şifre/fotoğraf yazılmaz. */
 (function(){
-  var K="mag_hata",V="v17.2";
+  var K="mag_hata",V="v17.3";
   function oku(){try{return JSON.parse(localStorage.getItem(K))||[]}catch(e){return[]}}
   function cihaz(){var u=navigator.userAgent||"";return(/Android/.test(u)?"Android":/iPhone|iPad/.test(u)?"iOS":/Windows/.test(u)?"Windows":/Mac/.test(u)?"Mac":"diger")+" "+(/Edg\//.test(u)?"Edge":/Chrome\//.test(u)?"Chrome":/Safari\//.test(u)?"Safari":/Firefox\//.test(u)?"Firefox":"")+(matchMedia&&matchMedia("(display-mode: standalone)").matches?" (uygulama)":"")}
   function ekle(tur,m,s){try{m=String(m==null?"":m).replace(/\s+/g," ").trim().slice(0,400);if(!m)return;var l=oku(),son=l[l.length-1];
@@ -3428,12 +3428,12 @@ async function eylemYap(mi,j){const m=sohb[+mi],a=m&&arr(m.eylemler)[+j];if(!a||
    a.sonuc=await kuyrugaEkle({firmaId:x.id,konu:deanon(a.konu||"MAG AMBALAJ"),metin:deanon(a.metin||"")});break}
   case"whatsapp":{if(!x)throw new Error("Firma bulunamadı");const n=waNum(x.telefon);if(!n)throw new Error("Bu firmanın cep telefonu yok.");
    a.link=`https://wa.me/${n}?text=${encodeURIComponent(selam(x)+" "+deanon(a.metin||"")+" "+imza())}`;a.linkAd="💬 WhatsApp'ta aç";a.sonuc="Mesaj hazır, açıp gönder";window.open(a.link,"_blank");break}
-  case"teklif":{if(!x)throw new Error("Firma bulunamadı");const R=AJ(),uy=[];
+  case"teklif":{if(!x)throw new Error("Firma bulunamadı");const R=AJ(),uy=[];let kz=0;
    const ks=arr(a.kalemler).map(k=>{const u=katalog.find(u=>u.ad===k.urun)||katalog.find(u=>normF(u.ad)===normF(k.urun||""));let f=+k.fiyat||(u&&(+u.fiyat||(+u.maliyet?oner(u.maliyet):0)))||0;
-    if(u&&+u.maliyet){const alt=marjAlt(u.maliyet,R.minMarj);if(f<alt){uy.push(`${u.ad}: ${TL2(f)} → ${TL2(alt)}`);f=alt}}
+    if(u&&+u.maliyet){const alt=marjAlt(u.maliyet,R.minMarj);if(f<alt){uy.push(`${u.ad}: ${TL2(f)} → ${TL2(alt)}`);kz+=(alt-f)*(+k.miktar||0);f=alt}}
     const o={urun:u?u.ad:String(k.urun||"").trim(),mik:+k.miktar||0,birim:u?u.birim||"":"",fiyat:f,isk:0};if(u&&+u.maliyet)o.maliyet=+u.maliyet;if(u)o.urunId=u.id;return o}).filter(k=>k.urun);
    if(!ks.length)throw new Error("Kalem yok");const doc={kim:"👔 Müdür",kalemler:ks,kdv:20,tar:today(),durum:"Beklemede",not:deanon(a.not||"")};const c=calc(doc);doc.ara=Math.round(c.ara*100)/100;doc.tut=Math.round(c.top*100)/100;doc.no=await nextNo("T");
-   const y={...x,teklif:[...arr(x.teklif),doc]};syncDur(y,"Beklemede");put(y);a.sonuc=`${doc.no} • ${TL2(doc.tut)}${uy.length?" • Fiyat Bekçisi düzeltti: "+uy.join(", "):""}`;a.teklifIdx=y.teklif.length-1;a.firmaId=x.id;
+   const y={...x,teklif:[...arr(x.teklif),doc]};syncDur(y,"Beklemede");put(y);a.sonuc=`${doc.no} • ${TL2(doc.tut)}${uy.length?" • Fiyat Bekçisi düzeltti: "+uy.join(", "):""}`;a.teklifIdx=y.teklif.length-1;a.firmaId=x.id;kazancYaz("fiyat",kz,x.id,"Müdür'ün teklifinde Fiyat Bekçisi fiyatı asgari kâra çekti — "+x.firma);
    setTimeout(()=>printDoc("teklif",x.id,a.teklifIdx),200);break}
   case"hatirlat":{const tar=/^\d{4}-\d\d-\d\d$/.test(a.tarih||"")?a.tarih:today(),sa=/^\d\d:\d\d$/.test(a.saat||"")?a.saat:"09:00",mt=deanon(a.metin||"Hatırlatma");
    await root.child("ajan/takvim").push({t:Date.now(),tarih:tar,saat:sa,metin:mt,firmaId:x?x.id:null});OF.t=0;
@@ -3685,6 +3685,60 @@ function malKart(){const m=OF.maliyet;if(!m)return"";if(m.hata)return`<div class
 A.svgit=()=>{ajFiltre="sevkiyat";go("ajan")};
 A.svesit=async()=>{const m=await sunucudaYap(["sevkiyat"]);tost(m?"↻ Ajan eşitliyor (2-4 dk)":"GitHub bağlantısı yok (Kurulum 8)",5000)};
 window.ajOzel.sevkiyat=sevkSayfa;
+
+/* --- 📈 KAZANÇ PANOSU: ajanlar ne kazandırdı, hangi görev işe yarıyor --- */
+OFIS.splice(1,0,{k:"kazanc",ik:"📈",ad:"Kazanç Panosu",is:"Ajanların getirdiği satış, tahsilat, korunan kâr ve kazandırdığı zaman",g:[]});
+AJLER.push({k:"kazanc",ik:"📈",ad:"Kazanç Panosu",ac:"Ajanların getirdiği satışı, tahsil ettiği parayı, koruduğu kârı ve kazandırdığı zamanı ölçer; işe yaramayan görevi gösterir."});
+let KZ={gun:30,kazanc:{},gunluk:{},t:0};
+async function kazancYukle(zorla){if(!root||cloudState!=="on"||(!zorla&&Date.now()-KZ.t<60000))return;KZ.t=Date.now();
+ try{const[a,b]=await Promise.all([root.child("ajan/kazanc").once("value"),root.child("ajan/gunluk").once("value")]);KZ.kazanc=a.val()||{};KZ.gunluk=b.val()||{}}catch(e){}if(tab==="ajan"&&ajFiltre==="kazanc")renderAjan()}
+function kazancYaz(tur,tutar,firmaId,aciklama){if(!root||!(tutar>0.5))return;root.child("ajan/kazanc").push({t:Date.now(),tur,tutar:Math.round(tutar),firmaId:firmaId||null,aciklama:String(aciklama||"").slice(0,160)}).catch(()=>{});KZ.t=0}
+const TUR2GV={tanitim:"tanitim",takip:"takipEp",teklif:"teklifEp",numune:"numuneEp",tekrar:"tekrarEp",capraz:"caprazEp",uyuyan:"uyuyanEp",tahsilat:"tahsilatEp",fiyat:"fiyatEp",mudur:""};
+const TURADI={tanitim:"👋 Tanıtım",takip:"🔁 Takip",teklif:"📨 Teklif hatırlatma",numune:"🎁 Numune takibi",tekrar:"📦 Sipariş zamanı",capraz:"🧩 Ürün önerisi",uyuyan:"😴 Geri kazanım",tahsilat:"💰 Ödeme hatırlatma",fiyat:"🛡 Fiyat güncelleme",mudur:"👔 Müdür'ün verdiği"};
+const DK_IS={tarama:3,epbul:2,takip:1,rota:15,gelen:3,rapor:15,taslak:3,kuyruk:3,risk:20,firsat:30,icerik:45,haftalik:30,sevkiyat:2,tanitim:5,takipEp:5,teklifEp:5,numuneEp:5,tekrarEp:5,caprazEp:5,uyuyanEp:5,tahsilatEp:5,fiyatEp:5};
+function kazancHesap(gun){const bas=Date.now()-gun*864e5,basT=fmt(new Date(bas)),gt=s=>s?new Date(s+"T12:00:00").getTime():0;
+ const S={satis:0,satisKg:0,satisF:new Set(),tahsil:0,tahsilF:new Set(),yeni:[],korunan:0,korunanN:0,huni:{g:0,c:0,t:0,m:0},gorev:{},dk:0,dkK:{}};
+ data.forEach(x=>{const ep=arr(x.epGonderim).filter(q=>q&&q.t&&!q.deneme);
+  const alim=[...arr(x.siparis).filter(sipAktif).map(o=>({t:gt(o.tar),tl:docTop(o),kg:0})),...arr(x.sevk).map(o=>({t:gt(o.tar),tl:0,kg:+o.kg||0}))].filter(o=>o.t>=bas);
+  const odeme=[...arr(x.odeme).map(o=>({t:gt(o.tar),tl:+o.tutar||0})),...arr(x.tahsil).map(o=>({t:gt(o.tar),tl:+o.tutar||0}))].filter(o=>o.t>=bas);
+  // satış: ajan e-postasından sonraki 45 gün içindeki alımlar (tahsilat e-postası hariç)
+  alim.forEach(a=>{if(ep.some(q=>q.tur!=="tahsilat"&&q.t<=a.t&&a.t-q.t<=45*864e5)){S.satis+=a.tl;S.satisKg+=a.kg;S.satisF.add(x.id)}});
+  odeme.forEach(o=>{if(ep.some(q=>q.tur==="tahsilat"&&q.t<=o.t+864e5&&o.t-q.t<=30*864e5)){S.tahsil+=o.tl;S.tahsilF.add(x.id)}});
+  const ilk=ep.filter(q=>q.t>=bas).sort((a,b)=>a.t-b.t)[0];
+  if(ilk){S.huni.g++;if(x.epCevap&&x.epCevap.t>=ilk.t)S.huni.c++;if(arr(x.teklif).some(t=>gt(t.tar)>=ilk.t-864e5))S.huni.t++;if(x.mt&&x.mt>=ilk.t)S.huni.m++}
+  if(x.mt&&x.mt>=bas&&(/🤖|🎪|🚚/.test(x.kaynak||"")||ep.some(q=>q.t<=x.mt)))S.yeni.push(x);
+  ep.filter(q=>q.t>=bas).forEach(q=>{const g=S.gorev[q.tur]=S.gorev[q.tur]||{n:0,c:0,tl:0,kg:0};g.n++;if(x.epCevap&&x.epCevap.t>=q.t&&x.epCevap.t-q.t<=14*864e5)g.c++;
+   if(q.tur==="tahsilat")g.tl+=odeme.filter(o=>o.t>=q.t-864e5&&o.t-q.t<=30*864e5).reduce((a,o)=>a+o.tl,0);else{const al=alim.filter(a=>a.t>=q.t&&a.t-q.t<=45*864e5);g.tl+=al.reduce((s,a)=>s+a.tl,0);g.kg+=al.reduce((s,a)=>s+a.kg,0)}})});
+ Object.values(KZ.kazanc||{}).forEach(k=>{if(k&&k.t>=bas){S.korunan+=+k.tutar||0;S.korunanN++}});
+ Object.entries(KZ.gunluk||{}).forEach(([d,o])=>{if(d<basT)return;arr(o&&o.isler).forEach(q=>{if(!q.k||/^DENEME|^⚠/.test(q.metin||""))return;const n=(String(q.metin).match(q.k==="tarama"?/(\d+) yeni/:q.k==="epbul"?/(\d+) firma/:/(\d+)/)||[0,1])[1]*1,dk=(DK_IS[q.k]||0)*(["rota","rapor","firsat","icerik","haftalik"].includes(q.k)?1:Math.min(n,500));if(!dk)return;S.dk+=dk;S.dkK[q.k]=(S.dkK[q.k]||0)+dk})});
+ return S}
+function kazancSayfa(){kazancYukle();const S=kazancHesap(KZ.gun),O=ayar.otonom||{},deneme=O.eposta!=="acik",su=+ayar.saatUcret||0,saat=S.dk/60;
+ const kart=(v,t,a)=>`<div class="st"><b>${v}</b><span>${t}</span>${a?`<small class="mu" style="display:block">${a}</small>`:""}</div>`;
+ const gv=gvAl(),satir=Object.entries(S.gorev).sort((a,b)=>b[1].n-a[1].n).map(([tur,g])=>{const oran=g.n?Math.round(g.c/g.n*100):0,k=TUR2GV[tur];
+  const karar=g.tl>0||g.kg>0?`<span class="tag ok">✅ para getiriyor</span>`:g.c>0?`<span class="tag ok">👍 cevap alıyor</span>`:g.n<15?`<span class="tag">⏳ veri az</span>`:`<span class="tag warn">⚠ ${g.n} e-posta, sonuç yok</span>`;
+  return`<tr><td>${TURADI[tur]||tur}</td><td class="r">${g.n}</td><td class="r">%${oran}</td><td class="r">${g.tl?TL(g.tl):g.kg?NUM(Math.round(g.kg))+" kg":"—"}</td><td>${karar}${!g.tl&&!g.kg&&!g.c&&g.n>=15&&k&&gv[k]&&gv[k].acik?` <button data-a="kzkapat" data-i="${k}">Kapat</button>`:""}</td></tr>`}).join("");
+ const H=S.huni,bar=(n,t)=>`<div style="margin:4px 0"><div class="row" style="justify-content:space-between"><span>${t}</span><b>${n}</b></div><div class="rbar"><span style="width:${H.g?Math.round(n/H.g*100):0}%"></span></div></div>`;
+ const isler=Object.entries(S.dkK).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,dk])=>`<div class="row" style="justify-content:space-between"><span>${esc((gorevTum().find(g=>g.k===k)||{}).ad||k)}</span><span class="mu">${dk>=60?(dk/60).toFixed(1).replace(".",",")+" saat":dk+" dk"}</span></div>`).join("");
+ return`<div class="chips" style="margin-bottom:8px">${[7,30,90].map(g=>`<button class="${KZ.gun===g?"on":""}" data-a="kzgun" data-i="${g}">Son ${g} gün</button>`).join("")}</div>
+ ${deneme?`<div class="card warn-c"><b>E-posta modu: Deneme.</b> Ajanların e-postaları şimdilik yalnız size gidiyor; bu yüzden satış ve cevap ölçümü henüz başlamadı. Örnekleri beğenince Görevler'den modu <b>Açık</b> yapın; pano o günden itibaren dolar.</div>`:""}
+ <div class="stats">${kart(S.satis?TL(S.satis):S.satisKg?NUM(Math.round(S.satisKg))+" kg":"₺0","Ajanların getirdiği satış",S.satisF.size+" firma"+(S.satis&&S.satisKg?" • +"+NUM(Math.round(S.satisKg))+" kg sevk":""))}${kart(TL(S.tahsil),"Hatırlatmayla tahsil edilen",S.tahsilF.size+" firma")}${kart(TL(S.korunan),"Korunan kâr",S.korunanN+" fiyat düzeltmesi")}${kart(saat.toFixed(1).replace(".",",")+" saat","Ajanların yaptığı iş",su?"≈ "+TL(saat*su):"")}</div>
+ <div class="card"><h3>🧲 E-posta hunisi (son ${KZ.gun} gün)</h3>${H.g?bar(H.g,"Ajanın e-posta attığı firma")+bar(H.c,"Cevap veren")+bar(H.t,"Teklif verilen")+bar(H.m,"Müşteri olan"):'<div class="mu">Bu dönemde gerçek e-posta gönderilmedi.</div>'}</div>
+ <div class="card"><h3>📋 Görev karnesi</h3>${satir?`<table class="tbl"><tr><th>Görev</th><th class="r">Gönderilen</th><th class="r">Cevap</th><th class="r">Getirdiği</th><th></th></tr>${satir}</table><div class="mu">Satış: e-postadan sonraki 45 gün içindeki alımlar; tahsilat: hatırlatmadan sonraki 30 gün içindeki ödemeler. 15+ e-postada hiç sonuç yoksa "Kapat" düğmesi çıkar.</div>`:'<div class="mu">Henüz gerçek e-posta gönderimi yok.</div>'}</div>
+ <div class="card"><h3>⏱ Ajanların yaptığı işler</h3>${isler||'<div class="mu">Bu dönemde kayıtlı iş yok.</div>'}<div class="row" style="align-items:end;margin-top:6px"><div style="flex:1"><label>Bir çalışanın saatlik maliyeti (isteğe bağlı, ₺)</label><input id="kzSu" type="number" min="0" value="${su||""}" placeholder="ör. 250"></div><button data-a="kzsu">Kaydet</button></div><div class="mu">Süreler tahmindir (ör. bir adayı araştırıp kaydetmek 3 dk, risk analizi 20 dk, e-posta 5 dk).</div></div>
+ ${S.yeni.length?`<div class="card"><h3>🆕 Ajanlarla gelen yeni müşteriler (${S.yeni.length})</h3>${S.yeni.slice(0,20).map(x=>`<div class="mu">• ${esc(x.firma)} — ${fd(fmt(new Date(x.mt)))}${x.kaynak?" • "+esc(x.kaynak):""}</div>`).join("")}</div>`:""}`}
+Object.assign(A,{kzgun:(_,g)=>{KZ.gun=+g;renderAjan()},kzsu:()=>{ayar.saatUcret=+$("kzSu").value||0;saveAyar();renderAjan()},
+ kzkapat:(_,k)=>{const V=gvAl();if(!V[k])return;if(!confirm((gorevTum().find(g=>g.k===k)||{}).ad+" görevi kapatılsın mı? (Görevler ekranından tekrar açılabilir)"))return;const G=Object.assign({},(ayar.otonom||{}).gorevler||{});G[k]=Object.assign({},V[k],{acik:false});ayar.otonom=Object.assign({},ayar.otonom||{},{gorevler:G});saveAyar();renderAjan();tost("Görev kapatıldı")}});
+window.ajOzel.kazanc=kazancSayfa;
+// Ofis üst kartında kısa özet
+{const _oh=ofisHtml;ofisHtml=function(){kazancYukle();const h=_oh();try{const S=kazancHesap(30),p=[];if(S.satis||S.satisKg)p.push((S.satis?TL(S.satis):NUM(Math.round(S.satisKg))+" kg")+" satış");if(S.tahsil)p.push(TL(S.tahsil)+" tahsilat");if(S.korunan)p.push(TL(S.korunan)+" korunan kâr");if(S.dk)p.push((S.dk/60).toFixed(1).replace(".",",")+" saat iş");
+ return p.length?h.replace('<div class="row" style="margin-top:6px"><button class="p" data-a="ajcal">',`<div class="mu" style="margin-top:4px">📈 Son 30 gün ajanlar: <b>${p.join(" • ")}</b> <a href="#" data-ajf="kazanc">ayrıntı</a></div><div class="row" style="margin-top:6px"><button class="p" data-a="ajcal">`):h}catch(e){return h}}}
+window.ajOzel.ofis=ofisHtml;
+// korunan kâr kayıtları: Fiyat Bekçisi uyarısından sonra fiyat yükseltilince + Müdür'ün teklifinde düzeltince
+{const _s=saveDoc;saveDoc=async function(pr){const R=AJ(),now={};try{arr(dk&&dk.kalemler).forEach(k=>{if(!String(k.urun||"").trim()||!+k.fiyat)return;const u=k.urunId?katalog.find(u=>u.id===k.urunId):katalog.find(u=>u.ad===k.urun),m=u&&+u.maliyet?+u.maliyet:+k.maliyet||0;if(!m)return;now[k.urun]={net:(+k.fiyat)*(1-(+k.isk||0)/100),mik:+k.mik||0,alt:marjAlt(m,R.minMarj)}})}catch(e){}
+ const id=dk&&dk.id,once=window.__bekci&&window.__bekci.id===id?window.__bekci.l:null;const r=await _s(pr);
+ if(dlgD.open){const l={};for(const u in now)if(now[u].net<now[u].alt)l[u]=now[u];window.__bekci=Object.keys(l).length?{id,l}:null}
+ else{if(once){let t=0;for(const u in once){const n=now[u];if(n&&n.net>once[u].net)t+=(n.net-once[u].net)*(n.mik||once[u].mik)}const x=data.find(v=>v.id===id);kazancYaz("fiyat",t,id,"Fiyat Bekçisi uyarısından sonra fiyat yükseltildi"+(x?" — "+x.firma:""))}window.__bekci=null}
+ return r}}
 
 /* --- ekran bağlantıları --- */
 Object.assign(window.ajOzel,{risk:riskSayfa,muhasebe:muhSayfa,stok:stokSayfa,firsat:firsatSayfa,icerik:icerikSayfa});
