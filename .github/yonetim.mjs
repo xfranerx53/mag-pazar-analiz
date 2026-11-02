@@ -61,6 +61,33 @@ if (env("SA")) {
   }
 }
 
+/* ---------------- ⏰ Dış zamanlayıcı (Cloudflare Cron → GitHub "Ajan sabah raporu", zamanli=1) ---------------- */
+if (islem === "zamanlayici-kur") {
+  const A = env("CF_ACCOUNT"), CT = env("CF_TOKEN");
+  if (!A || !CT || !env("SA")) { log("❌ Cloudflare anahtarları ya da Firebase anahtarı yok"); process.exit(1); }
+  const gh = String((await admin.database().ref("mag_pazar/ajan/gizli/ghToken").once("value")).val() || "").trim();
+  if (!gh) { log("❌ Programda GitHub anahtarı (Kurulum 8) kayıtlı değil"); process.exit(1); }
+  const kod = `export default {
+  async scheduled(ev, env, ctx) { ctx.waitUntil(tetikle(env)); },
+  async fetch(req, env) { return new Response("MAG ajan zamanlayıcısı çalışıyor (her saat :17). Son tetikleme: " + (await env.KV?.get?.("son") || "-"), { headers: { "content-type": "text/plain; charset=utf-8" } }); }
+};
+async function tetikle(env) {
+  const r = await fetch("https://api.github.com/repos/xfranerx53/mag-pazar-analiz/actions/workflows/ajan-gece.yml/dispatches", { method: "POST",
+    headers: { Authorization: "Bearer " + env.GH_TOKEN, Accept: "application/vnd.github+json", "User-Agent": "mag-zamanlayici", "X-GitHub-Api-Version": "2022-11-28" },
+    body: JSON.stringify({ ref: "main", inputs: { zamanli: "1" } }) });
+  if (r.status !== 204) console.log("GitHub tetiklenemedi", r.status, await r.text());
+}`;
+  const fd = new FormData();
+  fd.append("metadata", new Blob([JSON.stringify({ main_module: "index.js", compatibility_date: "2024-09-01", bindings: [{ type: "secret_text", name: "GH_TOKEN", text: gh }] })], { type: "application/json" }));
+  fd.append("index.js", new Blob([kod], { type: "application/javascript+module" }), "index.js");
+  const u = `https://api.cloudflare.com/client/v4/accounts/${A}/workers/scripts/mag-zamanlayici`, H = { Authorization: "Bearer " + CT };
+  let r = await fetch(u, { method: "PUT", headers: H, body: fd }), j = await r.json().catch(() => ({}));
+  if (!j.success) { log("❌ Worker yüklenemedi:", JSON.stringify(j.errors || r.status).slice(0, 200)); process.exit(1); }
+  r = await fetch(u + "/schedules", { method: "PUT", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify([{ cron: "17 * * * *" }]) }); j = await r.json().catch(() => ({}));
+  if (!j.success) { log("❌ Zamanlama ayarlanamadı:", JSON.stringify(j.errors || r.status).slice(0, 200)); process.exit(1); }
+  log("✅ Cloudflare zamanlayıcısı kuruldu: mag-zamanlayici, her saatin 17. dakikasında ajanları başlatır");
+}
+
 /* ---------------- Cloudflare ---------------- */
 if (env("CF_TOKEN")) {
   const H = { Authorization: "Bearer " + env("CF_TOKEN") }, A = env("CF_ACCOUNT");

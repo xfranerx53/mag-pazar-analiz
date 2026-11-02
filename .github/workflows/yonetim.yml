@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       islem:
-        description: "saglik | teshis | kural-kontrol | kural-yayinla"
+        description: "saglik | teshis | kural-kontrol | kural-yayinla | zamanlayici-kur"
         default: saglik
   push:
     branches: [main]
@@ -40,6 +40,8 @@ jobs:
           DB_URL: https://mag-pazar-default-rtdb.europe-west1.firebasedatabase.app
           KOK: "mag_pazar"
           KURAL_HTML: index.html
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           HARIC: "gizli,medya,yedek,abone,aiKey,geoKey,googleKey,ghToken,gmailPass,sevkSifre"
       - name: Teşhisi özel depoya yaz
         if: env.ISLEM == 'teshis'
