@@ -129,7 +129,7 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
   - *Firebase kuralı değişti:* `ajan` (okuma/yazma yönetici; `abone/<uid>` kişinin kendisi) → ☁ → Kuralı kopyala → Firebase Rules → Publish.
 
 ## 🌙 Gece ajanı (GitHub Actions — ücretsiz)
-- Dosyalar: `ajan-gece.mjs` + `.github/workflows/ajan-gece.yml`. Her gün 08:12 (Türkiye) ve Actions → "Ajan sabah raporu" → **Run workflow** ile elle.
+- Dosyalar: `ajan-gece.mjs` + `.github/workflows/ajan-gece.yml`. v16'dan beri her saat uyanır, programdaki ⏰ çalışma saatlerinde iş yapar; Actions → "Ajan sabah raporu" → **Run workflow** ile elle.
 - Ajan kuralları **index.html'den okunur** (v11 AJAN MERKEZİ bloğu + v12 yapay zekâ bloğu) — kural değişince betiği ayrıca güncellemek gerekmez. Yardımcı fonksiyonlar da adlarıyla index.html'den alınır (adı değişirse betikteki YARDIMCI listesi güncellenmeli).
 - Secrets (Settings → Secrets and variables → Actions): `GMAIL_USER`, `GMAIL_APP_PASSWORD` (isteğe bağlı, e-posta), `FB_EMAIL`, `FB_PASSWORD` (ajanın kendi hesabı; ilk çalışmada kendisi açar → Yönetim'den **Yönetici** yapılmalı), `VAPID_PRIVATE`, `GEMINI_KEY` (isteğe bağlı: rapora Müdür yorumu).
 - Yaptığı: girer → leads/ayar/katalog/users okur → ajanları çalıştırır → `ajan/rapor/son` yazar → (Pazartesi) haftalık strateji → web sitelerinden e-posta bulur (programda Müdür ekranında "🌙 Gece ajanının raporu") → yöneticilerin abone cihazlarına bildirim (eskimiş abonelikleri siler).
@@ -184,6 +184,16 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
   - E-posta kuralları: firmaya günde en çok 1 e-posta, öncelik sırası teklif > ödeme > sipariş zamanı > numune > fiyat > ürün önerisi > geri kazanım > takip > tanıtım; tür başına tekrar aralığı (ödeme 7, sipariş 20, diğerleri 30-60 gün); deneme konusu türü de gösterir.
 
 - **v15.1 (02.11.2026):** Kurulum 7b/8: kayıtlı Gmail uygulama şifresi ve GitHub anahtarı sayfa yenilense de kutuda (gizli noktalarla) görünür, 👁 ile gösterilir; "✅ Kayıtlı: adres + şifre (16 harf) • tarih" satırı. Yalnızca yöneticiler görür.
+- **v16 (02.11.2026) — 🏢 AJAN OFİSİ (videodaki gibi: yönetici sensin, işi ajanlar yapar):**
+  - *Ofis* (alt menü 🏢): 10 ajan kutusu (Müdür, Müşteri Avcısı, Mail Yazarı, Tahsilat, Muhasebe, Risk Analisti, Stok, Fiyat Bekçisi, Fırsat Avcısı, İçerik Üretici) + ajanların yaptıklarının akışı (`ajan/gunluk`, görev anahtarı `k` ile) + Müdür sohbeti.
+  - *Müdür'e iş ver:* düz Türkçe komut → JSON eylem kartları (e-posta, WhatsApp, teklif, hatırlatma, kayıt güncelle, filtreyle firma seç + görev, ajanları çalıştır, risk, fırsat, içerik, stok) → ✅ Yap / Hepsini yap. E-postalar `ajan/kuyruk`'a yazılır ve ajan hemen başlatılır (Deneme modunda sana gelir). Teklifte Fiyat Bekçisi asgari kârın altını düzeltir. Hatırlatma `ajan/takvim` + Google Takvim bağlantısı + zamanında telefon bildirimi.
+  - *⏰ Çalışma saatleri:* Görevler ekranında gün ve saat seçimi (`ayar.otonom.mesai`), ⏸ tatil (`ayar.otonom.durdur`). Workflow her saat uyanır; ajan sadece seçili saatte çalışır (gecikmeli tur bir sonraki saatte telafi edilir, aynı tur iki kez yapılmaz: `ajan/durum/slot`). 50 günde bir boş kayıtla zamanlayıcı açık tutulur.
+  - *🛡 Risk Analisti:* 0-100 güven puanı = ödeme geçmişi 40 (FIFO ile ortalama gecikme, vadesi geçmiş borç, borç/aylık alım, notlarda "karşılıksız, icra…") + işletme profili 20 (sabit hat, web, kurumsal e-posta, unvan/vergi no, zincir, sektör riski) + web araştırması 40 (Gemini + Google Araması, ücretsiz katman: kuruluş yılı, şube, Google puanı, şikâyet, konkordato/iflas/icra/kapanma). Karar + vade + açık hesap limiti; `x.risk`, `x.limit`. Limit aşımı ve riskli bakiye ajan uyarısı. Resmî kontrol bağlantıları, banka sicili (KKB/Findeks) açıklaması ve Findeks raporu isteme mesajı. Gece görevi `risk`: günde 4 firma, 90 günde bir yeniler.
+  - *📒 Muhasebe:* ay özeti, alacak yaşlandırma, en çok borçlular, Excel/CSV (Mikro, Logo, banka) bakiye listesi (`x.muhBakiye`, mutabakat) ve tahsilat listesi (ödeme olarak eklenir, tekrarları atlar). xlsx için SheetJS (jsdelivr) gerektiğinde yüklenir; CSV doğrudan okunur.
+  - *📦 Stok:* hammadde kartlarına stok, kritik seviye, günlük kullanım, tedarikçi ve e-postası; kaç gün yeteceği; azalınca uyarı + tedarikçiye sipariş e-postası (kuyruk).
+  - *🎪 Fırsat Avcısı* (Google araması: bölgede yeni açılışlar, poşet ihaleleri, fuar/etkinlik; tek dokunuşla listeye ekle) ve *🎨 İçerik Üretici* (haftalık 5 paylaşım, Google yorumu cevabı, 3 reklam metni). Gece görevleri `firsat`, `icerik` haftada bir; `ajan/firsat`, `ajan/icerik`.
+  - *Tek kullanıcı:* program yalnızca sahibine (xfranerxx@gmail.com ya da `ayar.ownerUid`) açılır; "hesap oluştur" kaldırıldı; satışçı/bölge/prim alanları gizlendi. Ajan hesabı için Diğer → 🔐 Hesaplar.
+  - Güncellenen dosyalar: `index.html`, `ajan-gece.mjs`, `.github/workflows/ajan-gece.yml`, `sw.js`.
 
 ## Kâr modeli — ücretsiz ajan yol haritası
 Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullanılırsa, ileride kendi altyapımızla değiştirilebilecek şekilde bağlanır (Geoapify → mag-veri örneğinde olduğu gibi).

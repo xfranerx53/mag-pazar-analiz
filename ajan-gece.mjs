@@ -48,6 +48,7 @@ for (const ad of YARDIMCI) { const p = parca(ad); if (!goruldu.has(p.i)) { gorul
 kodlar.sort((a, b) => a[0] - b[0]);
 const CEKIRDEK = blok("/* ================= v11 — 🤖 AJAN MERKEZİ", "/* --- ekran --- */");
 let AI = blok("/* ================= v12 — 🧠 YAPAY ZEKÂ BEYNİ", "/* --- 💬 Müdürle konuş --- */") + "\n" + blok("/* --- ✨ firmaya özel mesaj --- */", "let aiYaziyor");
+const V16 = blok("/* ================= v16 ÇEKİRDEK", "/* --- v16 ekran --- */");
 if (env("AI_BASE_URL")) AI = AI.replace("https://generativelanguage.googleapis.com/v1beta/", env("AI_BASE_URL"));
 
 /* ---------- Firebase (REST) ---------- */
@@ -84,9 +85,9 @@ DURUM_URL = DB.replace(/\/$/, "") + "/mag_pazar/ajan/sonCalisma.json?auth=" + en
 let prof = null; try { prof = await oku("users/" + g.uid, g.tok); } catch (e) { }
 if (!prof) {
   try { await yaz("users/" + g.uid, g.tok, { email: env("FB_EMAIL"), ad: "🤖 Ajan", rol: "beklemede", t: Date.now() }); } catch (e) { }
-  dur("Ajan hesabı açıldı ve onay bekliyor.\n   ŞİMDİ: Programda Diğer → 🛡 Yönetim → \"🤖 Ajan\" → rolünü YÖNETİCİ yap, sonra bu görevi bir kez daha çalıştır (Run workflow).");
+  dur("Ajan hesabı açıldı ve onay bekliyor.\n   ŞİMDİ: Programda Diğer → 🔐 Hesaplar → \"🤖 Ajan\" → rolünü YÖNETİCİ yap, sonra bu görevi bir kez daha çalıştır (Run workflow).");
 }
-if (prof.rol !== "admin") dur("Ajan hesabının rolü \"" + prof.rol + "\". Programda Diğer → 🛡 Yönetim → \"" + (prof.ad || "🤖 Ajan") + "\" → rolünü YÖNETİCİ yap, sonra tekrar çalıştır.");
+if (prof.rol !== "admin") dur("Ajan hesabının rolü \"" + prof.rol + "\". Programda Diğer → 🔐 Hesaplar → \"" + (prof.ad || "🤖 Ajan") + "\" → rolünü YÖNETİCİ yap, sonra tekrar çalıştır.");
 
 let leads, ayar, katalog, users;
 try { [leads, ayar, katalog, users] = await Promise.all(["leads", "ayar", "katalog", "users"].map(p => oku(p, g.tok))); }
@@ -106,8 +107,9 @@ const isAdmin=()=>false;
 ${kodlar.map(k => k[1]).join("\n")}
 ${CEKIRDEK}
 ${AI}
-globalThis.__api={ajCalistir,ajRapor,ajMasada,AJAD,aiSor,AISYS,deanon,aiKey,epCikar,anon,aiKodla,ciro,bakiye,sipAktif,docTop,daysSince,today,plus,fmt,fd,arr,reorderList,sleepers,vadeDurum,aiMesajYaz,ajKey,hav,isChain,isRival,isMobile,adayPuan,normF,tel10,uid_,bolgeOf,VERI_DEF,TSEK,tuk,kodOf,selam,imza,kalemOzet,docAra,AJ,setR:r=>{tara.r=r}};`;
-Object.assign(ctx, { bellek, __ayar: ayar, __data: data, __katalog: katalog || [], __users: users || {} });
+${V16}
+globalThis.__api={riskAnaliz,firsatAra,icerikPlani,ajStok,ajRisk,ajCalistir,ajRapor,ajMasada,AJAD,aiSor,AISYS,deanon,aiKey,epCikar,anon,aiKodla,ciro,bakiye,sipAktif,docTop,daysSince,today,plus,fmt,fd,arr,reorderList,sleepers,vadeDurum,aiMesajYaz,ajKey,hav,isChain,isRival,isMobile,adayPuan,normF,tel10,uid_,bolgeOf,VERI_DEF,TSEK,tuk,kodOf,selam,imza,kalemOzet,docAra,AJ,setR:r=>{tara.r=r}};`;
+Object.assign(ctx, { bellek, __ayar: ayar, __data: data, __katalog: Array.isArray(katalog) ? katalog : Object.values(katalog || {}), __users: users || {} });
 vm.runInContext(kaynak, ctx, { filename: "ajan-cekirdek.js" });
 const X = ctx.__api;
 
@@ -130,17 +132,28 @@ const GOREV_VARS = { tarama: { acik: true, zaman: "sabah" }, epbul: { acik: true
   tanitim: { acik: true, zaman: "sabah", hedef: "hepsi" }, takipEp: { acik: true, zaman: "sabah", hedef: "hepsi" }, teklifEp: { acik: true, zaman: "sabah", hedef: "hepsi" },
   numuneEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, tekrarEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, caprazEp: { acik: false, zaman: "sabah", hedef: "hepsi" },
   uyuyanEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, tahsilatEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, fiyatEp: { acik: false, zaman: "sabah", hedef: "hepsi" },
-  haftalik: { acik: true, zaman: "sabah" }, bildirim: { acik: true, zaman: "her" } };
+  haftalik: { acik: true, zaman: "sabah" }, bildirim: { acik: true, zaman: "her" },
+  kuyruk: { acik: true, zaman: "her" }, hatirlat: { acik: true, zaman: "her" }, risk: { acik: true, zaman: "sabah" }, firsat: { acik: true, zaman: "sabah" }, icerik: { acik: true, zaman: "sabah" } };
 const GV = {}; for (const k in GOREV_VARS) GV[k] = Object.assign({}, GOREV_VARS[k], (O.gorevler || {})[k] || {});
 if (O.tarama === false && !(O.gorevler || {}).tarama) GV.tarama.acik = false;
 const elle = env("GITHUB_EVENT_NAME") === "workflow_dispatch";
+/* ---------- ⏰ Çalışma saatleri: GitHub her saat uyandırır; ajan sadece programda seçilen gün/saatte iş yapar ---------- */
+if (!elle && env("TAM") !== "1") {
+  if (O.durdur) { log("⏸ Ajanlar tatilde (programda durduruldu) — iş yok"); process.exit(0); }
+  const MS = Object.assign({ gunler: [1, 2, 3, 4, 5, 6], saatler: [8, 13, 18] }, O.mesai || {});
+  const n = new Date(), gn = n.getDay() || 7, sa = n.getHours();
+  // GitHub bazen gecikir: bir önceki saatin turu kaçtıysa bu saatte yapılır, aynı tur iki kez yapılmaz
+  const slot = MS.saatler.map(Number).filter(h => h <= sa && h >= sa - 1).sort((a, b) => b - a)[0];
+  if (!MS.gunler.map(Number).includes(gn) || slot == null || D.slot === BUGUN + "-" + slot) { log(`Mesai dışı (${["", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"][gn]} ${sa}:${String(n.getMinutes()).padStart(2, "0")}) — bu saatte iş yok`); process.exit(0); }
+  D.slot = BUGUN + "-" + slot;
+}
 let ISTEK = null; if (elle) { ISTEK = await okuG("ajan/istek"); if (!ISTEK || Date.now() - (ISTEK.t || 0) > 20 * 60e3) ISTEK = null; else await yaz("ajan/istek", g.tok, null).catch(() => { }); }
 const SECILI = ISTEK && Array.isArray(ISTEK.gorevler) ? new Set(ISTEK.gorevler) : null;
 const RAN = new Set(), GSON = {};
 const calis = k => { const v = GV[k]; if (!v) return false; const r = SECILI ? SECILI.has(k) : elle ? !!v.acik : !!v.acik && (v.zaman === "her" || (v.zaman === "sabah" && sabahTuru)); if (r) RAN.add(k); return r; };
 const GUN = ((await okuG("ajan/gunluk/" + BUGUN)) || {}).isler || [];
 const GUN0 = GUN.length; // bu turdan önceki kayıtlar
-const not_ = (ik, metin, k) => { GUN.push({ ik, metin, t: Date.now() }); if (k) GSON[k] = { t: Date.now(), metin }; };
+const not_ = (ik, metin, k) => { GUN.push(k ? { ik, metin, t: Date.now(), k } : { ik, metin, t: Date.now() }); if (k) GSON[k] = { t: Date.now(), metin }; };
 const SICAK = []; // hemen bildirilecek sıcak gelişmeler
 const durumYaz = () => yaz("ajan/durum", g.tok, D).catch(e => log("durum yazılamadı:", e.message));
 async function guncelle(x, alan) {
@@ -382,7 +395,7 @@ if (gmailVar && EPT.length) {
       if (cevapVar) continue;
       if (O.eposta !== "acik" && x.epDeneme) continue; // deneme modunda her firmaya bir kez örnek
       if (son && Date.now() - son.t < 20 * 3600e3) continue; // firmaya günde en çok 1 e-posta
-      const ekle = (k, p, ek) => { if (!EPT.includes(k) || (GV[k].hedef === "secili" && !x.ajanSec)) return false; hedef.push({ x, k, tur: TURA[k][0], p, ...(ek || {}) }); return true; };
+      const ekle = (k, p, ek) => { if (!EPT.includes(k) || ((GV[k].hedef === "secili" || (ISTEK && ISTEK.secili)) && !x.ajanSec)) return false; hedef.push({ x, k, tur: TURA[k][0], p, ...(ek || {}) }); return true; };
       const tk = X.arr(x.teklif).find(t => t.durum === "Beklemede" && t.tar && X.daysSince(t.tar) >= tg);
       if (tk && !gec.some(q => q.tur === "teklif" && q.no === tk.no) && Date.now() - sonGor(x) > tg * 864e5 && ekle("teklifEp", 9, { tk })) continue;
       const vd = X.vadeDurum(x); if (vd.tut > 0.5 && vd.enEski && vd.enEski.gec >= 3 && !yakin(gec, "tahsilat", 7) && ekle("tahsilatEp", 8, { vd })) continue;
@@ -434,6 +447,40 @@ SADECE JSON: {"konu":"en fazla 60 karakter, spam kelimesi yok","govde":"..."}`, 
   }
 }
 
+/* ---------- 📤 Müdür'ün verdiği e-postalar (programda ✅ Yap denenler) ---------- */
+if (calis("kuyruk")) {
+  const KQ = (await okuG("ajan/kuyruk")) || {}, ids = Object.keys(KQ);
+  if (ids.length && !gmailVar) GSON.kuyruk = { t: Date.now(), metin: `Sırada ${ids.length} e-posta var ama Gmail bağlı değil (Kurulum 7b)` };
+  else if (ids.length) {
+    let nm; try { nm = (await import("nodemailer")).default; } catch (e) { log("nodemailer yok, kuyruk atlandı"); }
+    if (nm) {
+      const tp = nm.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: GU, pass: GP } });
+      const deneme = O.eposta !== "acik"; let n = 0, h = 0, atl = 0;
+      for (const id of ids) {
+        const q = KQ[id] || {}, x = q.firmaId ? data.find(v => v.id === q.firmaId) : null, to = q.to || (x && x.eposta);
+        if (!to || (x && (x.aramayin || x.izin === "Çıkış yaptı"))) { atl++; await yaz("ajan/kuyruk/" + id, g.tok, null).catch(() => { }); continue; }
+        const govde = String(q.metin || "").trim() + "\n\nSaygılarımızla," + (q.ted ? `\n${FIRMA}${F.tel ? "\nTel: " + F.tel : ""}` : altBilgi());
+        try {
+          await tp.sendMail({ from: `"${FIRMA}" <${GU}>`, to: deneme ? GU : to, subject: deneme ? `[DENEME → ${x ? x.firma : "tedarikçi"} <${to}> • Müdür'ün işi] ${q.konu || ""}` : (q.konu || FIRMA), text: govde });
+          n++; await yaz("ajan/kuyruk/" + id, g.tok, null).catch(() => { });
+          if (x) await guncelle(x, { gorus: gorusEkle(x, "E-posta", (deneme ? "[DENEME] " : "") + "👔 Müdür'ün işi: " + (q.konu || "")), epGonderim: [...X.arr(x.epGonderim), { t: Date.now(), tur: "mudur", konu: q.konu || "", deneme }].slice(-20) }).catch(() => { });
+        } catch (e) { h++; }
+      }
+      if (n) not_("📧", (deneme ? "DENEME modu: " : "") + `Müdür'ün verdiği ${n} e-postayı ${deneme ? "örnek olarak sana gönderdi" : "gönderdi"}`, "kuyruk");
+      else if (h) GSON.kuyruk = { t: Date.now(), metin: `${h} e-posta gönderilemedi (Gmail şifresi?)` };
+      log("Kuyruk:", n, "gönderildi", h ? "• hata " + h : "", atl ? "• atlandı " + atl : "");
+    }
+  }
+}
+if (calis("hatirlat")) {
+  const T = (await okuG("ajan/takvim")) || {}, s = new Date(), hh = String(s.getHours()).padStart(2, "0") + ":" + String(s.getMinutes()).padStart(2, "0"); let n = 0;
+  for (const [id, h] of Object.entries(T)) {
+    if (!h || h.bitti || h.bildirildi) continue;
+    if (h.tarih < BUGUN || (h.tarih === BUGUN && (h.saat || "09:00") <= hh)) { const x = h.firmaId && data.find(v => v.id === h.firmaId); SICAK.push("⏰ " + (x ? x.firma + ": " : "") + h.metin); n++; await yaz("ajan/takvim/" + id + "/bildirildi", g.tok, Date.now()).catch(() => { }); }
+  }
+  if (n) GSON.hatirlat = { t: Date.now(), metin: `${n} hatırlatma telefona gönderildi` };
+}
+
 /* ---------- 🗺 Bugünün ziyaret rotası ---------- */
 if (calis("rota")) {
   const M = O.merkez && isFinite(+O.merkez.lat) ? { lat: +O.merkez.lat, lon: +O.merkez.lon } : null;
@@ -473,6 +520,29 @@ if (calis("haftalik")) {
   }
 }
 
+/* ---------- 🛡 Risk analisti (Google araması, ücretsiz katman) ---------- */
+if (calis("risk")) {
+  if (!X.aiKey()) GSON.risk = { t: Date.now(), metin: "Yapay zekâ anahtarı yok (Kurulum 1)" };
+  else {
+    const lim = Math.max(0, Math.min(10, +O.riskGunluk || 4)); let n = 0, riskli = 0;
+    const aday = data.filter(x => !x.aramayin && ["Teklif verildi", "İlgileniyor", "Müşteri"].includes(x.durum) && (!x.risk || Date.now() - (x.risk.t || 0) > 90 * 864e5))
+      .sort((a, b) => (a.risk ? 1 : 0) - (b.risk ? 1 : 0) || X.bakiye(b) - X.bakiye(a)).slice(0, lim);
+    for (const x of aday) {
+      try { const r = await X.riskAnaliz(x); await guncelle(x, { risk: r }); n++; if (r.seviye === "risk") { riskli++; SICAK.push("🛡 " + x.firma + ": " + r.karar); } }
+      catch (e) { log("Risk analizi atlandı"); if (/429|kota|sınır/i.test(e.message)) break; }
+    }
+    if (n) not_("🛡", `${n} firmanın ödeme güvenini araştırdı${riskli ? `, ${riskli} tanesi riskli çıktı` : ", hepsi makul"}`, "risk");
+    log("Risk analizi:", n, "firma", riskli ? "• riskli " + riskli : "");
+  }
+}
+/* ---------- 🎪 Fırsat avcısı + 🎨 içerik (haftada bir) ---------- */
+for (const [k, yol, fn, ik, yazi] of [["firsat", "ajan/firsat", () => X.firsatAra(), "🎪", r => `${r.l.length} fırsat buldu (yeni açılış, ihale, fuar, etkinlik)`], ["icerik", "ajan/icerik", () => X.icerikPlani(""), "🎨", r => `Bu haftanın ${r.l.length} sosyal medya paylaşımını yazdı`]]) {
+  if (!calis(k) || !X.aiKey()) continue;
+  const eski = await okuG(yol);
+  if (!(SECILI && SECILI.has(k)) && eski && Date.now() - (eski.t || 0) < 6.5 * 864e5) continue;
+  try { const r = await fn(); await yaz(yol, g.tok, r); not_(ik, yazi(r), k); log(k, "yazıldı"); } catch (e) { log(k, "atlandı:", String(e.message).slice(0, 60)); }
+}
+
 /* ---------- 📒 9) Ajan günlüğü + durum ---------- */
 if (!elle ? sabahTuru : !SECILI) D.sabah = BUGUN;
 for (const k of RAN) if (!GSON[k]) GSON[k] = { t: Date.now(), metin: "Çalıştı — yapacak iş yoktu" };
@@ -497,7 +567,7 @@ let webpush; try { webpush = (await import("web-push")).default; } catch (e) { l
 try { webpush.setVapidDetails("mailto:info@magambalaj.com", pub, priv); } catch (e) { dur("VAPID_PRIVATE hatalı: programdaki 4. adımda üretilen gizli anahtarı aynen yapıştır (" + e.message + ")"); }
 const bildirimler = [];
 if (sabahTuru || elle) { const oz = ozetSatir(), ilk = l.find(f => f.sev !== "bilgi"); bildirimler.push({ title: "🤖 Ajanlar gece çalıştı", body: `${oz ? oz + "\n" : ""}Bugün ${l.length} iş${acil ? " (" + acil + " acil)" : ""}${ilk ? " • önce: " + ilk.bas : ""}`.slice(0, 230), url: "./?git=akis" }); }
-for (const s of SICAK.slice(0, 3)) bildirimler.push({ title: "🔥 Sıcak gelişme", body: s, url: "./?git=akis" });
+for (const s of SICAK.slice(0, 6)) bildirimler.push({ title: s.startsWith("⏰") ? "⏰ Hatırlatma" : s.startsWith("🛡") ? "🛡 Ödeme riski" : "🔥 Sıcak gelişme", body: s.replace(/^(⏰|🛡) /, ""), url: "./?git=akis" });
 if (!bildirimler.length) { log("Gönderilecek bildirim yok"); bitir(); }
 let abone = (await okuG("ajan/abone")) || {};
 const yonetici = uid => uid === ayar.ownerUid || (users && users[uid] && users[uid].rol === "admin");

@@ -1,4 +1,4 @@
-const C="mag-v18",V="mag-veri-v1",F=["./","index.html","manifest.webmanifest","icon.svg","icon-192.png","icon-512.png","icon-maskable-512.png"];
+const C="mag-v21",V="mag-veri-v1",F=["./","index.html","manifest.webmanifest","icon.svg","icon-192.png","icon-512.png","icon-maskable-512.png"];
 const EXT=/^https:\/\/(www\.gstatic\.com\/firebasejs\/|cdnjs\.cloudflare\.com\/ajax\/libs\/(leaflet|xlsx)\/)/;
 const VERI=/\/mag-veri\/data\//;
 self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F)));self.skipWaiting()});

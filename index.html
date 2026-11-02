@@ -3005,6 +3005,491 @@ function ajanaVer(ids,v){const l=ids.map(i=>data.find(x=>x.id===i)).filter(Boole
 A.gvgit=()=>{ajFiltre="gorev";go("ajan");gizliYukle().then(()=>{if(tab==="ajan")renderAjan()})};
 document.addEventListener("click",e=>{const b=e.target.closest('[data-ajf="gorev"]');if(b)gizliYukle().then(()=>{if(tab==="ajan"&&ajFiltre==="gorev")renderAjan()})});
 
+/* ================= v16 ÇEKİRDEK — 🛡 risk analisti, 🎪 fırsat avcısı, 🎨 içerik, 📦 stok (gece ajanı da bu bloğu okur) ================= */
+AJLER.push(
+ {k:"risk",ik:"🛡",ad:"Risk Analisti",ac:"Firmanın ödeme güvenini puanlar: kendi ödeme geçmişi + işletme bilgisi + Google'da web araştırması (konkordato, icra, şikâyet, kapanma). Vade ve kredi limiti önerir."},
+ {k:"muhasebe",ik:"📒",ad:"Muhasebe",ac:"Alacak yaşlandırma, ay özeti, Mikro/Excel'den bakiye ve tahsilat aktarımı, mutabakat."},
+ {k:"stok",ik:"📦",ad:"Stok",ac:"Hammadde stoğunu izler, kaç gün yeteceğini hesaplar, azalınca tedarikçiye sipariş e-postası hazırlar."},
+ {k:"firsat",ik:"🎪",ad:"Fırsat Avcısı",ac:"Google'da bölgede yeni açılan işletmeleri, poşet ihalelerini, fuar ve etkinlikleri arar."},
+ {k:"icerik",ik:"🎨",ad:"İçerik Üretici",ac:"Haftalık Instagram/Facebook/Google paylaşımlarını, reklam metinlerini ve yorum cevaplarını yazar."});
+const jsonAl=t=>{t=String(t||"").trim().replace(/^```(?:json)?\s*/i,"").replace(/```\s*$/,"");try{return JSON.parse(t)}catch(e){}
+ for(const[a,b]of[["{","}"],["[","]"]]){const i=t.indexOf(a),j=t.lastIndexOf(b);if(i>=0&&j>i){try{return JSON.parse(t.slice(i,j+1))}catch(e){}}}throw new Error("Yapay zekâ cevabı okunamadı, tekrar dene.")};
+const sekKey=ad=>{const s=TSEK.find(s=>s.ad===ad||s.k===ad);return s?s.k:""};
+const gunFark=(a,b)=>Math.round((new Date(a+"T00:00:00")-new Date(b+"T00:00:00"))/864e5);
+
+/* --- 🌐 Google araması ile yapay zekâ (ücretsiz katman: Gemini 2.5 Flash, günde ~500 arama) --- */
+async function aiAra(prompt,o){o=o||{};if(!aiKey())throw new Error("Önce yapay zekâ anahtarını gir (🛠 Kurulum 1).");
+ const l=await aiModeller();const mods=[...new Set([...l.filter(m=>/^gemini-2\.5-flash$/.test(m)),...l.filter(m=>/2\.5-flash(?!-lite)/.test(m)),...l.filter(m=>/2\.5-flash-lite/.test(m)),...l])].slice(0,4);
+ let son="";
+ for(const m of mods){let dz=dusun(m);
+  for(let den=0;den<2;den++){const c=new AbortController(),to=setTimeout(()=>c.abort(),o.zaman||90000);
+   try{const r=await fetch(AIB+"models/"+m+":generateContent",{method:"POST",signal:c.signal,headers:{"Content-Type":"application/json","x-goog-api-key":aiKey()},
+     body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],tools:[{google_search:{}}],generationConfig:Object.assign({temperature:0.2,maxOutputTokens:o.max||4096},dz?{thinkingConfig:dz}:{})})});
+    const j=await r.json().catch(()=>({}));clearTimeout(to);
+    if(!r.ok){if(r.status===400&&dz&&/thinking/i.test(JSON.stringify(j))){dz=null;continue}son=aiHata(j,r.status);if(r.status===400&&/API key/i.test(son))throw new Error(son);break}
+    const cd=j.candidates&&j.candidates[0],gm=(cd&&cd.groundingMetadata)||{};
+    const text=arr(cd&&cd.content&&cd.content.parts).filter(p=>!p.thought).map(p=>p.text||"").join("").trim();
+    const kay=[];arr(gm.groundingChunks).forEach(c=>{const w=c&&c.web;if(w&&w.uri&&!kay.some(k=>k.title===(w.title||"")))kay.push({uri:w.uri,title:w.title||w.domain||"kaynak"})});
+    if(text)return{text,kaynaklar:kay.slice(0,8),model:m,arandi:arr(gm.webSearchQueries).slice(0,6)};son="Boş cevap geldi.";break}
+   catch(e){clearTimeout(to);if(/Anahtar/.test(e.message||""))throw e;son=c.signal.aborted?"Google "+Math.round((o.zaman||90000)/1000)+" sn'de cevap vermedi.":"Bağlantı hatası: "+e.message;break}}
+  if(/Bağlantı hatası/.test(son))break}
+ throw new Error(son||"Web araştırması yapılamadı.")}
+
+/* --- 🛡 RİSK ANALİSTİ ---
+   Güven puanı (0-100) = Ödeme geçmişi (40) + İşletme profili (20) + Web araştırması (40).
+   Geçmiş/araştırma yoksa o bölüm ORTA (yarım) puan alır — "bilinmiyor" iyi de kötü de sayılmaz. */
+const RISK_KELIME=/(karşılıksız|protesto|icra|haciz|konkordato|iflas|ödemedi|ödeyemi|ödeme yapmad|erteled|batık|kapandı|kapattı|dolandır|kaçtı|sorunlu)/i;
+const SEKRISK={kafe:-3,bar:-4,restoran:-2,durum:-2,pide:-2,bufe:-3,dondurma:-2,pazar:-3,kuafor:-2,cicek:-1,hediye:-1,market:2,eczane:3,avm:3,fabrika:2,toptan:1,depo:1,saglik:2,akaryakit:3,otel:1,kasap:1,firin:1};
+function odemeGecmisi(x){const v=+x.vade||AJ().vade;
+ const sip=arr(x.siparis).filter(sipAktif).map(s=>({tar:s.tar||today(),kal:docTop(s)})).filter(s=>s.kal>0.5).sort((a,b)=>a.tar.localeCompare(b.tar));
+ const od=arr(x.odeme).map(p=>({tar:p.tar||today(),t:+p.tutar||0})).filter(p=>p.t>0).sort((a,b)=>a.tar.localeCompare(b.tar));
+ let i=0;const gec=[];
+ for(const p of od){let k=p.t;while(k>0.5&&i<sip.length){const s=sip[i],d=Math.min(k,s.kal);s.kal-=d;k-=d;if(s.kal<=0.5){gec.push(Math.max(0,gunFark(p.tar,addDays(s.tar,v))));i++}}}
+ const ort=gec.length?Math.round(gec.reduce((a,b)=>a+b,0)/gec.length):null;
+ const ilk=arr(x.siparis).filter(sipAktif).map(s=>s.tar).filter(Boolean).sort()[0];
+ return{siparis:arr(x.siparis).filter(sipAktif).length,kapanan:gec.length,ortGecikme:ort,maxGecikme:gec.length?Math.max(...gec):null,vade:v,acik:vadeDurum(x),iliskiGun:ilk?daysSince(ilk):0}}
+function riskHesap(x,web,hata){const P=[],R=AJ(),notlar=s=>s.filter(Boolean);
+ // 1) Ödeme geçmişi (40)
+ const g=odemeGecmisi(x);let p1,n1=[];
+ if(!g.siparis){p1=20;n1.push("Henüz sipariş geçmişi yok → orta puan (20/40). İlk siparişlerde peşin ya da kısa vade önerilir.")}
+ else{p1=34;
+  if(g.ortGecikme!=null){const d=Math.min(24,Math.round(g.ortGecikme*0.8));p1-=d;n1.push(`Kapanan ${g.kapanan} siparişte ortalama ${g.ortGecikme} gün gecikmeyle ödedi${g.maxGecikme?` (en çok ${g.maxGecikme} gün)`:""}`+(d?` → −${d}`:" → zamanında ✔"))}
+  else n1.push("Henüz kapanmış (tam ödenmiş) sipariş yok");
+  const a=g.acik;if(a.enEski){const d=a.enEski.gec>60?20:a.enEski.gec>30?12:6;p1-=d;n1.push(`Şu an ${TL2(a.tut)} vadesi geçmiş, en eskisi ${a.enEski.gec} gün → −${d}`)}
+  if(g.siparis>=6&&(g.ortGecikme||0)<=5&&!a.enEski){p1+=6;n1.push(`${g.siparis} sipariştir düzenli çalışıyor → +6`)}
+  const ac=aylikCiro(x),bk=bakiye(x);if(ac>0&&bk>ac*3){p1-=5;n1.push(`Borcu aylık alımının ${Math.round(bk/ac)} katı → −5`)}}
+ const kotu=arr(x.gorus).map(o=>o.not||"").concat([x.not||""]).filter(s=>RISK_KELIME.test(s));
+ if(kotu.length){p1-=10;n1.push(`Görüşme notlarında olumsuz ifade var ("${String(kotu[0].match(RISK_KELIME)[0])}") → −10`)}
+ p1=Math.max(0,Math.min(40,p1));P.push({k:"odeme",ad:"💰 Ödeme geçmişi (bizim kayıtlar)",p:p1,max:40,n:n1});
+ // 2) İşletme profili (20)
+ let p2=8;const n2=[],sk=sekKey(x.sektor);
+ if(x.telefon&&!isMobile(x.telefon)){p2+=3;n2.push("Sabit hat telefonu var (yerleşik işletme) +3")}else if(x.telefon)n2.push("Yalnızca cep telefonu var");
+ if(x.web||/^https?:/i.test(x.site||"")){p2+=3;n2.push("Web sitesi var +3")}
+ if(x.eposta&&!/@(gmail|hotmail|outlook|yahoo|yandex|icloud|mynet)\./i.test(x.eposta)){p2+=2;n2.push("Kurumsal e-posta adresi var +2")}
+ if(x.vergiNo||x.unvan){p2+=2;n2.push("Unvan / vergi numarası kayıtlı +2")}
+ if(isChain({ad:x.firma})){p2+=4;n2.push("Zincir / büyük işletme +4 (ödeme güvenli, vade uzun olabilir)")}
+ const sr=SEKRISK[sk]||0;if(sr){p2+=sr;n2.push(`Sektör (${x.sektor}) ${sr>0?"genelde istikrarlı +":"kapanma oranı yüksek "}${sr}`)}
+ p2=Math.max(0,Math.min(20,p2));P.push({k:"profil",ad:"🏪 İşletme profili (harita ve kayıt)",p:p2,max:20,n:n2.length?n2:["Bilgi az (telefon/web/unvan yok)"]});
+ // 3) Web araştırması (40)
+ let p3=20,n3=[],kesin=null;
+ if(web&&web.bulundu!==false){p3=26;
+  if(web.calisiyor===false){p3=4;kesin="İşletme kapanmış görünüyor";n3.push("⛔ Kapandı / faaliyet yok bilgisi")}
+  if(+web.kurulusYili>1900){const y=new Date().getFullYear()-web.kurulusYili;if(y>=10){p3+=6;n3.push(`${y} yıldır faaliyette +6`)}else if(y>=4){p3+=3;n3.push(`${y} yıldır faaliyette +3`)}else n3.push(`Yeni işletme (${y} yıl)`)}
+  if(+web.subeSayisi>=2){p3+=3;n3.push(`${web.subeSayisi} şube +3`)}
+  if(+web.googlePuan>=4.2&&+web.yorumSayisi>=30){p3+=4;n3.push(`Google ${web.googlePuan}★ (${web.yorumSayisi} yorum) +4`)}else if(+web.googlePuan&&+web.googlePuan<3.5){p3-=3;n3.push(`Google puanı düşük (${web.googlePuan}★) −3`)}
+  arr(web.olumsuz).forEach(o=>{const t=String(o.tur||"");
+   if(/konkordato|iflas|icra|haciz/i.test(t)){p3-=30;kesin=kesin||("Resmî ilan/haber: "+t);n3.push(`⛔ ${t}: ${o.ozet||""}${o.tarih?" ("+o.tarih+")":""} −30`)}
+   else if(/kapan/i.test(t)){p3-=20;kesin=kesin||"Kapanma haberi";n3.push(`⛔ Kapanma: ${o.ozet||""} −20`)}
+   else if(/sikayet|şikayet/i.test(t)){const od=/ödeme|para|borç|tedarik/i.test(o.ozet||"");p3-=od?10:3;n3.push(`⚠ Şikâyet: ${o.ozet||""} −${od?10:3}`)}
+   else{p3-=3;n3.push(`⚠ ${o.ozet||t} −3`)}});
+  arr(web.olumlu).slice(0,3).forEach(s=>n3.push("✔ "+s))}
+ else if(web&&web.bulundu===false){p3=16;n3.push("İnternette bu işletme hakkında bilgi bulunamadı (küçük esnafta normal) → 16/40")}
+ else n3.push(hata?"Web araştırması yapılamadı: "+hata:"Web araştırması henüz yapılmadı → orta puan (20/40). \"🔎 Web'de araştır\"a bas.");
+ p3=Math.max(0,Math.min(40,p3));P.push({k:"web",ad:"🌐 Web araştırması (Google)",p:p3,max:40,n:n3});
+ const puan=Math.round(P.reduce((a,b)=>a+b.p,0));
+ let seviye=puan>=70?"iyi":puan>=50?"dikkat":"risk";if(kesin)seviye="risk";
+ const vade=seviye==="iyi"?(+x.vade||R.vade):seviye==="dikkat"?Math.min(15,+x.vade||R.vade):0;
+ const tk=tuk(sk||"ozel"),pot=Math.max(aylikCiro(x),tk*(+ayar.kgFiyat||0));
+ const limit=vade?Math.max(5000,Math.round(pot*Math.max(1,vade/30)*(puan/100)*1.3/1000)*1000):0;
+ const karar=kesin?`⛔ Peşin çalış — ${kesin}`:seviye==="iyi"?`✅ Güvenli — ${vade} gün vade verilebilir, açık hesap limiti ≈ ${TL(limit)}`:seviye==="dikkat"?`⚠ Dikkatli çalış — en fazla ${vade} gün vade, limit ≈ ${TL(limit)}; tutar büyürse çek/senet iste`:`⛔ Riskli — peşin ya da teminatlı (çek, DBS) çalış`;
+ return{t:Date.now(),puan,seviye,karar,vade,limit,parcalar:P,web:web?{unvan:web.unvan||"",kurulusYili:web.kurulusYili||null,subeSayisi:web.subeSayisi||null,googlePuan:web.googlePuan||null,yorumSayisi:web.yorumSayisi||null,calisiyor:web.calisiyor??null,buyukluk:web.buyukluk||"",ozet:web.ozet||"",olumsuz:arr(web.olumsuz).slice(0,6),kaynaklar:arr(web.kaynaklar).slice(0,8)}:null}}
+async function riskWeb(x){
+ const p=`Türkiye'deki şu işletmeyi Google'da araştır. Ben bir plastik poşet üreticisiyim; bu işletmeye VADELİ (sonradan ödemeli) mal satmanın riskini değerlendireceğim.
+İşletme adı: "${x.firma}"${x.unvan?`\nTicari unvan: "${x.unvan}"`:""}
+Sektör: ${x.sektor||"-"}
+Konum: ${[x.adres,x.il].filter(Boolean).join(", ")||"-"}${x.web?"\nWeb: "+x.web:""}
+Araştır: resmi unvanı, kuruluş/faaliyet yılı, şube sayısı, Google Haritalar puanı ve yorum sayısı, hâlâ açık mı, şikayetvar vb. sitelerdeki şikâyetler (özellikle ödeme/tedarikçi şikâyeti), konkordato / iflas / icra / haciz ilanları ve haberleri (ilan.gov.tr, Ticaret Sicili Gazetesi haberleri), kapanma haberleri, büyüklüğü.
+KURALLAR: Aynı isimli başka şehirdeki firmayla KARIŞTIRMA (konuma bak). Emin olmadığın bilgiyi yazma, bulamadığın alanı null bırak. Olumsuz bir şey yoksa "olumsuz" boş liste olsun.
+SADECE şu JSON'u yaz, başka hiçbir şey yazma:
+{"bulundu":true,"unvan":null,"kurulusYili":null,"subeSayisi":null,"googlePuan":null,"yorumSayisi":null,"calisiyor":null,"olumsuz":[{"tur":"konkordato|iflas|icra|haciz|sikayet|kapanma|haber","ozet":"kısa","tarih":"yyyy-aa"}],"olumlu":["kısa madde"],"buyukluk":"küçük|orta|büyük|bilinmiyor","ozet":"2-3 cümle Türkçe değerlendirme"}`;
+ const r=await aiAra(p);const j=jsonAl(r.text);j.kaynaklar=r.kaynaklar;return j}
+async function riskAnaliz(x){let web=null,hata="";try{web=await riskWeb(x)}catch(e){hata=e.message}return riskHesap(x,web,hata)}
+// limit aşımı / riskli müşteri / analiz edilmemiş müşteri
+function ajRisk(){const out=[];let eksik=0;
+ data.forEach(x=>{if(x.aramayin)return;const r=x.risk,bk=bakiye(x),lim=+x.limit||(r&&r.limit)||0;
+  if(lim>0&&bk>lim+0.5)out.push({ag:"risk",id:x.id,sev:+x.limit?"kritik":"onemli",bas:`${x.firma} • ${+x.limit?"kredi limiti aşıldı":"önerilen limitin üstünde borç"}`,det:`Bakiye ${TL2(bk)} • ${+x.limit?"limit":"önerilen limit"} ${TL(lim)} → yeni sevkiyattan önce ödeme iste`,etki:bk-lim,act:[{a:"risk",id:x.id,lb:"🛡 Risk raporu"},{a:"pay",id:x.id,lb:"+ Ödeme"}]});
+  else if(r&&r.seviye==="risk"&&bk>0.5)out.push({ag:"risk",id:x.id,sev:"onemli",bas:`${x.firma} • riskli müşteride ${TL2(bk)} açık bakiye`,det:r.karar,etki:bk,act:[{a:"risk",id:x.id,lb:"🛡 Risk raporu"}]});
+  else if(r&&r.seviye==="risk"&&arr(x.teklif).some(t=>t.durum==="Beklemede"))out.push({ag:"risk",id:x.id,sev:"bilgi",bas:`${x.firma} • teklif verdin ama ödeme riski yüksek`,det:"Sipariş gelirse peşin ya da çekle çalış. "+r.karar,etki:0,act:[{a:"risk",id:x.id,lb:"🛡 Risk raporu"}]});
+  else if(!r&&["Müşteri","Teklif verildi"].includes(x.durum)&&eksik<6){eksik++;out.push({ag:"risk",id:x.id,sev:"bilgi",bas:`${x.firma} • risk analizi yapılmadı`,det:"Vade vermeden önce bir kez analiz et (1 dakika, ücretsiz).",etki:0,act:[{a:"risk",id:x.id,lb:"🛡 Analiz et"}]})}});
+ return out}
+
+/* --- 📦 STOK: hammadde kartlarına stok, kritik seviye, günlük kullanım, tedarikçi --- */
+const stokGun=h=>+h.gunluk>0&&h.stok!==""&&h.stok!=null?Math.floor((+h.stok||0)/(+h.gunluk)):null;
+function ajStok(){const out=[];hamL().forEach((h,i)=>{if(h.stok===""||h.stok==null)return;const s=+h.stok||0,kg=stokGun(h),kr=+h.kritik||0;
+ if(!((kr&&s<=kr)||(kg!=null&&kg<=7)))return;
+ const mik=+h.gunluk>0?Math.ceil(+h.gunluk*30/25)*25:Math.max(kr*2-s,kr)||"";
+ out.push({ag:"stok",sev:(kg!=null&&kg<=3)||s<=kr/2?"kritik":"onemli",bas:`${h.ad} stoğu azaldı`,det:`Kalan ${NUM(s)} ${h.birim||"kg"}${kg!=null?` • yaklaşık ${kg} gün yeter`:""}${kr?` • kritik seviye ${NUM(kr)}`:""}${h.ted?` • tedarikçi: ${h.ted}`:""}`,
+  etki:0,msg:`Merhaba${h.ted?" "+h.ted:""}, ${h.ad} için ${mik?NUM(mik)+" "+(h.birim||"kg")+" ":""}sipariş vermek istiyoruz. Güncel fiyatınızı ve en erken teslim tarihini iletebilir misiniz? ${imza()}`,
+  act:[{a:"stoksip",i,lb:"📧 Tedarikçiye sipariş"},{a:"stokac",lb:"📦 Stoğu güncelle"}]})});return out}
+{const _ac=ajCalistir;ajCalistir=function(){const l=_ac(),kap=ajKapali(),ek=[];[ajRisk,ajStok].forEach(f=>{try{f().forEach(o=>{if(!kap[ajKey(o)])ek.push(o)})}catch(e){console.warn("ajan",e)}});
+ return l.concat(ek).sort((a,b)=>(SEVR[a.sev]-SEVR[b.sev])||((b.etki||0)-(a.etki||0)))}}
+
+/* --- 🎪 FIRSAT AVCISI: Google'da yeni açılış, ihale, fuar, etkinlik --- */
+const firsatBolge=()=>((ayar.otonom&&ayar.otonom.firsatBolge)||"Silivri, Büyükçekmece, Çatalca, Beylikdüzü, Esenyurt, Arnavutköy (İstanbul) ve Tekirdağ (Çorlu, Çerkezköy, Marmaraereğlisi)");
+async function firsatAra(){const b=firsatBolge();
+ const p=`Bugün ${today()}. MAG AMBALAJ, Silivri'de plastik poşet üreticisi (atlet, rulo, baskılı/baskısız, HDPE/LDPE torba). Google'da araştır ve bize SATIŞ FIRSATI olabilecek GÜNCEL (son 60 gün ya da önümüzdeki 3 ay) şeyleri bul:
+1) Bölgede (${b}) yeni açılan veya açılacak market, zincir market şubesi, manav, kasap, fırın, restoran, AVM, toptancı (poşet ihtiyacı olan işletmeler).
+2) Belediye, hastane, okul, kamu kurumlarının poşet / çöp torbası / ambalaj ihaleleri ve doğrudan alımları (Türkiye geneli ama özellikle İstanbul ve Trakya).
+3) Gıda, perakende, ambalaj fuarları ve bölgedeki festival/panayır/pazar etkinlikleri (stand açanlar poşet ister).
+4) Poşet sektörünü etkileyen önemli haber (poşet ücreti, hammadde fiyatı, yeni yönetmelik).
+Uydurma; sadece kaynağı olan bilgiyi yaz. En fazla 10 madde.
+SADECE şu JSON'u yaz: {"l":[{"tur":"acilis|ihale|fuar|etkinlik|haber","baslik":"kısa","firma":"işletme/kurum adı ya da null","yer":"ilçe/il","tarih":"yyyy-aa-gg ya da yaklaşık","neden":"MAG için neden fırsat (1 cümle)","oneri":"ne yapmalıyız (1 cümle)"}]}`;
+ const r=await aiAra(p,{max:6000});const j=jsonAl(r.text);return{t:Date.now(),bolge:b,l:arr(j.l||j).slice(0,12),kaynaklar:r.kaynaklar}}
+
+/* --- 🎨 İÇERİK ÜRETİCİ: haftalık paylaşım planı --- */
+async function icerikPlani(konu){
+ const ay=["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"][new Date().getMonth()];
+ const ur=katalog.slice(0,25).map(u=>u.ad).join(", ");
+ const sys=`MAG AMBALAJ (Silivri, plastik poşet üreticisi; esnafa ve firmalara toptan satış; logolu baskılı poşet yapar) için sosyal medya içerik uzmanısın. Türkçe, samimi, satış odaklı, esnafın anlayacağı dille yaz. Abartılı vaat ve uydurma rakam kullanma. Fiyat yazma.`;
+ const m=`Bu hafta için 5 paylaşım planla (Instagram, Facebook, Google İşletme Profili, WhatsApp Durum, LinkedIn arasında dağıt). Ay: ${ay} (mevsim, özel günler, kampanya dönemleri — ör. Kasım: Efsane Cuma, yılbaşı baskılı poşet siparişleri).${konu?" Özellikle şu konu: "+konu:""} Ürünlerimiz: ${ur||"atlet poşet, rulo poşet, baskılı poşet, çöp torbası"}.
+SADECE JSON: {"l":[{"gun":"Pazartesi","platform":"Instagram","baslik":"kısa","metin":"paylaşım metni (emoji olabilir, 2-5 cümle, sonunda harekete geçirici çağrı)","gorsel":"çekilecek fotoğraf/video tarifi","etiketler":"#poşet #silivri ..."}]}`;
+ const t=await aiSor(sys,[{r:"ben",m}],{json:true,max:6000,sicak:0.8});const j=jsonAl(t);return{t:Date.now(),konu:konu||"",l:arr(j.l||j).slice(0,7)}}
+/* --- v16 ekran --- */
+
+/* ================= v16 — 🏢 AJAN OFİSİ: sen yöneticisin, işi ajanlar yapar ================= */
+document.head.insertAdjacentHTML("beforeend",`<style>
+.of-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:10px}
+.of-aj{background:var(--card);border:1px solid var(--br);border-radius:12px;padding:10px;cursor:pointer;text-align:left;position:relative;min-height:84px}
+.of-aj b{display:block;font-size:14px}.of-aj .ik{font-size:24px;line-height:1}.of-aj small{display:block;color:var(--mu);font-size:11.5px;margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.of-aj i{position:absolute;top:8px;right:8px;background:var(--rd);color:#fff;border-radius:10px;padding:0 7px;font-style:normal;font-size:12px}
+.of-aj.kapali{opacity:.55}.of-aj .nok{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gr);margin-right:4px}.of-aj.kapali .nok{background:var(--mu)}
+.of-feed{max-height:52vh;overflow:auto;padding:4px 2px}
+.of-m{display:flex;gap:8px;margin:8px 0;align-items:flex-start}.of-m .av{font-size:20px;width:30px;text-align:center;flex:none}
+.of-m .bb{background:var(--ac);border-radius:12px;padding:8px 10px;max-width:92%;font-size:14px}.of-m .bb small{display:block;color:var(--mu);font-size:11px;margin-bottom:2px}
+.of-m:not(.ben) .bb{flex:1 1 auto}.of-m.ben{flex-direction:row-reverse}.of-m.ben .bb{background:var(--pr);color:var(--on)}.of-m.ben .bb small{color:inherit;opacity:.8}
+.ey{border:1px dashed var(--br);border-radius:10px;padding:8px;margin-top:6px;background:var(--card);color:var(--tx)}.ey.ok{border-style:solid;border-color:var(--gr)}.ey.no{opacity:.55}
+.ey pre{white-space:pre-wrap;font:inherit;font-size:13px;margin:4px 0;max-height:180px;overflow:auto}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chips button{padding:6px 10px;border-radius:16px;font-size:13px}.chips button.on{background:var(--pr);color:var(--on);border-color:var(--pr)}
+.rk{display:inline-block;border-radius:8px;padding:1px 7px;font-size:12px;font-weight:600;cursor:pointer;border:0}.rk.iyi{background:#d1fadf;color:#05603a}.rk.dikkat{background:#fef0c7;color:#93370d}.rk.risk{background:#fee4e2;color:#912018}
+.rbar{height:8px;border-radius:4px;background:var(--br);overflow:hidden;margin:4px 0}.rbar>span{display:block;height:100%;background:var(--pr)}
+.rpuan{font-size:40px;font-weight:700;line-height:1}.tbl{width:100%;border-collapse:collapse;font-size:13px}.tbl td,.tbl th{border-bottom:1px solid var(--br);padding:5px 4px;text-align:left}.tbl td.r,.tbl th.r{text-align:right}
+</style>`);
+
+/* --- 👤 Tek kullanıcı: program yalnızca sahibine açılır --- */
+const SAHIP_EP="xfranerxx@gmail.com";
+const sahipMi=u=>!!u&&(String(u.email||"").toLowerCase()===SAHIP_EP||(ayar.ownerUid&&u.uid===ayar.ownerUid));
+{const _k=kapiGuncelle;kapiGuncelle=function(){const k=$("kapi");if(!k||(typeof SIPT!=="undefined"&&SIPT))return _k();
+ const fb=window.firebase&&firebase.apps&&firebase.apps.length,u=fb?firebase.auth().currentUser:null;
+ if(u&&!sahipMi(u)){k.hidden=false;document.body.classList.add("kapali");kapiForm(false);
+  $("kapiD").innerHTML=`Bu program yalnızca <b>MAG AMBALAJ sahibine</b> özeldir.<br><b>${esc(u.email||"")}</b> hesabıyla giriş yapılamaz. ${esc(SAHIP_EP)} ile giriş yap.`;
+  $("kapiB").innerHTML=`<button class="p" onclick="firebase.auth().signOut()">Çıkış yap</button>`;return}
+ return _k()}}
+{const b=document.querySelector('[onclick="cloudSignup()"]');if(b)b.remove()}
+bolgeHtml=()=>"";
+{const m=$("mY");if(m)m.innerHTML="🔐<br>Hesaplar (ajan hesabı)"}
+{const _r=render;render=function(){_r();["fo","bown","ownBox"].forEach(i=>{const e=$(i);if(e)e.hidden=true});
+ document.querySelectorAll("h4").forEach(h=>{if(/Satışçı primi/.test(h.textContent)){h.hidden=true;if(h.nextElementSibling)h.nextElementSibling.hidden=true}})}}
+
+/* --- buluttan ofis verisi (günlük, fırsat, içerik, hatırlatma, bekleyen e-postalar) --- */
+let OF={gunluk:[],firsat:null,icerik:null,takvim:{},kuyruk:{},t:0};
+async function ofisYukle(zorla){if(!root||!isAdmin()||cloudState!=="on")return;if(!zorla&&Date.now()-OF.t<60000)return;OF.t=Date.now();
+ try{const[g,f,i,t,k]=await Promise.all([root.child("ajan/gunluk").orderByKey().limitToLast(4).once("value"),root.child("ajan/firsat").once("value"),root.child("ajan/icerik").once("value"),root.child("ajan/takvim").once("value"),root.child("ajan/kuyruk").once("value")]);
+  OF.gunluk=Object.entries(g.val()||{}).flatMap(([d,o])=>arr(o&&o.isler).map(q=>({...q,d}))).sort((a,b)=>(a.t||0)-(b.t||0));
+  OF.firsat=f.val();OF.icerik=i.val();OF.takvim=t.val()||{};OF.kuyruk=k.val()||{}}catch(e){}
+ if(tab==="ajan")renderAjan();else if(tab==="akis")renderAkis()}
+
+/* --- ajanlar (videodaki 7 çalışan + MAG'a özel olanlar) --- */
+const OFIS=[
+ {k:"mudur",ik:"👔",ad:"Müdür",is:"İşi dağıtır, sabah raporunu ve haftalık stratejiyi yazar",g:["rapor","haftalik","taslak"]},
+ {k:"avci",ik:"🎯",ad:"Müşteri Avcısı",is:"Yeni müşteri bulur, e-posta adresi arar, rota çıkarır",g:["tarama","epbul","rota","takip"]},
+ {k:"gorev",ik:"📧",ad:"Mail Yazarı",is:"Tanıtım, takip, teklif e-postalarını yazar ve gönderir, gelen cevapları okur",g:["tanitim","takipEp","teklifEp","numuneEp","tekrarEp","caprazEp","uyuyanEp","gelen","kuyruk"]},
+ {k:"tahsilat",ik:"💰",ad:"Tahsilat",is:"Vadesi geçen alacakları takip eder, hatırlatır",g:["tahsilatEp"]},
+ {k:"muhasebe",ik:"📒",ad:"Muhasebe",is:"Alacak yaşlandırma, ay özeti, Excel/Mikro aktarımı",g:[]},
+ {k:"risk",ik:"🛡",ad:"Risk Analisti",is:"Firmanın ödeme güvenini araştırır, vade ve limit önerir",g:["risk"]},
+ {k:"stok",ik:"📦",ad:"Stok",is:"Hammadde stoğunu izler, tedarikçiye sipariş hazırlar",g:[]},
+ {k:"fiyat",ik:"⚖",ad:"Fiyat Bekçisi",is:"Zararına teklif ve fiyat bırakmaz",g:["fiyatEp"]},
+ {k:"firsat",ik:"🎪",ad:"Fırsat Avcısı",is:"Yeni açılış, ihale, fuar, etkinlik arar (Google)",g:["firsat"]},
+ {k:"icerik",ik:"🎨",ad:"İçerik Üretici",is:"Haftalık paylaşım, reklam metni, yorum cevabı yazar",g:["icerik"]}];
+const GOR2AJ={};OFIS.forEach(a=>a.g.forEach(k=>GOR2AJ[k]=a));
+const IK2AJ={"🎯":"avci","✉":"avci","🔄":"avci","🗺":"avci","📧":"gorev","📨":"gorev","📋":"mudur","📅":"mudur","✍":"mudur","🛡":"risk","🎪":"firsat","🎨":"icerik","⏰":"mudur"};
+const ajOf=q=>(q.k&&GOR2AJ[q.k])||OFIS.find(a=>a.k===IK2AJ[q.ik])||{ik:q.ik||"🤖",ad:"Ajan"};
+const saatTxt=t=>{const d=new Date(t||0),bg=fmt(d)===today();return(bg?"bugün ":fd(fmt(d))+" ")+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
+AJLER.unshift({k:"ofis",ik:"🏢",ad:"Ofis",ac:"Ajanların hepsi burada. Müdür'e yaz, iş versin; ajanların ne yaptığını aşağıdan izle."});
+
+function ofisHtml(){ofisYukle();const l=window.__aj||[],V=gvAl();
+ const son=a=>{let b=null;a.g.forEach(k=>{const s=gorevSon[k];if(s&&(!b||s.t>b.t))b=s});const q=[...OF.gunluk].reverse().find(q=>ajOf(q)===a);if(q&&(!b||q.t>b.t))b={t:q.t,metin:q.metin};return b};
+ const tiles=OFIS.map(a=>{const n=l.filter(f=>f.ag===(a.k==="gorev"?"teklif":a.k)&&f.sev!=="bilgi").length,s=son(a),acik=!a.g.length||["tahsilat","fiyat"].includes(a.k)||a.g.some(k=>V[k]&&V[k].acik);
+  return`<button class="of-aj ${acik?"":"kapali"}" data-ajf="${a.k}"><span class="ik">${a.ik}</span><b><span class="nok"></span>${a.ad}</b><small>${s?esc(s.metin):esc(a.is)}</small>${n?`<i>${n}</i>`:""}</button>`}).join("");
+ const ms=Object.assign({gunler:[1,2,3,4,5,6],saatler:[8,13,18]},(ayar.otonom||{}).mesai||{}),dur=(ayar.otonom||{}).durdur;
+ const bek=Object.keys(OF.kuyruk||{}).length;
+ return `<div class="card" style="background:var(--ac)"><b>${dur?"⏸ Ajanlar tatilde (kendiliğinden çalışmıyor)":"🟢 Ajanlar mesaide"}</b> <span class="mu">• ${ms.gunler.length} gün, saat ${ms.saatler.map(h=>String(h).padStart(2,"0")).join(", ")}${bek?` • ${bek} e-posta sırada`:""}</span>
+  <div class="row" style="margin-top:6px"><button class="p" data-a="ajcal">▶ Şimdi çalıştır</button><button data-ajf="gorev">⏰ Saatler ve görevler</button></div></div>
+ <div class="of-grid">${tiles}</div>${mudurSohbetHtml()}`}
+
+/* --- 👔 Müdür'e iş ver: yazdığını anlar, eylem kartları hazırlar, sen onaylayınca yapar --- */
+const EYL_AD={eposta:"📧 E-posta",whatsapp:"💬 WhatsApp",teklif:"📄 Teklif",hatirlat:"⏰ Hatırlatma",guncelle:"✎ Kayıt güncelle",sec:"🎯 Firma seç + görev",calistir:"▶ Ajanları çalıştır",risk:"🛡 Risk analizi",firsat:"🎪 Fırsat araması",icerik:"🎨 İçerik planı",stok:"📦 Stok güncelle",tedarik:"📧 Tedarikçiye e-posta"};
+const KOMUTLAR=["Bugün ne yapayım?","Teklifi cevapsız kalanlara hatırlatma e-postası gönder","Silivri'deki e-postası olan 20 markete tanıtım gönder","Borcu en eski 3 müşteriye ödeme hatırlat","Yarın 10'da en sıcak müşteriyi aramayı hatırlat","Bölgede yeni açılan market ve ihaleleri araştır","Bu haftanın Instagram paylaşımlarını hazırla"];
+function kodX(k){const K=aiKod||aiKodla();if(!K.rev){K.rev=new Map();K.id.forEach((v,id)=>K.rev.set(v,id))}const id=K.rev.get(String(k||"").trim().toUpperCase());return id?data.find(x=>x.id===id):null}
+const MUDUR_EK=()=>`
+SEN AYNI ZAMANDA İŞ YAPTIRAN MÜDÜRSÜN. Patron bir iş verirse eylemlere dönüştür; patron onaylayınca program yapar.
+CEVABI SADECE JSON OLARAK VER: {"cevap":"patrona kısa Türkçe cevap","eylemler":[...]}
+Eylem türleri (yalnızca bunlar; firma alanına F kodu yaz):
+{"tip":"eposta","firma":"F12","konu":"...","metin":"Merhaba ... ile başlayan e-posta gövdesi, imza YAZMA"}  — sadece e-postası olan firmaya; çok firmaya aynı türde e-posta için "sec" kullan
+{"tip":"whatsapp","firma":"F12","metin":"selamlama ve imza olmadan 2-4 cümle"}
+{"tip":"teklif","firma":"F12","kalemler":[{"urun":"ürünler listesindeki ad","miktar":100,"fiyat":null}],"not":""}  — fiyat null ise liste fiyatı kullanılır; maliyetin altında fiyat yazma
+{"tip":"hatirlat","firma":"F12 ya da null","tarih":"YYYY-AA-GG","saat":"SS:DD","metin":"..."}
+{"tip":"guncelle","firma":"F12","durum":"${DUR.join("|")} ya da null","oncelik":"Sıcak|Ilık|Soğuk ya da null","sonraki":"YYYY-AA-GG ya da null","not":"görüşme notu ya da null"}
+{"tip":"sec","filtre":{"sektor":"sektör adı ya da null","durum":"durum ya da null","ilce":"ilçe/semt ya da null","epostaVar":true,"enCok":20},"gorev":"tanitim|takipEp|teklifEp|numuneEp|tekrarEp|caprazEp|uyuyanEp|tahsilatEp ya da null"}  — çok firmaya toplu iş
+{"tip":"calistir","gorevler":["tarama","epbul","takip","rota","gelen","rapor","taslak","tanitim","takipEp","teklifEp","tahsilatEp","risk","firsat","icerik"]}  — sadece gereken görevleri yaz
+{"tip":"risk","firma":"F12"} • {"tip":"firsat"} • {"tip":"icerik","konu":"..."} • {"tip":"stok","ad":"hammadde adı","miktar":1500}
+Sektörler: ${SEK.join(", ")}. Hammaddeler: ${hamL().map(h=>h.ad).join(", ")||"-"}.
+Bugün ${today()} (${["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"][new Date().getDay()]}). Soru soruyorsa ya da iş yoksa eylemler boş liste. Firmayı, ürünü, rakamı uydurma. E-posta ve mesaj metinleri Türkçe, kibar, kısa ve satış odaklı olsun.`;
+function eylemOzet(a){const x=a.firma?kodX(a.firma):null,fa=x?esc(x.firma):a.firma?`<span class="warn">${esc(a.firma)} bulunamadı</span>`:"";
+ switch(a.tip){
+  case"eposta":return`<b>${fa}</b> ← ${x&&x.eposta?esc(x.eposta):'<span class="warn">e-postası yok</span>'}<br><b>${esc(deanon(a.konu||""))}</b><pre>${esc(deanon(a.metin||""))}</pre>`;
+  case"whatsapp":return`<b>${fa}</b><pre>${esc(deanon(a.metin||""))}</pre>`;
+  case"teklif":return`<b>${fa}</b><br>${arr(a.kalemler).map(k=>{const u=katalog.find(u=>u.ad===k.urun)||katalog.find(u=>normF(u.ad)===normF(k.urun||""));return`• ${esc(k.urun)} × ${NUM(+k.miktar||0)}${u?"":' <span class="warn">(katalogda yok)</span>'} — ${TL2(+k.fiyat||(u&&+u.fiyat)||0)}`}).join("<br>")}`;
+  case"hatirlat":return`${fa?"<b>"+fa+"</b> • ":""}${fd(a.tarih||today())} ${esc(a.saat||"")}<br>${esc(deanon(a.metin||""))}`;
+  case"guncelle":return`<b>${fa}</b> ${[a.durum&&"durum: "+a.durum,a.oncelik&&"öncelik: "+a.oncelik,a.sonraki&&"sonraki arama: "+fd(a.sonraki)].filter(Boolean).map(esc).join(" • ")}${a.not?"<br>Not: "+esc(deanon(a.not)):""}`;
+  case"sec":{const l=secFiltre(a.filtre||{});return`${l.length} firma seçilecek${l.length?": "+l.slice(0,6).map(x=>esc(x.firma)).join(", ")+(l.length>6?"…":""):""}${a.gorev?`<br>Sonra ajanlar şunu yapacak: <b>${esc((gorevTum().find(g=>g.k===a.gorev)||{}).ad||a.gorev)}</b>`:""}`}
+  case"calistir":return arr(a.gorevler).map(k=>esc((gorevTum().find(g=>g.k===k)||{}).ad||k)).join(", ");
+  case"risk":return`<b>${fa}</b> — ödeme geçmişi + web araştırması`;
+  case"stok":return`${esc(a.ad||"")} → ${NUM(+a.miktar||0)}`;
+  case"icerik":return esc(a.konu||"Bu haftanın paylaşımları");
+  case"tedarik":return`${esc(a.to||"")}<br><b>${esc(a.konu||"")}</b><pre>${esc(a.metin||"")}</pre>`;
+  default:return""}}
+function secFiltre(f){const n=s=>String(s||"").toLocaleLowerCase("tr");let l=data.filter(x=>!x.aramayin&&x.izin!=="Çıkış yaptı"&&x.durum!=="İlgilenmiyor");
+ if(f.sektor)l=l.filter(x=>n(x.sektor).includes(n(f.sektor))||n(f.sektor).includes(n(x.sektor)));if(f.durum)l=l.filter(x=>x.durum===f.durum);
+ if(f.ilce)l=l.filter(x=>n(x.il+" "+x.adres).includes(n(f.ilce)));if(f.epostaVar)l=l.filter(x=>x.eposta);
+ return l.sort((a,b)=>(b.aday||0)-(a.aday||0)).slice(0,Math.min(100,+f.enCok||30))}
+function mudurSohbetHtml(){
+ const fe=[...OF.gunluk.slice(-30).map(q=>({t:q.t,aj:ajOf(q),m:q.metin})),...sohb.map((m,i)=>({t:m.t,ben:m.r==="ben",m:m.m,i,e:m.eylemler,hata:m.hata}))].sort((a,b)=>(a.t||0)-(b.t||0));
+ const msj=fe.map(o=>{if(o.ben)return`<div class="of-m ben"><span class="av">🧑‍💼</span><div class="bb"><small>Sen • ${saatTxt(o.t)}</small>${esc(o.m)}</div></div>`;
+  if(o.aj)return`<div class="of-m"><span class="av">${o.aj.ik}</span><div class="bb"><small>${esc(o.aj.ad)} • ${saatTxt(o.t)}</small>${esc(o.m)}</div></div>`;
+  const ey=arr(o.e).map((a,j)=>`<div class="ey ${a.durum==="ok"?"ok":a.durum==="no"?"no":""}"><b>${EYL_AD[a.tip]||a.tip}</b>${a.durum==="ok"?" ✅ "+esc(a.sonuc||"Yapıldı"):a.durum==="no"?" — vazgeçildi":""}<div class="mu">${eylemOzet(a)}</div>${a.hata?`<div class="warn">⚠ ${esc(a.hata)}</div>`:""}${!a.durum?`<div class="row"><button class="p" data-a="eyyap" data-id="${o.i}" data-i="${j}">✅ Yap</button><button data-a="eyno" data-id="${o.i}" data-i="${j}">✕</button></div>`:a.link?`<div class="row"><a class="btn" target="_blank" rel="noopener" href="${esc(a.link)}">${esc(a.linkAd||"Aç")}</a></div>`:""}</div>`).join("");
+  const kalan=arr(o.e).filter(a=>!a.durum).length;
+  return`<div class="of-m"><span class="av">👔</span><div class="bb"><small>Müdür • ${saatTxt(o.t)}</small>${o.hata?esc(o.m):aiHtml(o.m)}${ey}${kalan>1?`<div class="row"><button class="p" data-a="eyhep" data-id="${o.i}">✅ Hepsini yap (${kalan})</button></div>`:""}</div></div>`}).join("");
+ return `${aiKey()?"":`<div class="card warn-c"><b>🧠 Yapay zekâ bağlı değil.</b> Müdür'e iş verebilmek için ücretsiz anahtarı bir kez gir. <button class="p" data-ajf="kurulum">🛠 Kurulum</button></div>`}
+ <div class="card"><h3>💬 Ofis — Müdür'e iş ver</h3><div class="of-feed" id="sohL">${msj||`<div class="mu">Müdür'e normal konuşur gibi yaz: "Yıldız Market'e 500 adet atlet poşet teklifi hazırla ve e-postayla gönder", "kasapları bu hafta ara listesine koy", "borcu geciken müşterilere hatırlatma gönder". Müdür işi hazırlar, sen ✅ Yap dersin. Ajanların gece ve gündüz yaptıkları da burada görünür.</div>`}${sohMesgul?`<div class="of-m"><span class="av">👔</span><div class="bb mu">çalışıyor… <span class="aiSure"></span> <button type="button" onclick="aiVazgec()">Vazgeç</button></div></div>`:""}</div>
+ <div class="chips" style="margin-top:8px">${KOMUTLAR.map(s=>`<button data-soru="${esc(s)}">${esc(s)}</button>`).join("")}</div>
+ <div class="row" style="margin-top:8px"><textarea id="sohI" rows="2" placeholder="Müdür'e iş ver ya da soru sor…" style="flex:1"></textarea><button class="p" data-a="sohgon" ${sohMesgul?"disabled":""}>Gönder</button></div>
+ <div class="row"><button data-a="sohtem">🗑 Sohbeti temizle</button><span class="mu">Firma ve kişi adları Google'a gitmez, kodla gider.</span></div></div>`}
+sohbetHtml=mudurSohbetHtml;window.ajOzel.sohbet=mudurSohbetHtml;window.ajOzel.ofis=ofisHtml;
+const sohKaydet=()=>{sohb=sohb.slice(-40);ls.set(SOHK,JSON.stringify(sohb))};
+const sohCiz=()=>{renderAjan();const L=$("sohL");if(L)L.scrollTop=L.scrollHeight};
+sohbetGonder=async function(t){t=String(t||"").trim();if(!t||sohMesgul)return;
+ sohb.push({r:"ben",m:t,t:Date.now()});sohMesgul=true;if(tab!=="ajan"||!["ofis","sohbet"].includes(ajFiltre)){ajFiltre="ofis";go("ajan")}sohCiz();
+ try{const hist=sohb.slice(-10).map(m=>({r:m.r,m:m.r==="ben"?anon(m.m):m.m}));
+  const c=await aiSor(AISYS()+MUDUR_EK(),hist,{json:true,max:8000});let j;try{j=jsonAl(c)}catch(e){j={cevap:c,eylemler:[]}}
+  const ey=arr(j.eylemler).filter(a=>a&&EYL_AD[a.tip]).slice(0,25);
+  sohb.push({r:"ai",m:String(j.cevap||(ey.length?"Hazırladım, onaylarsan yapıyorum:":"Tamam.")),t:Date.now(),eylemler:ey})}
+ catch(e){sohb.push({r:"ai",m:"⚠ "+e.message,t:Date.now(),hata:1})}
+ sohMesgul=false;sohKaydet();sohCiz()};
+async function istekVer(gorevler,secili){await root.child("ajan/istek").set({t:Date.now(),gorevler,secili:!!secili,kim:me.ad||me.email||""});
+ if(gizB.ghToken){ajanlariCalistir();return"Ajanlar çalışmaya başladı (2-5 dk)"}return"GitHub bağlantısı yok; bir sonraki mesai saatinde yapılacak"}
+async function kuyrugaEkle(o){if(!root)throw new Error("Önce ☁ giriş yap.");await root.child("ajan/kuyruk").push(Object.assign({t:Date.now(),tip:"eposta"},o));OF.t=0;
+ const mod=(ayar.otonom||{}).eposta==="acik"?"":" (Deneme modu: önce sana örnek gelir)";
+ if(gizB.ghToken){await root.child("ajan/istek").set({t:Date.now(),gorevler:["kuyruk"],kim:me.ad||""});ajanlariCalistir();return"Sıraya alındı, birkaç dakikada gidiyor"+mod}
+ return"Sıraya alındı, bir sonraki mesai saatinde gidecek"+mod}
+async function eylemYap(mi,j){const m=sohb[+mi],a=m&&arr(m.eylemler)[+j];if(!a||a.durum)return;a.hata="";const x=a.firma?kodX(a.firma):null;
+ try{switch(a.tip){
+  case"eposta":{if(!x)throw new Error("Firma bulunamadı");if(!x.eposta)throw new Error("Bu firmanın e-postası yok. WhatsApp ile gönderebilirsin.");
+   a.sonuc=await kuyrugaEkle({firmaId:x.id,konu:deanon(a.konu||"MAG AMBALAJ"),metin:deanon(a.metin||"")});break}
+  case"whatsapp":{if(!x)throw new Error("Firma bulunamadı");const n=waNum(x.telefon);if(!n)throw new Error("Bu firmanın cep telefonu yok.");
+   a.link=`https://wa.me/${n}?text=${encodeURIComponent(selam(x)+" "+deanon(a.metin||"")+" "+imza())}`;a.linkAd="💬 WhatsApp'ta aç";a.sonuc="Mesaj hazır, açıp gönder";window.open(a.link,"_blank");break}
+  case"teklif":{if(!x)throw new Error("Firma bulunamadı");const R=AJ(),uy=[];
+   const ks=arr(a.kalemler).map(k=>{const u=katalog.find(u=>u.ad===k.urun)||katalog.find(u=>normF(u.ad)===normF(k.urun||""));let f=+k.fiyat||(u&&(+u.fiyat||(+u.maliyet?oner(u.maliyet):0)))||0;
+    if(u&&+u.maliyet){const alt=marjAlt(u.maliyet,R.minMarj);if(f<alt){uy.push(`${u.ad}: ${TL2(f)} → ${TL2(alt)}`);f=alt}}
+    const o={urun:u?u.ad:String(k.urun||"").trim(),mik:+k.miktar||0,birim:u?u.birim||"":"",fiyat:f,isk:0};if(u&&+u.maliyet)o.maliyet=+u.maliyet;if(u)o.urunId=u.id;return o}).filter(k=>k.urun);
+   if(!ks.length)throw new Error("Kalem yok");const doc={kim:"👔 Müdür",kalemler:ks,kdv:20,tar:today(),durum:"Beklemede",not:deanon(a.not||"")};const c=calc(doc);doc.ara=Math.round(c.ara*100)/100;doc.tut=Math.round(c.top*100)/100;doc.no=await nextNo("T");
+   const y={...x,teklif:[...arr(x.teklif),doc]};syncDur(y,"Beklemede");put(y);a.sonuc=`${doc.no} • ${TL2(doc.tut)}${uy.length?" • Fiyat Bekçisi düzeltti: "+uy.join(", "):""}`;a.teklifIdx=y.teklif.length-1;a.firmaId=x.id;
+   setTimeout(()=>printDoc("teklif",x.id,a.teklifIdx),200);break}
+  case"hatirlat":{const tar=/^\d{4}-\d\d-\d\d$/.test(a.tarih||"")?a.tarih:today(),sa=/^\d\d:\d\d$/.test(a.saat||"")?a.saat:"09:00",mt=deanon(a.metin||"Hatırlatma");
+   await root.child("ajan/takvim").push({t:Date.now(),tarih:tar,saat:sa,metin:mt,firmaId:x?x.id:null});OF.t=0;
+   if(x&&(!x.sonraki||x.sonraki>tar))put({...x,sonraki:tar});
+   const d=tar.replace(/-/g,"")+"T"+sa.replace(":","")+"00";a.link=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent((x?x.firma+" — ":"")+mt)}&dates=${d}/${d}&ctz=Europe/Istanbul`;a.linkAd="📅 Google Takvim'e de ekle";
+   a.sonuc=`${fd(tar)} ${sa} için kuruldu; o saatte telefonuna bildirim gelir`;break}
+  case"guncelle":{if(!x)throw new Error("Firma bulunamadı");const y={...x};if(a.durum&&DUR.includes(a.durum))y.durum=a.durum;if(a.oncelik&&ONC.includes(a.oncelik))y.oncelik=a.oncelik;if(/^\d{4}-\d\d-\d\d$/.test(a.sonraki||""))y.sonraki=a.sonraki;
+   if(a.not)y.gorus=[...arr(x.gorus),{t:Date.now(),tip:"Not",not:deanon(a.not),kim:"👔 Müdür"}];put(y);a.sonuc="Kayıt güncellendi";break}
+  case"sec":{const l=secFiltre(a.filtre||{});if(!l.length)throw new Error("Bu filtreye uyan firma yok");const eski=data.filter(v=>v.ajanSec).map(v=>v.id);if(eski.length)ajanaVer(eski,false);ajanaVer(l.map(v=>v.id),true);
+   a.sonuc=`${l.length} firma ajanlara verildi`;if(a.gorev)a.sonuc+=" • "+await istekVer([a.gorev],true);break}
+  case"calistir":{const g=arr(a.gorevler).filter(k=>gorevTum().some(v=>v.k===k));if(!g.length)throw new Error("Görev yok");a.sonuc=await istekVer(g);break}
+  case"risk":{if(!x)throw new Error("Firma bulunamadı");riskCalistir(x.id);a.sonuc="Analiz açıldı";break}
+  case"firsat":{firsatCalistir();a.sonuc="Fırsat Avcısı araştırıyor";break}
+  case"icerik":{icerikCalistir(a.konu||"");a.sonuc="İçerik Üretici yazıyor";break}
+  case"stok":{const l=hamL(),h=l.find(h=>normF(h.ad)===normF(a.ad||""))||l.find(h=>normF(h.ad).includes(normF(a.ad||"")));if(!h)throw new Error("Bu hammadde kayıtlı değil (Ürünler → Hammadde)");h.stok=+a.miktar||0;h.stokT=today();ayar.hammadde=l;saveAyar();a.sonuc=`${h.ad}: ${NUM(h.stok)}`;break}
+  case"tedarik":{a.sonuc=await kuyrugaEkle({to:a.to,konu:a.konu,metin:a.metin,ted:1});break}}
+  a.durum="ok"}catch(e){a.hata=e.message}
+ sohKaydet();sohCiz()}
+Object.assign(A,{eyyap:(i,j)=>eylemYap(i,j),eyno:(i,j)=>{const a=arr((sohb[+i]||{}).eylemler)[+j];if(a){a.durum="no";sohKaydet();sohCiz()}},
+ eyhep:async i=>{const m=sohb[+i];if(!m)return;for(let j=0;j<arr(m.eylemler).length;j++)if(!m.eylemler[j].durum)await eylemYap(i,j)}});
+
+/* --- ⏰ ÇALIŞMA SAATLERİ (mesai) + tatil --- */
+const GUNAD=["","Pzt","Sal","Çar","Per","Cum","Cmt","Paz"];
+let msTmp=null;
+function mesaiHtml(){const O=ayar.otonom||{};const ms=msTmp||(msTmp=Object.assign({gunler:[1,2,3,4,5,6],saatler:[8,13,18]},O.mesai||{}));
+ return`<div class="card"><h3>⏰ Ajanların çalışma saatleri</h3><div class="mu">Ajanlar yalnızca seçtiğin gün ve saatlerde kendiliğinden çalışır. "Sabah" görevleri günün ilk saatinde, "her çalışmada" görevleri seçtiğin her saatte yapılır. "▶ Şimdi çalıştır" her zaman çalışır.</div>
+ <label>Günler</label><div class="chips">${[1,2,3,4,5,6,7].map(g=>`<button class="${ms.gunler.includes(g)?"on":""}" data-a="msgun" data-i="${g}">${GUNAD[g]}</button>`).join("")}</div>
+ <label>Saatler</label><div class="chips">${Array.from({length:16},(_,i)=>i+7).map(h=>`<button class="${ms.saatler.includes(h)?"on":""}" data-a="mssaat" data-i="${h}">${String(h).padStart(2,"0")}:00</button>`).join("")}</div>
+ <div class="row" style="margin-top:8px"><button class="p" data-a="mskay">💾 Saatleri kaydet</button><button data-a="mstatil">${O.durdur?"▶ Tatili bitir (ajanlar çalışsın)":"⏸ Ajanları tatile çıkar"}</button></div>
+ <div class="mu">Seçili: ${ms.gunler.map(g=>GUNAD[g]).join(", ")||"—"} • ${ms.saatler.map(h=>String(h).padStart(2,"0")+":00").join(", ")||"—"}. Gelen e-posta cevapları ve hatırlatmalar bu saatlerde kontrol edilir; ne kadar çok saat seçersen o kadar çabuk tepki verirler.</div></div>`}
+Object.assign(A,{msgun:(_,g)=>{g=+g;const s=msTmp.gunler;msTmp.gunler=s.includes(g)?s.filter(v=>v!==g):[...s,g].sort();renderAjan()},
+ mssaat:(_,h)=>{h=+h;const s=msTmp.saatler;msTmp.saatler=s.includes(h)?s.filter(v=>v!==h):[...s,h].sort((a,b)=>a-b);renderAjan()},
+ mskay:()=>{if(!msTmp.gunler.length||!msTmp.saatler.length){alert("En az bir gün ve bir saat seç.");return}ayar.otonom=Object.assign({},ayar.otonom||{},{mesai:{gunler:msTmp.gunler,saatler:msTmp.saatler}});saveAyar();renderAjan();tost("✅ Çalışma saatleri kaydedildi")},
+ mstatil:()=>{const d=!(ayar.otonom||{}).durdur;ayar.otonom=Object.assign({},ayar.otonom||{},{durdur:d});saveAyar();renderAjan();tost(d?"⏸ Ajanlar tatilde":"▶ Ajanlar yeniden mesaide")}});
+{const _gh=gorevHtml;gorevHtml=function(){return mesaiHtml()+_gh()};window.ajOzel.gorev=gorevHtml}
+GOREVLER.push({g:"🧠 Akıllı ajanlar (Google araması + yapay zekâ)",l:[
+ {k:"risk",ik:"🛡",ad:"Risk analizi",ac:"Teklif verilen, ilgilenen ve müşteri firmaların ödeme güvenini Google'da araştırır (günde 4 firma, 90 günde bir yeniler). Riskli çıkarsa bildirir.",ai:1},
+ {k:"firsat",ik:"🎪",ad:"Fırsat avcısı",ac:"Haftada bir bölgede yeni açılan işletmeleri, poşet ihalelerini, fuar ve etkinlikleri arar.",ai:1},
+ {k:"icerik",ik:"🎨",ad:"Haftalık içerik planı",ac:"Pazartesi bu haftanın 5 sosyal medya paylaşımını yazar.",ai:1}]});
+{const g=GOREVLER.find(g=>/Okuma/.test(g.g));if(g)g.l.push({k:"kuyruk",ik:"📤",ad:"Müdür'ün verdiği e-postalar",ac:"Ofiste ✅ Yap dediğin e-postaları gönderir (her çalışmada)."},{k:"hatirlat",ik:"⏰",ad:"Hatırlatmalar",ac:"Müdür'e kurdurduğun hatırlatmaları zamanı gelince telefona bildirir."})}
+Object.assign(GV_VARS,{risk:{acik:true,zaman:"sabah"},firsat:{acik:true,zaman:"sabah"},icerik:{acik:true,zaman:"sabah"},kuyruk:{acik:true,zaman:"her"},hatirlat:{acik:true,zaman:"her"}});
+
+/* --- 🛡 RİSK ekranı ve raporu --- */
+const rkRozet=x=>x.risk?`<button class="rk ${x.risk.seviye}" data-a="risk" data-id="${x.id}" title="Ödeme güven puanı — dokun: rapor">🛡 ${x.risk.puan}</button>`:"";
+{const _c=card;card=function(x,ck){let h=_c(x,ck);const i=h.indexOf("</h3>");if(i>0&&x.risk)h=h.slice(0,i)+" "+rkRozet(x)+h.slice(i);
+ return h.replace(`<button data-a="tek" data-id="${x.id}">`,`<button data-a="risk" data-id="${x.id}">🛡 Risk analizi</button><button data-a="tek" data-id="${x.id}">`)}}
+const gq=q=>"https://www.google.com/search?q="+encodeURIComponent(q);
+function riskRapor(x){const r=x.risk;aiKodla();
+ const kontrol=`<h4>🔎 Resmî kayıtlara tek dokunuşla bak (ücretsiz)</h4><div class="row" style="flex-wrap:wrap">
+  <a class="btn" target="_blank" rel="noopener" href="${gq(`"${x.unvan||x.firma}" konkordato OR iflas OR icra`)}">⚖ Konkordato / iflas / icra haberi</a>
+  <a class="btn" target="_blank" rel="noopener" href="${gq(`site:ilan.gov.tr "${x.unvan||x.firma}"`)}">📢 ilan.gov.tr resmî ilanları</a>
+  <a class="btn" target="_blank" rel="noopener" href="${gq(`site:sikayetvar.com "${x.firma}"`)}">😠 Şikâyetvar</a>
+  <a class="btn" target="_blank" rel="noopener" href="${gq(`"${x.firma}" ${x.il||""}`)}">🌐 Google</a>
+  <a class="btn" target="_blank" rel="noopener" href="https://www.ticaretsicil.gov.tr">📰 Ticaret Sicili Gazetesi (unvanla ara)</a></div>`;
+ const banka=`<details class="more"><summary>🏦 Banka sicili (KKB/Findeks) neden otomatik bakılamıyor, ne yapmalı?</summary><div class="mu" style="line-height:1.5">
+  Bankaların kredi ve çek kayıtları (KKB, Findeks) kanunen gizlidir; bir firmanın raporunu <b>yalnızca firmanın kendisi</b> alıp paylaşabilir. Hiçbir program izinsiz bakamaz. Bunun yerine:<br>
+  • <b>Açık hesap istemeden önce</b> müşteriden Findeks Kredi Notu / Risk Raporu'nu iste (firmalar findeks.com'dan kendileri alır, B2B'de olağan bir istektir). Aşağıdaki düğme kibar mesajı hazırlar.<br>
+  • <b>Çekle ödeyene</b>: çekin karekodunu Findeks mobil uygulamasıyla okut; çek sahibinin karşılıksız çek geçmişini gösterir (küçük bir ücreti var).<br>
+  • <b>Büyük tutarda</b>: DBS (Doğrudan Borçlandırma Sistemi), teminat çeki ya da ilk siparişlerde peşin çalış; limiti zamanla artır.<br>
+  • Program bundan sonra <b>kredi limitini</b> takip eder: bakiye limiti aşarsa Risk Analisti seni uyarır.</div>
+  <div class="row"><button data-a="findeks" data-id="${x.id}">📩 Findeks raporu iste (WhatsApp)</button></div></details>`;
+ const aday=`<details class="more"><summary>🎯 "Aday puanı" neye göre veriliyor? (bu ödeme puanından farklıdır)</summary><div class="mu" style="line-height:1.5">Aday puanı <b>satış potansiyelini</b> ölçer, ödeme güvenini değil. 100 üzerinden: sektörün aylık poşet tüketimi (en çok 35) + telefon var mı (cep 25, sabit 20) + Google yorum sayısı (en çok 20) + fabrikaya yakınlık (en çok 15) + web sitesi (3) + Google puanı 4 ve üstü (2). Zincir marketlerden 35 düşülür (merkezden alım yaparlar), rakip ambalajcılar 0 alır.${x.aday!=null?` Bu firmanın aday puanı: <b>${x.aday}</b>.`:""}</div></details>`;
+ if(!r)return`<div class="mu">Bu firma için henüz analiz yapılmadı.</div><p>Analiz 3 kaynaktan puan çıkarır: <b>bizim ödeme kayıtlarımız</b> (40), <b>işletme bilgileri</b> (20), <b>Google'da web araştırması</b> (40: kuruluş yılı, şube, yorumlar, şikâyet, konkordato/iflas/icra ilanı, kapanma).</p><div class="mu">Web araştırması için firma adı ve ilçesi Google'a gönderilir (haritada zaten herkese açık bilgi). Ücretsiz katmanda günde yüzlerce analiz yapılabilir.</div>${kontrol}${banka}${aday}`;
+ const w=r.web,par=r.parcalar.map(p=>`<div style="margin:8px 0"><div class="row" style="justify-content:space-between"><b>${p.ad}</b><b>${p.p}/${p.max}</b></div><div class="rbar"><span style="width:${Math.round(p.p/p.max*100)}%"></span></div><div class="mu">${p.n.map(esc).join("<br>")}</div></div>`).join("");
+ const lim=+x.limit||r.limit||0;
+ return`<div class="row" style="align-items:center;gap:14px"><div class="rpuan">${r.puan}</div><div><span class="rk ${r.seviye}">${r.seviye==="iyi"?"Güvenli":r.seviye==="dikkat"?"Dikkat":"Riskli"}</span><div><b>${esc(r.karar)}</b></div><div class="mu">${saatTxt(r.t)} tarihli analiz</div></div></div>
+  <div class="row" style="align-items:end"><div style="flex:1"><label>Kredi (açık hesap) limiti — aşılırsa uyarır</label><input id="rkLim" type="number" min="0" step="1000" value="${lim||""}" placeholder="${r.limit||0}"></div><button data-a="rklim" data-id="${x.id}">Kaydet</button></div>
+  <div class="mu">Şu anki bakiye: <b>${TL2(bakiye(x))}</b>${lim?` • limitin %${Math.round(bakiye(x)/lim*100)}'i`:""}</div>
+  <h4>Puan nasıl çıktı?</h4>${par}
+  ${w&&w.ozet?`<h4>🌐 Web araştırması özeti</h4><div>${esc(w.ozet)}</div>${w.unvan?`<div class="mu">Unvan: ${esc(w.unvan)}</div>`:""}`:""}
+  ${w&&arr(w.kaynaklar).length?`<div class="mu" style="margin-top:6px">Kaynaklar: ${arr(w.kaynaklar).map(k=>`<a target="_blank" rel="noopener" href="${esc(k.uri)}">${esc(k.title)}</a>`).join(" • ")}</div>`:""}
+  ${kontrol}${banka}${aday}`}
+function riskGoster(id){const x=data.find(v=>v.id===id);if(!x)return;aiPencere("🛡 "+x.firma+" — ödeme güveni",riskRapor(x),`<button class="p" data-a="rkara" data-id="${x.id}">🔎 ${x.risk?"Yeniden araştır":"Web'de araştır ve puanla"}</button><button onclick="dlgAI.close()">Kapat</button>`)}
+let rkMesgul=false;
+async function riskCalistir(id){const x=data.find(v=>v.id===id);if(!x||rkMesgul)return;if(!aiKey()){const r=riskHesap(x,null,"yapay zekâ anahtarı yok (🛠 Kurulum 1)");put({...x,risk:r},true);riskGoster(id);tost("Web araştırması için yapay zekâ anahtarı gerekli; puan şimdilik sadece kendi kayıtlarımızla",6000);return}
+ rkMesgul=true;aiPencere("🛡 "+x.firma+" araştırılıyor",`<div class="mu">Google'da kuruluş yılı, şubeler, yorumlar, şikâyetler, konkordato/iflas/icra ilanları ve kapanma haberleri aranıyor; kendi ödeme kayıtlarımızla birleştiriliyor… (genelde 15-40 sn)</div><div class="aiSure mu"></div>`,`<button onclick="dlgAI.close()">Arka planda devam etsin</button>`);
+ aiBas=Date.now();aiAdim="Google'da araştırılıyor";
+ try{const r=await riskAnaliz(x);const y={...data.find(v=>v.id===id),risk:r};put(y,true);tost(`🛡 ${x.firma}: ${r.puan} puan`);riskGoster(id)}
+ catch(e){alert("Analiz yapılamadı: "+e.message)}finally{rkMesgul=false;aiAdim=""}}
+Object.assign(A,{risk:id=>{const x=data.find(v=>v.id===id);if(x&&x.risk)riskGoster(id);else riskCalistir(id)},rkara:id=>riskCalistir(id),
+ rklim:id=>{const x=data.find(v=>v.id===id);if(!x)return;const v=+$("rkLim").value||0;const y={...x};if(v)y.limit=v;else delete y.limit;put(y);tost("✅ Limit kaydedildi");riskGoster(id)},
+ findeks:id=>{const x=data.find(v=>v.id===id),n=x&&waNum(x.telefon);const t=`${selam(x)} sizinle vadeli çalışmayı çok isteriz. Açık hesap limitinizi belirleyebilmemiz için findeks.com üzerinden alabileceğiniz güncel Findeks Kredi Notu / Risk Raporu'nuzu paylaşabilir misiniz? Bilgileriniz yalnızca firmamızda kalır. Teşekkürler, ${imza()}`;
+  if(n)window.open(`https://wa.me/${n}?text=${encodeURIComponent(t)}`,"_blank");else{navigator.clipboard&&navigator.clipboard.writeText(t);alert("Cep numarası yok; mesaj panoya kopyalandı:\n\n"+t)}}});
+function riskSayfa(){const l=data.filter(x=>!x.aramayin&&(x.risk||["Müşteri","Teklif verildi","İlgileniyor"].includes(x.durum)));
+ const sir=l.map(x=>({x,b:bakiye(x),s:x.risk?x.risk.puan:null})).sort((a,b)=>(a.s??999)-(b.s??999)||b.b-a.b);
+ const yok=sir.filter(o=>o.s==null).length;
+ return`<div class="card"><h3>🛡 Ödeme güveni nasıl ölçülüyor?</h3><div class="mu" style="line-height:1.5">Her firmaya 0-100 <b>güven puanı</b>: <b>40</b> puan bizim ödeme kayıtlarımızdan (ortalama gecikme, şu anki vadesi geçmiş borç, borç/aylık alım oranı, görüşme notlarındaki "çek karşılıksız, ödemedi" gibi ifadeler), <b>20</b> puan işletme bilgisinden (sabit hat, web, kurumsal e-posta, unvan/vergi no, zincir mi, sektörün kapanma riski), <b>40</b> puan Google'daki web araştırmasından (kaç yıllık, şube, yorumlar, şikâyetler, konkordato/iflas/icra ilanı, kapanma). 70+ güvenli, 50-69 dikkat, altı riskli; konkordato/iflas/kapanma bulunursa puan ne olursa olsun "peşin çalış" der. Sonunda vade ve açık hesap limiti önerir.</div>
+ <div class="row"><button class="p" data-a="rktop" ${yok?"":"disabled"}>🔎 Analizi olmayan ${yok} firmayı sırayla araştır</button></div></div>
+ ${sir.length?`<table class="tbl"><tr><th>Firma</th><th class="r">Bakiye</th><th class="r">Puan</th></tr>${sir.slice(0,80).map(o=>`<tr><td>${esc(o.x.firma)}<div class="mu">${esc(o.x.durum)}${o.x.risk?" • "+esc(o.x.risk.karar.replace(/^\S+\s/,"").slice(0,60)):""}</div></td><td class="r">${o.b>0.5?TL(o.b):"—"}</td><td class="r">${o.x.risk?rkRozet(o.x):`<button data-a="risk" data-id="${o.x.id}">Analiz et</button>`}</td></tr>`).join("")}</table>`:`<div class="empty">Henüz müşteri ya da teklif verilen firma yok.</div>`}`}
+A.rktop=async()=>{const l=data.filter(x=>!x.aramayin&&!x.risk&&["Müşteri","Teklif verildi","İlgileniyor"].includes(x.durum)).slice(0,10);if(!l.length)return;if(!aiKey()){alert("Önce yapay zekâ anahtarını gir (Kurulum 1).");return}
+ if(!confirm(l.length+" firma sırayla araştırılacak (firma başına ~30 sn). Başlasın mı?"))return;let n=0;
+ for(const x of l){tost(`🛡 ${n+1}/${l.length}: ${x.firma} araştırılıyor…`,30000);try{const r=await riskAnaliz(x);put({...data.find(v=>v.id===x.id),risk:r},true);n++}catch(e){tost("⚠ "+e.message,5000);if(/kota|sınır|429/i.test(e.message))break}await uyu(3000)}
+ tost(`✅ ${n} firma analiz edildi`,4000);renderAjan()};
+
+/* --- 📒 MUHASEBE --- */
+function muhSayfa(){const t=today(),m=ym(t);const Y=[0,0,0,0,0],borclu=[];
+ data.forEach(x=>{const b=bakiye(x);if(b<=0.5)return;const d=vadeDurum(x);let gec=0;d.gec.forEach(s=>{const k=s.gec>90?4:s.gec>60?3:s.gec>30?2:1;Y[k]+=s.kal;gec+=s.kal});Y[0]+=Math.max(0,b-gec);borclu.push({x,b,d})});
+ const ciroAy=data.reduce((s,x)=>s+arr(x.siparis).filter(o=>sipAktif(o)&&ym(o.tar)===m).reduce((a,o)=>a+docTop(o),0),0),tahAy=data.reduce((s,x)=>s+arr(x.odeme).filter(p=>ym(p.tar)===m).reduce((a,p)=>a+(+p.tutar||0),0),0);
+ const top=Y.reduce((a,b)=>a+b,0),mut=data.filter(x=>x.muhBakiye&&Math.abs((+x.muhBakiye.tutar||0)-bakiye(x))>1);
+ return`<div class="stats"><div class="st"><b>${TL(ciroAy)}</b><span>Bu ay satış</span></div><div class="st"><b>${TL(tahAy)}</b><span>Bu ay tahsilat</span></div><div class="st"><b>${TL(top)}</b><span>Toplam alacak</span></div><div class="st"><b>${TL(top-Y[0])}</b><span>Vadesi geçmiş</span></div></div>
+ <div class="card"><h3>⏳ Alacak yaşlandırma</h3><table class="tbl"><tr><th>Durum</th><th class="r">Tutar</th></tr>${[["Vadesi gelmemiş",Y[0]],["1-30 gün gecikmiş",Y[1]],["31-60 gün",Y[2]],["61-90 gün",Y[3]],["90+ gün (tehlikeli)",Y[4]]].map(([a,b])=>`<tr><td>${a}</td><td class="r">${TL(b)}</td></tr>`).join("")}</table></div>
+ <div class="card"><h3>📥 Mikro / Logo / Excel'den aktar</h3><div class="mu">Muhasebe programından aldığın <b>cari bakiye listesi</b> ya da <b>tahsilat listesi</b> Excel'ini (xlsx, xls, csv) seç. Program sütunları kendisi tanır, firmaları isimden eşleştirir, aktarmadan önce gösterir.</div><div class="row"><label class="btn p" style="margin:0">📂 Excel dosyası seç<input type="file" id="muhF" accept=".xlsx,.xls,.csv" hidden></label></div></div>
+ ${mut.length?`<div class="card"><h3>🔍 Mutabakat: muhasebe ile program farklı (${mut.length})</h3><table class="tbl"><tr><th>Firma</th><th class="r">Muhasebe</th><th class="r">Program</th></tr>${mut.slice(0,30).map(x=>`<tr><td>${esc(x.firma)}<div class="mu">${fd(x.muhBakiye.tar)}</div></td><td class="r">${TL2(x.muhBakiye.tutar)}</td><td class="r">${TL2(bakiye(x))}</td></tr>`).join("")}</table><div class="mu">Fark, programa girilmemiş fatura/ödeme olabilir. Tahsilat listesini de aktarırsan çoğu kapanır.</div></div>`:""}
+ <div class="card"><h3>💰 En çok borçlu</h3>${borclu.sort((a,b)=>b.b-a.b).slice(0,12).map(o=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--br);padding:4px 0"><span>${esc(o.x.firma)} ${rkRozet(o.x)}<div class="mu">${o.d.enEski?`${o.d.enEski.gec} gün gecikme`:"vadesi gelmedi"}</div></span><span><b>${TL(o.b)}</b> <button data-a="pay" data-id="${o.x.id}">+ Ödeme</button></span></div>`).join("")||'<div class="mu">Borçlu yok 👍</div>'}</div>`}
+async function xlsxYukle(){if(window.XLSX)return;await new Promise((ok,no)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";s.onload=ok;s.onerror=()=>no(new Error("Excel okuyucu indirilemedi (internet bağlantısı?)"));document.head.appendChild(s)})}
+const sayiAl=v=>{if(typeof v==="number")return v;let s=String(v||"").replace(/[^\d,.\-]/g,"");if(/,\d{1,2}$/.test(s))s=s.replace(/\./g,"").replace(",",".");else s=s.replace(/,/g,"");return parseFloat(s)||0};
+const tarihAl=v=>{if(typeof v==="number"&&v>20000&&v<80000){const d=new Date(Math.round((v-25569)*864e5));return fmt(d)}const s=String(v||"").trim();let m=s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);if(m)return`${m[3]}-${pad(+m[2])}-${pad(+m[1])}`;m=s.match(/^(\d{4})-(\d\d)-(\d\d)/);return m?m[0]:""};
+function firmaBul(ad){const n=normF(ad);if(n.length<3)return null;return data.find(x=>normF(x.firma)===n||normF(x.unvan||"")===n)||data.find(x=>{const a=normF(x.firma),u=normF(x.unvan||"");return(a.length>=5&&(n.includes(a)||a.includes(n)))||(u.length>=5&&(n.includes(u)||u.includes(n)))})}
+let MUH=null;
+function csvOku(t){const ilk=t.split(/\r?\n/)[0]||"",ay=[";","\t",","].sort((a,b)=>ilk.split(b).length-ilk.split(a).length)[0],out=[];let r=[],c="",q=false;
+ for(let i=0;i<t.length;i++){const ch=t[i];if(q){if(ch==='"'){if(t[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}else if(ch==='"')q=true;else if(ch===ay){r.push(c);c=""}else if(ch==="\n"||ch==="\r"){if(ch==="\r"&&t[i+1]==="\n")i++;r.push(c);out.push(r);r=[];c=""}else c+=ch}
+ if(c||r.length){r.push(c);out.push(r)}return out}
+async function muhDosya(f){try{let rows;
+ if(/\.(csv|txt)$/i.test(f.name)){const buf=await f.arrayBuffer();let t=new TextDecoder("utf-8").decode(buf);if(t.includes("\uFFFD"))t=new TextDecoder("windows-1254").decode(buf);rows=csvOku(t.replace(/^\uFEFF/,""))}
+ else{await xlsxYukle();const wb=XLSX.read(await f.arrayBuffer(),{type:"array",cellDates:false});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:""})}
+ let hi=rows.slice(0,15).findIndex(r=>r.filter(c=>typeof c==="string"&&c.trim()).length>=2);if(hi<0)hi=0;const H=rows[hi].map(c=>String(c).trim());
+ const bul=rx=>H.findIndex(h=>rx.test(h.toLocaleLowerCase("tr")));
+ MUH={H,rows:rows.slice(hi+1).filter(r=>r.some(c=>String(c).trim())),c:{ad:bul(/(cari.*(ad|ünvan|unvan)|ünvan|unvan|firma|müşteri|hesap ad)/),bak:bul(/bakiye/),borc:bul(/borç|borc/),alacak:bul(/alacak/),tar:bul(/tarih/),tut:bul(/tutar|meblağ|tahsilat|ödeme/)}};
+ if(MUH.c.ad<0)MUH.c.ad=bul(/(ad|açıklama|cari)/);MUH.tip=MUH.c.bak>=0||(MUH.c.borc>=0&&MUH.c.alacak>=0&&MUH.c.tar<0)?"bakiye":"tahsilat";muhOnizle()}
+ catch(e){alert("Dosya okunamadı: "+e.message)}}
+function muhSatir(){const c=MUH.c,out=[];MUH.rows.forEach(r=>{const ad=String(r[c.ad]??"").trim();if(!ad)return;const x=firmaBul(ad);
+ if(MUH.tip==="bakiye"){const v=c.bak>=0?sayiAl(r[c.bak]):sayiAl(r[c.borc])-sayiAl(r[c.alacak]);out.push({ad,x,v})}
+ else{const v=sayiAl(r[c.tut]);if(v>0)out.push({ad,x,v,tar:tarihAl(r[c.tar])||today()})}});return out}
+function muhOnizle(){const sec=(k,lb)=>`<div><label>${lb}</label><select data-muhc="${k}"><option value="-1">—</option>${MUH.H.map((h,i)=>`<option value="${i}" ${MUH.c[k]===i?"selected":""}>${esc(h||"Sütun "+(i+1))}</option>`).join("")}</select></div>`;
+ const l=muhSatir(),es=l.filter(o=>o.x),yok=l.filter(o=>!o.x);
+ aiPencere("📥 Muhasebeden aktar",`<label>Bu dosya ne?</label><select id="muhTip"><option value="bakiye" ${MUH.tip==="bakiye"?"selected":""}>Cari bakiye listesi (mutabakat için)</option><option value="tahsilat" ${MUH.tip==="tahsilat"?"selected":""}>Tahsilat listesi (ödemeler programa eklenir)</option></select>
+  <div class="g3">${sec("ad","Firma / cari adı")}${MUH.tip==="bakiye"?sec("bak","Bakiye")+sec("borc","Borç")+sec("alacak","Alacak"):sec("tar","Tarih")+sec("tut","Tutar")}</div>
+  <p><b>${es.length}</b> satır firmayla eşleşti, <b>${yok.length}</b> eşleşmedi.</p>
+  <table class="tbl">${es.slice(0,12).map(o=>`<tr><td>${esc(o.ad)}<div class="mu">→ ${esc(o.x.firma)}</div></td><td class="r">${o.tar?fd(o.tar)+" ":""}${TL2(o.v)}</td></tr>`).join("")}</table>
+  ${yok.length?`<details class="more"><summary>Eşleşmeyenler (${yok.length})</summary><div class="mu">${yok.slice(0,40).map(o=>esc(o.ad)).join(" • ")}</div><div class="mu">Programdaki firma adını muhasebedekiyle aynı yaparsan ya da "Unvan" alanına muhasebedeki unvanı yazarsan eşleşir.</div></details>`:""}
+  ${MUH.tip==="tahsilat"?`<div class="mu">Aynı tarih ve tutarda zaten girilmiş ödeme varsa tekrar eklenmez.</div>`:""}`,`<button class="p" data-a="muhakt" ${es.length?"":"disabled"}>✅ ${es.length} satırı aktar</button><button onclick="dlgAI.close()">Vazgeç</button>`)}
+document.addEventListener("change",e=>{if(e.target.id==="muhF"&&e.target.files[0]){muhDosya(e.target.files[0]);e.target.value=""}
+ else if(e.target.dataset&&e.target.dataset.muhc&&MUH){MUH.c[e.target.dataset.muhc]=+e.target.value;muhOnizle()}else if(e.target.id==="muhTip"&&MUH){MUH.tip=e.target.value;muhOnizle()}});
+A.muhakt=()=>{const l=muhSatir().filter(o=>o.x),ch=new Map();let n=0,atl=0;
+ l.forEach(o=>{const y=ch.get(o.x.id)||{...o.x};
+  if(MUH.tip==="bakiye"){y.muhBakiye={tutar:Math.round(((y.muhBakiye&&y.muhBakiye.tar===today()?+y.muhBakiye.tutar:0)+o.v)*100)/100,tar:today()};n++}
+  else{if(arr(y.odeme).some(p=>p.tar===o.tar&&Math.abs((+p.tutar||0)-o.v)<0.01)){atl++;return}y.odeme=[...arr(y.odeme),{tar:o.tar,tutar:o.v,tip:"Aktarım",not:"Muhasebeden aktarıldı",kim:me.ad||""}];n++}
+  ch.set(o.x.id,y)});
+ if(ch.size)putMany([...ch.values()],`Muhasebeden ${n} satır aktarıldı`);dlgAI.close();tost(`✅ ${n} satır aktarıldı${atl?` • ${atl} tekrar atlandı`:""}`,4000);renderAjan()};
+
+/* --- 📦 STOK --- */
+function stokSayfa(){const l=hamL();
+ return`<div class="card"><h3>📦 Hammadde stoğu</h3><div class="mu">Stok miktarını girmen yeterli; günlük kullanımı yazarsan kaç gün yeteceğini hesaplar. Kritik seviyenin altına inince Stok ajanı uyarır ve tedarikçiye sipariş e-postası hazırlar. Müdür'e "LDPE stoğu 1200 kg" yazarak da güncelleyebilirsin.</div></div>
+ ${l.length?l.map((h,i)=>{const kg=stokGun(h),az=(+h.kritik&&+h.stok<=+h.kritik)||(kg!=null&&kg<=7);
+  return`<div class="card" ${az?'style="border-color:var(--rd)"':""}><h3>${esc(h.ad)} ${az?'<span class="tag warn">azaldı</span>':""}</h3><div class="mu">Fiyat ${TL2(+h.fiyat||0)}/kg${kg!=null?` • ≈ <b>${kg} gün</b> yeter`:""}${h.stokT?` • stok ${fd(h.stokT)} tarihli`:""}</div>
+  <div class="g3"><div><label>Stok (${esc(h.birim||"kg")})</label><input data-st="${i}" data-sf="stok" type="number" value="${h.stok??""}"></div><div><label>Kritik seviye</label><input data-st="${i}" data-sf="kritik" type="number" value="${h.kritik??""}"></div><div><label>Günlük kullanım</label><input data-st="${i}" data-sf="gunluk" type="number" value="${h.gunluk??""}"></div>
+  <div><label>Tedarikçi</label><input data-st="${i}" data-sf="ted" value="${esc(h.ted||"")}"></div><div><label>Tedarikçi e-posta</label><input data-st="${i}" data-sf="tedEp" type="email" value="${esc(h.tedEp||"")}"></div></div>
+  <div class="row"><button class="p" data-a="stkay" data-i="${i}">💾 Kaydet</button><button data-a="stoksip" data-i="${i}">📧 Sipariş e-postası</button></div></div>`}).join(""):`<div class="empty">Önce Diğer → 📦 Ürünler ve fiyatlar → Hammadde bölümüne hammaddelerini (LDPE, HDPE, masterbatch…) ekle.</div>`}`}
+Object.assign(A,{stkay:(_,i)=>{const l=hamL(),h=l[+i];if(!h)return;document.querySelectorAll(`[data-st="${i}"]`).forEach(e=>{const f=e.dataset.sf;h[f]=e.type==="number"?(e.value===""?"":+e.value):e.value.trim()});h.stokT=today();ayar.hammadde=l;saveAyar();renderAjan();tost("✅ "+h.ad+" kaydedildi")},
+ stokac:()=>{ajFiltre="stok";go("ajan")},
+ stoksip:(_,i)=>{const h=hamL()[+i];if(!h)return;const f=ajStok().find(o=>o.bas.startsWith(h.ad))||{msg:`Merhaba${h.ted?" "+h.ted:""}, ${h.ad} için sipariş vermek istiyoruz. Güncel fiyatınızı ve en erken teslim tarihini iletebilir misiniz? ${imza()}`};
+  if(!h.tedEp){alert("Bu hammaddenin tedarikçi e-postası yok. Stok ekranında 'Tedarikçi e-posta' alanını doldur.");ajFiltre="stok";go("ajan");return}
+  sohb.push({r:"ai",m:`📦 ${h.ad} için tedarikçiye sipariş e-postası hazırladım. Kontrol et, ✅ Yap dersen gönderilir.`,t:Date.now(),eylemler:[{tip:"tedarik",to:h.tedEp,konu:`${h.ad} sipariş talebi — ${imza()}`,metin:f.msg.replace(/\s*$/,"")}]});sohKaydet();ajFiltre="ofis";go("ajan");sohCiz()}});
+
+/* --- 🎪 FIRSAT ve 🎨 İÇERİK ekranları --- */
+const FT={acilis:"🏪",ihale:"🏛",fuar:"🎪",etkinlik:"🎉",haber:"📰"};
+let fMesgul=false,iMesgul=false;
+async function firsatCalistir(){if(fMesgul)return;if(!aiKey()){alert("Önce yapay zekâ anahtarını gir (Kurulum 1).");return}fMesgul=true;ajFiltre="firsat";go("ajan");aiBas=Date.now();aiAdim="Google'da fırsat aranıyor";
+ try{const r=await firsatAra();OF.firsat=r;await root.child("ajan/firsat").set(r).catch(()=>{});tost(`🎪 ${r.l.length} fırsat bulundu`)}catch(e){alert("Fırsat araması yapılamadı: "+e.message)}fMesgul=false;aiAdim="";renderAjan()}
+function firsatSayfa(){const f=OF.firsat;
+ return`<div class="card"><div class="mu">Bölge: ${esc(firsatBolge())}</div><div class="row"><button class="p" data-a="fara" ${fMesgul?"disabled":""}>🔎 ${fMesgul?"Aranıyor…":"Şimdi ara"}</button><button data-a="fbol">📍 Bölgeyi değiştir</button></div>${fMesgul?'<div class="aiSure mu"></div>':""}<div class="mu">Gece ajanı haftada bir kendisi arar. Bulunan yeni işletmeyi tek dokunuşla müşteri listesine ekleyebilirsin.</div></div>
+ ${f&&arr(f.l).length?`<div class="mu" style="margin:4px">${saatTxt(f.t)} araması</div>`+arr(f.l).map((o,i)=>`<div class="card"><h3>${FT[o.tur]||"📌"} ${esc(o.baslik||"")}</h3><div class="mu">${[o.firma,o.yer,o.tarih].filter(Boolean).map(esc).join(" • ")}</div><div>${esc(o.neden||"")}</div>${o.oneri?`<div><b>Ne yapmalı:</b> ${esc(o.oneri)}</div>`:""}
+  <div class="row"><button data-a="fekle" data-i="${i}">+ Müşteri listesine ekle</button><a class="btn" target="_blank" rel="noopener" href="${gq([o.firma||o.baslik,o.yer].filter(Boolean).join(" "))}">🌐 Google'da aç</a></div></div>`).join("")+(arr(f.kaynaklar).length?`<div class="mu">Kaynaklar: ${arr(f.kaynaklar).map(k=>`<a target="_blank" rel="noopener" href="${esc(k.uri)}">${esc(k.title)}</a>`).join(" • ")}</div>`:""):`<div class="empty">Henüz arama yapılmadı.</div>`}`}
+Object.assign(A,{fara:()=>firsatCalistir(),fbol:()=>{const v=prompt("Fırsat aranacak bölge (ilçeleri virgülle yaz):",firsatBolge());if(v&&v.trim()){ayar.otonom=Object.assign({},ayar.otonom||{},{firsatBolge:v.trim()});saveAyar();renderAjan()}},
+ fekle:(_,i)=>{const o=arr(OF.firsat&&OF.firsat.l)[+i];if(!o)return;const ad=(o.firma||o.baslik||"").trim();if(!ad)return;if(data.some(x=>normF(x.firma)===normF(ad))){tost("Bu firma zaten listede");return}
+  put({id:uid_(),c:Date.now(),firma:ad,sektor:"Diğer",durum:"Yeni",il:o.yer||"",adres:o.yer||"",kaynak:"🎪 Fırsat avcısı",oncelik:"Sıcak",not:[o.neden,o.oneri].filter(Boolean).join(" — ")});tost("✅ "+ad+" listeye eklendi")}});
+async function icerikCalistir(konu){if(iMesgul)return;if(!aiKey()){alert("Önce yapay zekâ anahtarını gir (Kurulum 1).");return}iMesgul=true;ajFiltre="icerik";go("ajan");aiBas=Date.now();aiAdim="Paylaşımlar yazılıyor";
+ try{const r=await icerikPlani(konu);OF.icerik=r;await root.child("ajan/icerik").set(r).catch(()=>{});tost("🎨 "+r.l.length+" paylaşım hazır")}catch(e){alert("İçerik yazılamadı: "+e.message)}iMesgul=false;aiAdim="";renderAjan()}
+function icerikSayfa(){const c=OF.icerik;
+ return`<div class="card"><h3>🎨 Bu haftanın paylaşımları</h3><div class="row"><input id="icK" placeholder="İstersen konu yaz (ör. yılbaşı baskılı poşet kampanyası)" style="flex:1"><button class="p" data-a="icyaz" ${iMesgul?"disabled":""}>✨ ${iMesgul?"Yazıyor…":"Yaz"}</button></div>${iMesgul?'<div class="aiSure mu"></div>':""}</div>
+ ${c&&arr(c.l).length?arr(c.l).map((p,i)=>`<div class="card"><h3>${esc(p.gun||"")} • ${esc(p.platform||"")}</h3><b>${esc(p.baslik||"")}</b><div style="white-space:pre-wrap;margin:6px 0">${esc(p.metin||"")}</div><div class="mu">📷 ${esc(p.gorsel||"")}</div><div class="mu">${esc(p.etiketler||"")}</div><div class="row"><button data-a="ickop" data-i="${i}">📋 Kopyala</button></div></div>`).join(""):`<div class="empty">Henüz plan yok. "Yaz"a bas ya da gece ajanının Pazartesi yazmasını bekle.</div>`}
+ <div class="card"><h3>⭐ Google yorumuna cevap</h3><textarea id="ycv" rows="3" placeholder="Müşteri yorumunu buraya yapıştır"></textarea><div class="row"><button class="p" data-a="ycvyaz">✨ Cevap yaz</button></div><div id="ycvS"></div></div>
+ <div class="card"><h3>📣 Reklam metni (Facebook / Instagram / Google)</h3><input id="rkm" placeholder="Ne reklamı? Ör: logolu baskılı poşet, Silivri esnafı, minimum 1000 adet"><div class="row"><button class="p" data-a="rkmyaz">✨ 3 farklı metin yaz</button></div><div id="rkmS"></div><div class="mu">Reklamı yayınlamak para gerektirdiği için ajan sadece metni hazırlar; yayına sen basarsın.</div></div>`}
+async function kisaYaz(hedef,sys,m){const el=$(hedef);if(!el)return;el.innerHTML=`<div class="mu">yazıyor… <span class="aiSure"></span></div>`;try{const t=await aiSor(sys,[{r:"ben",m}],{sicak:0.7,parca:t=>{const e=$(hedef);if(e)e.innerHTML=aiHtml(t)}});el.innerHTML=`<div class="sb ai">${aiHtml(t)}</div><div class="row"><button onclick="navigator.clipboard.writeText(this.closest('.card').querySelector('.sb').innerText);tost('📋 Kopyalandı')">📋 Kopyala</button></div>`}catch(e){el.innerHTML=`<div class="warn">⚠ ${esc(e.message)}</div>`}}
+Object.assign(A,{icyaz:()=>icerikCalistir(($("icK")||{}).value||""),ickop:(_,i)=>{const p=arr(OF.icerik&&OF.icerik.l)[+i];if(p){navigator.clipboard.writeText(`${p.metin}\n\n${p.etiketler||""}`.trim());tost("📋 Kopyalandı")}},
+ ycvyaz:()=>{const v=($("ycv").value||"").trim();if(!v)return;kisaYaz("ycvS","MAG AMBALAJ (Silivri, poşet üreticisi) adına Google yorumlarına işletme sahibi olarak cevap yazıyorsun. Türkçe, kibar, kısa (2-4 cümle). Olumsuz yorumda özür dile, çözüm öner, telefonla ulaşmaya davet et; tartışma. Kişi adı yazma.","Yorum: "+anon(v))},
+ rkmyaz:()=>{const v=($("rkm").value||"").trim();if(!v)return;kisaYaz("rkmS","MAG AMBALAJ (Silivri, poşet üreticisi) için reklam metni yazarısın. Türkçe, kısa, dikkat çekici, harekete geçirici. Fiyat ve uydurma iddia yazma.",`Konu: ${v}\n3 farklı reklam yaz; her birinde: **Başlık** (en çok 40 harf), **Metin** (en çok 125 harf), **Düğme** (ör. Hemen Ara / WhatsApp'tan Yaz), **Hedef kitle önerisi**.`)}});
+
+/* --- ekran bağlantıları --- */
+Object.assign(window.ajOzel,{risk:riskSayfa,muhasebe:muhSayfa,stok:stokSayfa,firsat:firsatSayfa,icerik:icerikSayfa});
+{const _g=go;go=function(t){if(t==="mudur"){_g("ajan");ajFiltre="ofis";renderAjan();return}_g(t)}}
+ajFiltre="ofis";
+// üst sekme şeridi sade: Ofis, Müdür raporu, Görevler, Kurulum (+ açık olan); diğer ajanlara Ofis'teki kutulardan girilir
+{const _ra=renderAjan;renderAjan=function(){_ra();const b=document.querySelector("#ajL .ajbar");if(!b)return;const kal=new Set(["ofis","mudur","gorev","kurulum",ajFiltre]);
+ b.querySelectorAll("[data-ajf]").forEach(e=>{if(!kal.has(e.dataset.ajf))e.remove()});if(ajFiltre!=="ofis"&&!["mudur","gorev","kurulum"].includes(ajFiltre))b.insertAdjacentHTML("afterbegin",`<button data-ajf="ofis"><span>←</span>Ofise dön</button>`)}}
+{const n=document.querySelector('nav.bnav [data-go="mudur"]');if(n)n.innerHTML="<b>🏢</b>Ofis"}
+AJLER.forEach(a=>{if(a.k==="mudur"){a.ad="Müdür raporu"}});
+/* --- ⏰ hatırlatmalar Bugün ekranında --- */
+{const _ra=renderAkis;renderAkis=function(){_ra();ofisYukle();const el=$("akisL");if(!el)return;const t=today(),yarin=addDays(t,1);
+ const l=Object.entries(OF.takvim||{}).filter(([,h])=>h&&!h.bitti&&h.tarih<=yarin).sort((a,b)=>(a[1].tarih+a[1].saat).localeCompare(b[1].tarih+b[1].saat));
+ const bek=Object.keys(OF.kuyruk||{}).length;
+ if(!l.length&&!bek)return;
+ el.insertAdjacentHTML("afterbegin",`<div class="card" style="border-color:var(--pr)"><h3>⏰ Hatırlatmalar</h3>${l.map(([id,h])=>{const x=h.firmaId&&data.find(v=>v.id===h.firmaId);return`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--br);padding:4px 0"><span>${h.tarih<t?'<span class="warn">gecikti</span> ':h.tarih===t?"bugün ":"yarın "}${esc(h.saat||"")} — ${x?"<b>"+esc(x.firma)+"</b>: ":""}${esc(h.metin)}</span><span>${x&&digits(x.telefon)?`<a class="btn" href="tel:${digits(x.telefon)}">Ara</a>`:""}<button data-a="tkbit" data-id="${id}">✓</button></span></div>`}).join("")}${bek?`<div class="mu">📤 ${bek} e-posta gönderilmek üzere sırada.</div>`:""}</div>`)}}
+A.tkbit=async id=>{try{await root.child("ajan/takvim/"+id+"/bitti").set(Date.now());if(OF.takvim[id])OF.takvim[id].bitti=Date.now()}catch(e){}renderAkis()};
+// 30 günden eski bitmiş hatırlatmaları temizle
+setTimeout(()=>{if(!root||!isAdmin())return;Object.entries(OF.takvim||{}).forEach(([id,h])=>{if(h&&h.bitti&&Date.now()-h.bitti>30*864e5)root.child("ajan/takvim/"+id).remove().catch(()=>{})})},20000);
+
 __baslat();
 if(!SIPT){const _g=new URLSearchParams(location.search).get("git");if(_g&&_g!=="ajan")setTimeout(()=>go(_g),300);else if(!_g)go("akis")}
 /* eski adreste (pages.dev) yalnızca bu cihazda kayıt varsa: önce yedek, sonra yeni adres */
