@@ -85,7 +85,7 @@ ayar = ayar || {}; if (env("GEMINI_KEY")) ayar.aiKey = env("GEMINI_KEY"); else d
 log("Okunan kayıt:", data.length, "• ürün:", Object.keys(katalog || {}).length);
 
 const bellek = {};
-const ctx = vm.createContext({ console, fetch, setTimeout, clearTimeout, setInterval: () => 0, AbortController, URLSearchParams, TextEncoder, Intl, Date, Math, JSON, document: { querySelectorAll: () => [] } });
+const ctx = vm.createContext({ console, fetch, setTimeout, clearTimeout, setInterval: () => 0, AbortController, URLSearchParams, TextEncoder, TextDecoder, Intl, Date, Math, JSON, document: { querySelectorAll: () => [] } });
 const kaynak = `
 const ls={get:k=>bellek[k]??null,set:(k,v)=>{bellek[k]=String(v);return true},del:k=>{delete bellek[k]}};
 const lsJ=(k,d)=>{try{return JSON.parse(ls.get(k))??d}catch(e){return d}};

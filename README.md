@@ -151,6 +151,8 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
 
 - **v13.1 (02.11.2026):** Yapay zekâ istekleri artık takılı kalmaz: istek başına 45 sn süre sınırı (aşılırsa açık hata mesajı), bekleme sırasında saniye sayacı ("Google düşünüyor • 12 sn") ve **Vazgeç** düğmesi; hızlı cevap için düşük düşünme modu (Gemini 3: thinkingLevel low, 2.5 Flash: thinkingBudget 0; model kabul etmezse kendiliğinden ayarsız tekrar dener); "düşünce" parçaları cevaptan ayıklanır. Gece ajanı da aynı kodu kullanır.
 
+- **v13.2 (02.11.2026):** Yapay zekâ cevabı **akış (stream)** ile alınır (`streamGenerateContent?alt=sse`): metin yazıldıkça ekrana gelir (Satış koçu, sohbet, bölge yorumu); süre sınırı artık "40 sn hiç veri gelmezse" (yazmaya devam ettiği sürece kesilmez); 2 model üst üste cevap vermezse durur. 🛠 Kurulum → **🩺 Hız testi**: ilk 6 modeli kısa bir soruyla dener (model başına en çok 25 sn), çalışanları hıza göre sıralar ve en hızlıyı 30 gün kullanır.
+
 ## Kâr modeli — ücretsiz ajan yol haritası
 Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullanılırsa, ileride kendi altyapımızla değiştirilebilecek şekilde bağlanır (Geoapify → mag-veri örneğinde olduğu gibi).
 1. ✅ **Ajan Merkezi (v11)** — kural tabanlı ajanlar, program içinde.
