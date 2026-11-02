@@ -6,10 +6,18 @@ import fs from "node:fs";
 import vm from "node:vm";
 import zlib from "node:zlib";
 import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
 
 const env = k => (process.env[k] || "").trim();
 const log = (...a) => console.log("•", ...a);
-const dur = (m, kod = 1) => { console.log("\n❌ " + m); process.exit(kod); };
+// Son çalışmanın sonucu buluta yazılır (ajan/sonCalisma) → program GitHub'a girmeden gösterir
+let DURUM_URL = null;
+const sonYaz = o => { if (!DURUM_URL) return; try { execFileSync(process.execPath, ["-e", `fetch(${JSON.stringify(DURUM_URL)},{method:"PUT",headers:{"Content-Type":"application/json"},body:${JSON.stringify(JSON.stringify(o))}}).catch(()=>{})`], { timeout: 20000 }); } catch (e) { } };
+const dur = (m, kod = 1) => { console.log("\n❌ " + m); sonYaz({ t: Date.now(), ok: false, mesaj: m, elle: process.env.GITHUB_EVENT_NAME === "workflow_dispatch" }); process.exit(kod); };
+let OZET = "";
+const bitir = () => { console.log("\n✅ Tamam."); sonYaz({ t: Date.now(), ok: true, ozet: OZET, elle: process.env.GITHUB_EVENT_NAME === "workflow_dispatch" }); process.exit(0); };
+process.on("uncaughtException", e => dur("Beklenmeyen hata: " + (e && e.message || e)));
+process.on("unhandledRejection", e => dur("Beklenmeyen hata: " + (e && e.message || e)));
 
 const html = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
 const API_KEY = (html.match(/apiKey:"([^"]+)"/) || [])[1];
@@ -72,6 +80,7 @@ async function yaz(p, tok, v, yontem = "PUT") { const r = await istek(yol(p, tok
 /* ---------- çalış ---------- */
 const g = await giris();
 log("Ajan hesabıyla giriş yapıldı" + (g.yeni ? " (hesap yeni açıldı)" : ""));
+DURUM_URL = DB.replace(/\/$/, "") + "/mag_pazar/ajan/sonCalisma.json?auth=" + encodeURIComponent(g.tok);
 let prof = null; try { prof = await oku("users/" + g.uid, g.tok); } catch (e) { }
 if (!prof) {
   try { await yaz("users/" + g.uid, g.tok, { email: env("FB_EMAIL"), ad: "🤖 Ajan", rol: "beklemede", t: Date.now() }); } catch (e) { }
@@ -83,7 +92,8 @@ let leads, ayar, katalog, users;
 try { [leads, ayar, katalog, users] = await Promise.all(["leads", "ayar", "katalog", "users"].map(p => oku(p, g.tok))); }
 catch (e) { dur("Bulut okunamadı: " + e.message + ". Firebase kuralı güncel mi? (Programda ☁ → Kuralı kopyala → Firebase Rules → Publish)"); }
 const data = Object.entries(leads || {}).map(([k, v]) => ({ ...v, id: v.id || k })).filter(x => x && x.firma);
-ayar = ayar || {}; if (env("GEMINI_KEY")) ayar.aiKey = env("GEMINI_KEY"); else delete ayar.aiKey;
+ayar = ayar || {}; if (env("GEMINI_KEY")) ayar.aiKey = env("GEMINI_KEY");
+let GIZLI = {}; try { GIZLI = (await oku("ajan/gizli", g.tok)) || {}; } catch (e) { } // programdan girilen Gmail / bildirim anahtarları (yalnızca yönetici okur)
 log("Okunan kayıt:", data.length, "• ürün:", Object.keys(katalog || {}).length);
 
 const bellek = {};
@@ -111,9 +121,10 @@ const BUGUN = X.today();
 const O = Object.assign({ tarama: true, yaricap: 10, yaricapMax: 30, gunlukAday: 15, taslakSayisi: 12, eposta: "deneme", gunlukEposta: 20, takipEpostasiGun: 5 }, ayar.otonom || {});
 const okuG = async p => { try { return await oku(p, g.tok); } catch (e) { return null; } };
 let D = (await okuG("ajan/durum")) || {};
-const ilkCalisma = D.tarih !== BUGUN || env("TAM") === "1";
+const ilkCalisma = D.tarih !== BUGUN || env("TAM") === "1" || env("GITHUB_EVENT_NAME") === "workflow_dispatch";
 if (D.tarih !== BUGUN) D = { tarih: BUGUN, epN: 0, taramaR: D.taramaR || 0, sonGelen: D.sonGelen || 0 };
 const GUN = ((await okuG("ajan/gunluk/" + BUGUN)) || {}).isler || [];
+const GUN0 = GUN.length; // bu turdan önceki kayıtlar
 const not_ = (ik, metin) => { GUN.push({ ik, metin, t: Date.now() }); };
 const SICAK = []; // hemen bildirilecek sıcak gelişmeler
 const durumYaz = () => yaz("ajan/durum", g.tok, D).catch(e => log("durum yazılamadı:", e.message));
@@ -221,7 +232,7 @@ if (ilkCalisma) {
 }
 
 /* ---------- 📧 Gmail bağlantısı (isteğe bağlı) ---------- */
-const GU = env("GMAIL_USER"), GP = env("GMAIL_APP_PASSWORD").replace(/\s+/g, "");
+const GU = env("GMAIL_USER") || String(GIZLI.gmailUser || "").trim(), GP = (env("GMAIL_APP_PASSWORD") || String(GIZLI.gmailPass || "")).replace(/\s+/g, "");
 const gmailVar = !!(GU && GP) && O.eposta !== "kapali";
 const F = ayar.firma || {}, FIRMA = F.ad || "MAG AMBALAJ";
 const enc = s => "=?UTF-8?B?" + Buffer.from(String(s)).toString("base64") + "?=";
@@ -408,20 +419,21 @@ if (GUN.length) await yaz("ajan/gunluk/" + BUGUN, g.tok, { t: Date.now(), isler:
 try { const gk = (await okuG("ajan/gunluk")) || {}; for (const k of Object.keys(gk)) if (X.daysSince(k) > 30) await yaz("ajan/gunluk/" + k, g.tok, null).catch(() => { }); } catch (e) { }
 
 /* ---------- 🔔 10) Bildirim ---------- */
-const priv = env("VAPID_PRIVATE"), pub = ayar.vapidPub;
+OZET = GUN.slice(GUN0).map(q => q.ik + " " + q.metin).join("\n").slice(0, 1500);
+const priv = env("VAPID_PRIVATE") || String(GIZLI.vapidPriv || ""), pub = ayar.vapidPub;
 const ozetSatir = () => {
   const al = ik => GUN.filter(q => q.ik === ik && q.t > Date.now() - 3 * 3600e3).length;
   const parcalar = [];
   for (const q of GUN.filter(q => q.t > Date.now() - 3 * 3600e3 && q.ik !== "⚠")) { const m = q.metin.match(/(\d+) (yeni müşteri adayı|iş için|firmaya e-postayı|e-posta cevabı|kaydın takip)/); if (m) parcalar.push({ "yeni müşteri adayı": m[1] + " yeni aday", "iş için": m[1] + " mesaj hazır", "firmaya e-postayı": m[1] + " e-posta gitti", "e-posta cevabı": m[1] + " cevap", "kaydın takip": m[1] + " takip ayarı" }[m[2]]); }
   return parcalar.join(" • ");
 };
-if (!priv || !pub) { log("Bildirim atlandı: " + (!pub ? "programda bildirim anahtarı üretilmemiş (Kurulum 4. adım)" : "VAPID_PRIVATE eklenmemiş")); console.log("\n✅ Tamam."); process.exit(0); }
-let webpush; try { webpush = (await import("web-push")).default; } catch (e) { log("web-push paketi yok, bildirim atlandı"); process.exit(0); }
+if (!priv || !pub) { log("Bildirim atlandı: " + (!pub ? "programda bildirim anahtarı üretilmemiş (Kurulum 4. adım)" : "bildirim gizli anahtarı yok (Kurulum 4. adımda yeniden üret)")); bitir(); }
+let webpush; try { webpush = (await import("web-push")).default; } catch (e) { log("web-push paketi yok, bildirim atlandı"); bitir(); }
 try { webpush.setVapidDetails("mailto:info@magambalaj.com", pub, priv); } catch (e) { dur("VAPID_PRIVATE hatalı: programdaki 4. adımda üretilen gizli anahtarı aynen yapıştır (" + e.message + ")"); }
 const bildirimler = [];
 if (ilkCalisma) { const oz = ozetSatir(), ilk = l.find(f => f.sev !== "bilgi"); bildirimler.push({ title: "🤖 Ajanlar gece çalıştı", body: `${oz ? oz + "\n" : ""}Bugün ${l.length} iş${acil ? " (" + acil + " acil)" : ""}${ilk ? " • önce: " + ilk.bas : ""}`.slice(0, 230), url: "./?git=akis" }); }
 for (const s of SICAK.slice(0, 3)) bildirimler.push({ title: "🔥 Sıcak gelişme", body: s, url: "./?git=akis" });
-if (!bildirimler.length) { log("Gönderilecek bildirim yok"); console.log("\n✅ Tamam."); process.exit(0); }
+if (!bildirimler.length) { log("Gönderilecek bildirim yok"); bitir(); }
 let abone = (await okuG("ajan/abone")) || {};
 const yonetici = uid => uid === ayar.ownerUid || (users && users[uid] && users[uid].rol === "admin");
 let gonderildi = 0, silindi = 0, hata = 0;
@@ -435,4 +447,4 @@ for (const [uid, cihazlar] of Object.entries(abone)) {
   }
 }
 log("Bildirim gönderildi:", gonderildi, silindi ? "• eskimiş abonelik silindi: " + silindi : "", hata ? "• hata: " + hata : "");
-console.log("\n✅ Tamam.");
+bitir();

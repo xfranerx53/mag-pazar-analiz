@@ -2494,10 +2494,10 @@ function kurulumHtml(){const ok=v=>v===true?"✅":v===false?"❌":"⚪",adm=isAd
   <div class="mu">ℹ Ücretsiz katmanda Google gönderilen içeriği kendi ürünlerini geliştirmek için kullanabiliyor. Bu yüzden program firma adlarını kodlar (F12), telefon/e-posta/adres/kişi adı göndermez; tutarlar ve sektör gider.</div>`);
  h+=adim(2,bulut?kur.kural:null,"🔐 Bulut kuralını güncelle",bulut?`<div class="mu">Ajanların sabah raporu ve bildirim kaydı için kural güncellenmeli (bir kerelik).<br>1) ☁ (sağ üst) → <b>Kuralı kopyala</b><br>2) <a href="https://console.firebase.google.com/project/mag-pazar/database/mag-pazar-default-rtdb/rules" target="_blank" rel="noopener">Firebase → Realtime Database → Rules</a> → hepsini sil, yapıştır → <b>Publish</b><br>3) Buraya dön → <b>Kontrol et</b></div><div class="row"><button data-a="kurkural">☁ Kuralı kopyala</button><button data-a="kurkon">Kontrol et</button></div>`:`<div class="mu">Önce ☁ ile buluta giriş yap (sağ üst).</div>`);
  h+=adim(3,bulut?!!(ah&&ah[1].rol==="admin"):null,"🤖 Gece ajanının hesabı",`<div class="mu">Gece çalışan ajan buluttaki kayıtları okumak için kendi hesabını kullanır. Hesabı ajan ilk çalıştığında <b>kendisi açar</b> ("🤖 Ajan" adıyla, Onay bekliyor olarak düşer).<br>Sen sadece: Diğer → 🛡 Yönetim → "🤖 Ajan" → rolü <b>Yönetici</b> yap.</div>${ah?`<div class="mu">Bulundu: <b>${esc(ah[1].ad||ah[1].email)}</b> — rol: <b>${esc(ROLN[ah[1].rol]||ah[1].rol)}</b></div>`:`<div class="mu">Henüz yok (5. adımdaki ilk çalıştırmadan sonra görünür).</div>`}<div class="row">${adm?`<button data-a="ajgo" data-id="yonetim">🛡 Yönetim</button>`:""}</div>`);
- h+=adim(4,!!ayar.vapidPub,"🔔 Bildirim anahtarı (bir kerelik)",adm?`<div class="mu">Telefonuna "sabah raporu hazır" bildirimi gelmesi için anahtar çifti üretilir. Açık anahtar programa kaydedilir; <b>gizli anahtarı</b> sadece GitHub'a yapıştıracaksın (5. adım, adı <b>VAPID_PRIVATE</b>).</div>
+ h+=adim(4,!!ayar.vapidPub,"🔔 Bildirim anahtarı (bir kerelik)",adm?`<div class="mu">Telefonuna "sabah raporu hazır" bildirimi gelmesi için anahtar çifti üretilir. Tek düğme: ikisi de programa (gizlisi yalnızca yöneticilerin görebileceği yere) kaydedilir; GitHub'a bir şey eklemen gerekmez.</div>
   ${kur.ozel?`<div class="mu"><b>Gizli anahtar</b> (bir kez gösterilir — kopyala, GitHub'a yapıştır):</div><div class="row"><input readonly id="kurPriv" value="${esc(kur.ozel)}" style="flex:1"><button data-a="kurkop">📋 Kopyala</button></div>`:""}
   <div class="row"><button class="${ayar.vapidPub?"":"p"}" data-a="kurvapid">${ayar.vapidPub?"↻ Yeniden üret (eski bildirimler durur)":"🔑 Anahtar üret"}</button></div>`:`<div class="mu">${ayar.vapidPub?"Yönetici kurmuş.":"Yönetici kuracak."}</div>`);
- h+=adim(5,geceRapor&&geceRapor.t?true:null,"🌙 Gece ajanını GitHub'da aç",`<div class="mu">GitHub → <b>mag-pazar-analiz</b> deposu → <b>Settings → Secrets and variables → Actions → New repository secret</b> ile şunları ekle:<br>• <b>FB_EMAIL</b>: ajan için bir e-posta (ör. ajan@magambalaj.com — gerçek olması gerekmez)<br>• <b>FB_PASSWORD</b>: ajan için güçlü bir şifre (en az 8 karakter)<br>• <b>VAPID_PRIVATE</b>: 4. adımdaki gizli anahtar<br>• <b>GEMINI_KEY</b>: 1. adımdaki anahtar (isteğe bağlı — sabah raporuna Müdür yorumu ekler)<br>Sonra <b>Actions → "Ajan sabah raporu" → Run workflow</b>. İlk çalışmada ajan hesabı açılır → 3. adımı yap → bir kez daha Run workflow.</div>
+ h+=adim(5,geceRapor&&geceRapor.t?true:null,"🌙 Gece ajanını GitHub'da aç",`<div class="mu">GitHub → <b>mag-pazar-analiz</b> deposu → <b>Settings → Secrets and variables → Actions → New repository secret</b> ile sadece şu ikisini ekle (bir kerelik — sende zaten ekli):<br>• <b>FB_EMAIL</b>: ajan için bir e-posta (ör. ajan@magambalaj.com — gerçek olması gerekmez)<br>• <b>FB_PASSWORD</b>: ajan için güçlü bir şifre (en az 8 karakter)<br>Yapay zekâ anahtarı, Gmail ve bildirim anahtarı artık programdan okunur; GitHub'a eklemen gerekmez.<br>Ajanları çalıştırmak için 8. adımı yap → "▶ Ajanları şimdi çalıştır". İlk çalışmada ajan hesabı açılır → 3. adımı yap → bir kez daha çalıştır.</div>
   <div class="mu">Son gece raporu: <b>${geceRapor&&geceRapor.t?fdt(geceRapor.t):"henüz yok"}</b>${geceRapor&&geceRapor.hata?" ("+esc(geceRapor.hata)+")":""}</div><div class="row"><button data-a="kurkon">↻ Yenile</button></div>`);
  h+=adim(6,kur.abone,"📱 Bu telefonda sabah bildirimi",`<div class="mu">Her sabah ~08:15'te rapor hazır olunca bildirim gelir; dokununca Ajanlar açılır. Önce programı "Ana ekrana ekle / Uygulamayı yükle" ile kurman önerilir. Her telefon için ayrı açılır.</div><div class="row"><button class="${kur.abone?"":"p"}" data-a="kurabone" ${!bulut||!ayar.vapidPub?"disabled":""}>${kur.abone?"↻ Yenile":"🔔 Bildirimi aç"}</button>${kur.abone?`<button data-a="kuriptal">Kapat</button>`:""}</div>${!bulut?`<div class="mu">Buluta giriş gerekli.</div>`:!ayar.vapidPub?`<div class="mu">Önce 4. adım.</div>`:""}`);
  return h}
@@ -2799,13 +2799,7 @@ function otonomHtml(){const O=Object.assign({tarama:true,yaricap:10,yaricapMax:3
  <label><input type="checkbox" id="ot_t" ${O.tarama!==false?"checked":""}> Otomatik müşteri taraması açık</label>
  <div class="mu">Taranacak sektörler: <b>${sek.length}</b> (${sek.slice(0,6).map(k=>esc(secAd(k))).join(", ")}${sek.length>6?"…":""}) ${tSek&&tSek.size?`<button data-a="otsek">Tara ekranındaki ${tSek.size} sektörü kullan</button>`:""}</div>
  <div class="row"><button class="p" data-a="otkay">Kaydet</button></div>
- <details style="margin-top:8px"><summary><b>📧 Gmail bağlantısı (e-posta göndermek ve cevapları okumak için)</b></summary><div class="mu">
- 1) Ayrı bir Gmail açman önerilir (ör. magambalaj.satis@gmail.com) — ana hesabın etkilenmez.<br>
- 2) O hesapta <a href="https://myaccount.google.com/signinoptions/twosv" target="_blank" rel="noopener">2 Adımlı Doğrulama</a>'yı aç.<br>
- 3) <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Uygulama şifreleri</a> → ad: "MAG Ajan" → <b>Oluştur</b> → 16 harfli şifreyi kopyala.<br>
- 4) GitHub → mag-pazar-analiz → Settings → Secrets and variables → Actions → New repository secret:<br>&nbsp;&nbsp;• <b>GMAIL_USER</b> = o Gmail adresi<br>&nbsp;&nbsp;• <b>GMAIL_APP_PASSWORD</b> = 16 harfli şifre<br>
- 5) Mod "Deneme" iken ajan ilk e-postaları <b>sadece sana</b> gönderir (konu: [DENEME → firma]). Beğenince "Açık" yap.<br>
- Her e-postanın altında "almak istemiyorsanız İPTAL yazın" satırı vardır; İPTAL yazanı ajan kendisi "Aramayın" listesine alır.</div></details>`:`<div class="mu">Yönetici ayarlar.</div>`}</div>`}
+ <div class="mu" style="margin-top:6px">📧 E-posta gönderebilmesi için aşağıdaki <b>Gmail bağlantısı</b> kutusunu doldur.</div>`:`<div class="mu">Yönetici ayarlar.</div>`}</div>`}
 {const _kh=kurulumHtml;kurulumHtml=function(){return _kh()+otonomHtml()};window.ajOzel.kurulum=kurulumHtml}
 function otKaydet(ek){const O=Object.assign({},ayar.otonom||{},ek||{});if(!ek){const n=(i,d)=>{const v=$(i)&&$(i).value;return v===""||v==null||!isFinite(+v)?d:+v};
  Object.assign(O,{yaricap:Math.max(1,n("ot_r",10)),yaricapMax:Math.max(1,n("ot_rm",30)),gunlukAday:Math.max(0,n("ot_n",15)),taslakSayisi:Math.max(0,n("ot_m",12)),eposta:$("ot_e").value,gunlukEposta:Math.max(0,n("ot_en",20)),tarama:$("ot_t").checked})}
@@ -2824,6 +2818,69 @@ listeEpBul=function(ids){const l=ids.map(i=>data.find(v=>v.id===i)).filter(Boole
  if(!w.length){alert(l.some(x=>x.eposta)?"Seçtiklerinin e-postası zaten var ya da web sitesi yok.":"Seçtiklerinin hiçbirinin web sitesi yok. E-posta sadece web sitesi olan firmalarda aranabilir.\n\nGece ajanı da her sabah web sitesi olan kayıtlarda e-postayı kendisi arıyor.");return}
  const ob=new MutationObserver(()=>{const t=$("tstat").textContent;if(t)tost(t,6000)});ob.observe($("tstat"),{childList:true,characterData:true,subtree:true});
  Promise.resolve(epBul(w.map(x=>({id:"L"+x.id,ad:x.firma,web:x.web,lead:x.id})))).finally(()=>setTimeout(()=>ob.disconnect(),7000))};
+
+/* ================= v14.2 — her şey uygulamadan: ▶ Şimdi çalıştır, Gmail ve GitHub bağlantısı ================= */
+const GH=(()=>{const h=location.hostname.match(/^([^.]+)\.github\.io$/i),r=location.pathname.split("/").filter(Boolean)[0];return{o:h?h[1]:"xfranerx53",r:h&&r?r:"mag-pazar-analiz"}})();
+let gizB={},sonCalisma=null,ghIs=null;
+async function gizliYukle(){if(!root||!isAdmin())return;try{const[a,b]=await Promise.all([root.child("ajan/gizli").once("value"),root.child("ajan/sonCalisma").once("value")]);gizB=a.val()||{};sonCalisma=b.val()}catch(e){}}
+async function gizliKaydet(o){if(!root||!isAdmin()){alert("Bunun için yönetici hesabıyla ☁ giriş yapmalısın.");return false}await root.child("ajan/gizli").update(o);Object.assign(gizB,o);return true}
+const ghH=()=>({Accept:"application/vnd.github+json","Authorization":"Bearer "+String(gizB.ghToken||"").trim(),"X-GitHub-Api-Version":"2022-11-28"});
+async function ghDene(){const r=await fetch(`https://api.github.com/repos/${GH.o}/${GH.r}/actions/workflows/ajan-gece.yml`,{headers:ghH()});if(r.status===401)throw new Error("GitHub anahtarı geçersiz ya da süresi dolmuş.");if(r.status===404)throw new Error("Anahtar bu depoyu göremiyor: oluştururken 'Only select repositories → "+GH.r+"' seçili olmalı.");if(!r.ok)throw new Error("GitHub cevabı: "+r.status);return true}
+async function ajanlariCalistir(){
+ if(!isAdmin()||!root){alert("Bunun için yönetici hesabıyla ☁ giriş yapmalısın.");return}
+ if(!gizB.ghToken){ajFiltre="kurulum";go("ajan");kurKontrol();setTimeout(()=>{const e=$("ghT");if(e){e.scrollIntoView({block:"center"});e.focus()}},400);alert("Ajanları uygulamadan çalıştırmak için bir kerelik GitHub bağlantısı gerekiyor. Kurulum 8. adımı açtım.");return}
+ if(ghIs&&ghIs.durum==="calisiyor"){tost("Ajanlar zaten çalışıyor…");return}
+ const t0=Date.now();ghIs={durum:"basliyor",t0};akisCiz();
+ try{const r=await fetch(`https://api.github.com/repos/${GH.o}/${GH.r}/actions/workflows/ajan-gece.yml/dispatches`,{method:"POST",headers:{...ghH(),"Content-Type":"application/json"},body:JSON.stringify({ref:"main"})});
+  if(r.status!==204){const j=await r.json().catch(()=>({}));throw new Error(r.status===401?"GitHub anahtarı geçersiz (Kurulum 8. adım).":r.status===403?"GitHub anahtarının 'Actions: Read and write' izni yok (Kurulum 8. adım).":r.status===404?"Depo ya da ajan-gece.yml bulunamadı.":"GitHub: "+(j.message||r.status))}
+  ghIs={durum:"calisiyor",t0};akisCiz();tost("▶ Ajanlar çalışmaya başladı (2-5 dakika sürer)",4000);
+  for(let i=0;i<60;i++){await uyu(10000);let run=null;
+   try{const q=await fetch(`https://api.github.com/repos/${GH.o}/${GH.r}/actions/workflows/ajan-gece.yml/runs?event=workflow_dispatch&per_page=3`,{headers:ghH()});const j=await q.json();run=arr(j.workflow_runs).find(w=>new Date(w.created_at).getTime()>t0-60e3)}catch(e){}
+   if(run){ghIs.url=run.html_url;if(run.status==="completed"){ghIs.durum=run.conclusion==="success"?"bitti":"hata";break}}akisCiz()}
+  if(ghIs.durum==="calisiyor")ghIs.durum="bilinmiyor";
+  await gizliYukle();gunlukOkundu=0;await akisYukle(true);geceOkundu=0;geceYukle();
+  tost(ghIs.durum==="bitti"?"✅ Ajanlar işini bitirdi":ghIs.durum==="hata"?"❌ Ajanlar hata verdi — Bugün ekranında sebebi yazıyor":"Ajanlar hâlâ çalışıyor olabilir",5000)}
+ catch(e){ghIs={durum:"hata",mesaj:e.message};alert(e.message)}
+ akisCiz();if(tab==="ajan")renderAjan()}
+function akisCiz(){if(tab==="akis")renderAkis()}
+function calismaHtml(){if(!isAdmin()||!root)return"";const s=sonCalisma,g=ghIs;let durum="";
+ if(g&&(g.durum==="basliyor"||g.durum==="calisiyor"))durum=`<span class="mu">⏳ Ajanlar çalışıyor… ${Math.floor((Date.now()-g.t0)/1000)} sn${g.url?` • <a href="${esc(g.url)}" target="_blank" rel="noopener">ayrıntı</a>`:""}</span>`;
+ else if(s)durum=`<span class="mu">Son çalışma: ${fdt(s.t)} ${s.ok?"✅":"❌"}${s.elle?" (elle)":""}</span>`;
+ const hata=s&&!s.ok&&!(g&&g.durum==="calisiyor")?`<div class="warn" style="margin-top:6px">❌ ${esc(s.mesaj||"")}</div>`:"";
+ return `<div class="row" style="align-items:center;margin-top:8px"><button class="p" data-a="ajcal" ${g&&g.durum==="calisiyor"?"disabled":""}>▶ Ajanları şimdi çalıştır</button>${durum}</div>${hata}`}
+setInterval(()=>{if(ghIs&&ghIs.durum==="calisiyor"&&tab==="akis")renderAkis()},5000);
+{const _ra=renderAkis;renderAkis=function(){_ra();try{const k=document.querySelector("#akisL .ajg");if(k)k.insertAdjacentHTML("beforeend",calismaHtml())}catch(e){}}}
+let gizOkundu=0;{const _ay=akisYukle;akisYukle=async function(f){await _ay(f);if(root&&isAdmin()&&(f||Date.now()-gizOkundu>60e3)){gizOkundu=Date.now();await gizliYukle();if(tab==="akis")renderAkis()}}}
+
+/* --- Kurulum: Gmail ve GitHub bağlantıları programdan --- */
+function baglantiHtml(){if(!isAdmin())return"";
+ return `<div class="card kur ${gizB.gmailUser&&gizB.gmailPass?"tamam":""}"><div class="kurh"><span class="kurn">${gizB.gmailUser&&gizB.gmailPass?"✓":"7b"}</span><b>📧 Gmail bağlantısı (e-posta göndermek ve cevapları okumak)</b><span style="margin-left:auto">${gizB.gmailUser&&gizB.gmailPass?"✅":"⚪"}</span></div>
+ <div class="mu">1) Ayrı bir Gmail aç (ör. magambalaj.satis@gmail.com) — ana hesabın etkilenmez.<br>2) O hesapta <a href="https://myaccount.google.com/signinoptions/twosv" target="_blank" rel="noopener">2 Adımlı Doğrulama</a>'yı aç.<br>3) <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Uygulama şifreleri</a> → ad: <b>MAG Ajan</b> → <b>Oluştur</b> → çıkan 16 harfli şifreyi kopyala.<br>4) İkisini buraya yaz → <b>Kaydet</b>. (Yalnızca yöneticiler görebilir; ajan buradan okur.)</div>
+ <div class="g2"><div><label>Gmail adresi</label><input id="gmU" type="email" placeholder="magambalaj.satis@gmail.com" value="${esc(gizB.gmailUser||"")}" autocomplete="off"></div><div><label>Uygulama şifresi (16 harf)</label><input id="gmP" type="password" placeholder="${gizB.gmailPass?"•••• kayıtlı — değiştirmek için yaz":"abcd efgh ijkl mnop"}" autocomplete="new-password"></div></div>
+ <div class="row"><button class="p" data-a="gmkay">Kaydet</button>${gizB.gmailUser&&gizB.gmailPass?`<span class="mu">✅ ${esc(gizB.gmailUser)} bağlı. "Deneme" modunda ilk e-postalar bu adrese gelir.</span>`:""}</div></div>
+ <div class="card kur ${gizB.ghToken?"tamam":""}"><div class="kurh"><span class="kurn">${gizB.ghToken?"✓":"8"}</span><b>▶ Ajanları uygulamadan çalıştırma (bir kerelik GitHub bağlantısı)</b><span style="margin-left:auto">${gizB.ghToken?"✅":"⚪"}</span></div>
+ <div class="mu">Bunu yapınca "▶ Ajanları şimdi çalıştır" düğmesi çalışır; GitHub'a hiç girmezsin.<br>
+ 1) <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → Yeni anahtar (Fine-grained token)</a> sayfasını aç.<br>
+ 2) <b>Token name</b>: MAG Ajan • <b>Expiration</b>: en uzun süre (ör. 1 yıl).<br>
+ 3) <b>Repository access</b> → <b>Only select repositories</b> → <b>${esc(GH.r)}</b>.<br>
+ 4) <b>Permissions</b> → <b>Repository permissions</b> → <b>Actions</b> → <b>Read and write</b>.<br>
+ 5) En altta <b>Generate token</b> → çıkan anahtarı (github_pat_… ile başlar) kopyala → buraya yapıştır → <b>Kaydet ve dene</b>.</div>
+ <div class="row"><input id="ghT" type="password" placeholder="${gizB.ghToken?"•••• kayıtlı — değiştirmek için yapıştır":"github_pat_…"}" style="flex:1" autocomplete="new-password"><button class="p" data-a="ghkay">Kaydet ve dene</button></div>
+ ${calismaHtml()}</div>`}
+{const _kh=kurulumHtml;kurulumHtml=function(){return _kh()+baglantiHtml()};window.ajOzel.kurulum=kurulumHtml}
+{const _k=kurKontrol;kurKontrol=async function(){await gizliYukle();await _k()}}
+Object.assign(A,{
+ ajcal:()=>ajanlariCalistir(),
+ gmkay:async()=>{const u=$("gmU").value.trim(),p=$("gmP").value.replace(/\s+/g,"");if(!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(u)){alert("Gmail adresini doğru yaz.");return}
+  if(p&&!/^[a-z]{16}$/i.test(p)&&!confirm("Uygulama şifresi genelde 16 harftir (boşluksuz). Yine de kaydedilsin mi?"))return;
+  const o={gmailUser:u};if(p)o.gmailPass=p;else if(!gizB.gmailPass){alert("Uygulama şifresini de yaz.");return}
+  if(await gizliKaydet(o)){tost("Gmail bağlantısı kaydedildi");renderAjan()}},
+ ghkay:async()=>{const v=$("ghT").value.trim();if(v){if(!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(v)){alert("Bu bir GitHub anahtarına benzemiyor (github_pat_ ile başlamalı).");return}if(!await gizliKaydet({ghToken:v}))return}
+  if(!gizB.ghToken){alert("Önce anahtarı yapıştır.");return}
+  try{await ghDene();tost("✅ GitHub bağlantısı çalışıyor");renderAjan()}catch(e){alert(e.message)}}
+});
+/* bildirim gizli anahtarı da buluta (yalnızca yönetici) — GitHub'a elle eklemek gerekmez */
+{const _v=kurVapid;kurVapid=async function(){await _v();if(kur.ozel&&root&&isAdmin()){try{await gizliKaydet({vapidPriv:kur.ozel});kur.ozel=null;tost("Bildirim anahtarı kaydedildi");renderAjan()}catch(e){}}}}
 
 __baslat();
 if(!SIPT){const _g=new URLSearchParams(location.search).get("git");if(_g&&_g!=="ajan")setTimeout(()=>go(_g),300);else if(!_g)go("akis")}

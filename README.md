@@ -171,6 +171,8 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
 
 - **v14.1 (02.11.2026):** Ajanlar ekranındaki üst düğmeler (Müdür … 🛠 Kurulum) artık yana kaymıyor, alt alta sarılıyor — bilgisayarda fareyle ulaşılamama sorunu giderildi. Diğer menüsüne doğrudan "🛠 Kurulum ve ajan ayarları" düğmesi eklendi.
 
+- **v14.2 (02.11.2026) — her şey uygulamadan:** "▶ Ajanları şimdi çalıştır" (Bugün ekranında ve Kurulum 8. adımda): GitHub API `workflow_dispatch` ile ajanı başlatır, 10 sn'de bir durumunu izler, bitince günlüğü yeniler. Bir kerelik GitHub fine-grained token (yalnızca bu depo, Actions: Read and write) Kurulum 8. adımda girilir. Gmail adresi + uygulama şifresi (Kurulum 7b), bildirim gizli anahtarı (4. adımda üretilince) ve yapay zekâ anahtarı (`ayar.aiKey`) artık buluttan okunur → `ajan/gizli` (yalnızca yöneticiler okur/yazar). GitHub'da gereken secrets yalnızca `FB_EMAIL`, `FB_PASSWORD` (eski GMAIL_*/VAPID_PRIVATE/GEMINI_KEY secrets'ları varsa onlar önceliklidir). Her çalışmanın sonucu `ajan/sonCalisma` {t, ok, mesaj/ozet, elle} → Bugün ekranında "Son çalışma ✅/❌ + hata sebebi"; elle çalıştırma her zaman tam tur yapar.
+
 ## Kâr modeli — ücretsiz ajan yol haritası
 Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullanılırsa, ileride kendi altyapımızla değiştirilebilecek şekilde bağlanır (Geoapify → mag-veri örneğinde olduğu gibi).
 1. ✅ **Ajan Merkezi (v11)** — kural tabanlı ajanlar, program içinde.
