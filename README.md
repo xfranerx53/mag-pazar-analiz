@@ -175,6 +175,8 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
 
 - **v14.3 (02.11.2026) — 🔐 giriş zorunlu:** Program açılınca tam ekran giriş kapısı: e-posta/şifre ya da Google ile giriş yapılmadan ve hesap yönetici onayından geçmeden (rol beklemede değil) hiçbir ekran görünmez ("yalnızca bu cihazda" çalışma kalktı). Kapıda: Giriş yap, İlk kez hesap oluştur (yönetici onayına düşer), Şifremi unuttum, Google; onay bekleyen → bekleme mesajı + Çıkış; kural yoksa → Kuralı göster. İnternet yoksa ve oturum önbellekte değilse açılmaz. Müşteri sipariş linki (`?siparis=`) muaf. Şirketin genel e-postası **magambalajas@gmail.com** (ayar.firma.ep boşsa otomatik; ajan e-postalarının altbilgisinde); kullanıcı/yönetici hesabı xfranerxx@gmail.com.
 
+- **v14.4 (02.11.2026):** Kurulum 7b/8 "Kaydet" hataları artık sessiz kalmıyor: Firebase kuralı eskiyse (ajan altına yazma izni yok) ne yapılacağını söyleyen uyarı; GitHub "Kaydet ve dene" düğmesi "Deneniyor…" gösterir, sonucu ✅/❌ pencereyle bildirir; anahtardaki boşluklar temizlenir.
+
 ## Kâr modeli — ücretsiz ajan yol haritası
 Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullanılırsa, ileride kendi altyapımızla değiştirilebilecek şekilde bağlanır (Geoapify → mag-veri örneğinde olduğu gibi).
 1. ✅ **Ajan Merkezi (v11)** — kural tabanlı ajanlar, program içinde.

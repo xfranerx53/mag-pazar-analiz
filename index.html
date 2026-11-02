@@ -2826,7 +2826,9 @@ listeEpBul=function(ids){const l=ids.map(i=>data.find(v=>v.id===i)).filter(Boole
 const GH=(()=>{const h=location.hostname.match(/^([^.]+)\.github\.io$/i),r=location.pathname.split("/").filter(Boolean)[0];return{o:h?h[1]:"xfranerx53",r:h&&r?r:"mag-pazar-analiz"}})();
 let gizB={},sonCalisma=null,ghIs=null;
 async function gizliYukle(){if(!root||!isAdmin())return;try{const[a,b]=await Promise.all([root.child("ajan/gizli").once("value"),root.child("ajan/sonCalisma").once("value")]);gizB=a.val()||{};sonCalisma=b.val()}catch(e){}}
-async function gizliKaydet(o){if(!root||!isAdmin()){alert("Bunun için yönetici hesabıyla ☁ giriş yapmalısın.");return false}await root.child("ajan/gizli").update(o);Object.assign(gizB,o);return true}
+async function gizliKaydet(o){if(!root||!isAdmin()){alert("Bunun için yönetici hesabıyla ☁ giriş yapmalısın.");return false}
+ try{await root.child("ajan/gizli").update(o)}catch(e){alert(/permission|denied|izin/i.test(e.message)?"Kaydedilemedi: Firebase kuralı eski.\n\nÇözüm (bir kerelik): sağ üstteki ☁ → \"Kuralı kopyala\" → Firebase → Realtime Database → Rules → hepsini sil, yapıştır → Publish. Sonra burada tekrar Kaydet.":"Kaydedilemedi: "+e.message);return false}
+ Object.assign(gizB,o);return true}
 const ghH=()=>({Accept:"application/vnd.github+json","Authorization":"Bearer "+String(gizB.ghToken||"").trim(),"X-GitHub-Api-Version":"2022-11-28"});
 async function ghDene(){const r=await fetch(`https://api.github.com/repos/${GH.o}/${GH.r}/actions/workflows/ajan-gece.yml`,{headers:ghH()});if(r.status===401)throw new Error("GitHub anahtarı geçersiz ya da süresi dolmuş.");if(r.status===404)throw new Error("Anahtar bu depoyu göremiyor: oluştururken 'Only select repositories → "+GH.r+"' seçili olmalı.");if(!r.ok)throw new Error("GitHub cevabı: "+r.status);return true}
 async function ajanlariCalistir(){
@@ -2877,10 +2879,13 @@ Object.assign(A,{
  gmkay:async()=>{const u=$("gmU").value.trim(),p=$("gmP").value.replace(/\s+/g,"");if(!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(u)){alert("Gmail adresini doğru yaz.");return}
   if(p&&!/^[a-z]{16}$/i.test(p)&&!confirm("Uygulama şifresi genelde 16 harftir (boşluksuz). Yine de kaydedilsin mi?"))return;
   const o={gmailUser:u};if(p)o.gmailPass=p;else if(!gizB.gmailPass){alert("Uygulama şifresini de yaz.");return}
-  if(await gizliKaydet(o)){tost("Gmail bağlantısı kaydedildi");renderAjan()}},
- ghkay:async()=>{const v=$("ghT").value.trim();if(v){if(!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(v)){alert("Bu bir GitHub anahtarına benzemiyor (github_pat_ ile başlamalı).");return}if(!await gizliKaydet({ghToken:v}))return}
+  if(await gizliKaydet(o)){renderAjan();alert("✅ Gmail bağlantısı kaydedildi: "+u)}},
+ ghkay:async()=>{const b=document.querySelector('[data-a="ghkay"]');if(b){b.disabled=true;b.textContent="Deneniyor…"}
+  try{const v=$("ghT").value.replace(/\s+/g,"");if(v){if(!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(v)){alert("Bu bir GitHub anahtarına benzemiyor (github_pat_ ile başlamalı). Anahtarı GitHub'daki kopyala düğmesiyle eksiksiz kopyala.");return}if(!await gizliKaydet({ghToken:v}))return}
   if(!gizB.ghToken){alert("Önce anahtarı yapıştır.");return}
-  try{await ghDene();tost("✅ GitHub bağlantısı çalışıyor");renderAjan()}catch(e){alert(e.message)}}
+  await ghDene();renderAjan();alert("✅ GitHub bağlantısı çalışıyor. Artık \"▶ Ajanları şimdi çalıştır\" düğmesini kullanabilirsin.")}
+  catch(e){alert("❌ "+(e.message||e)+(/Failed to fetch|NetworkError/i.test(String(e.message))?" — internet bağlantısını kontrol et.":""))}
+  finally{const b2=document.querySelector('[data-a="ghkay"]');if(b2){b2.disabled=false;b2.textContent="Kaydet ve dene"}}}
 });
 /* bildirim gizli anahtarı da buluta (yalnızca yönetici) — GitHub'a elle eklemek gerekmez */
 {const _v=kurVapid;kurVapid=async function(){await _v();if(kur.ozel&&root&&isAdmin()){try{await gizliKaydet({vapidPriv:kur.ozel});kur.ozel=null;tost("Bildirim anahtarı kaydedildi");renderAjan()}catch(e){}}}}
