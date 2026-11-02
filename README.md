@@ -118,11 +118,29 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
 
 - **v11.1 (02.11.2026) — tek adres:** Program yalnızca https://xfranerx53.github.io/mag-pazar-analiz/ adresine bağlı. Uygulama bilgisi (manifest) bu adrese sabitlendi (id / start_url / scope), Android için PNG simgeler eklendi (192, 512, maskable) → Chrome'dan "Uygulamayı yükle / Ana ekrana ekle" bu adresle kurulur. pages.dev'den açılırsa github.io'ya yönlendirir; o cihazda bulutla eşitlenmemiş kayıt varsa önce yedek indirmeyi önerir. sw.js önbellek mag-v17.
 
+- **v12 (02.11.2026) — 🧠 yapay zekâ + 🌙 gece ajanı (kâr modeli tam sürüm):**
+  - *Yapay zekâ beyni:* Google Gemini ücretsiz anahtarı (kart yok). Ajanlar → 🛠 Kurulum → 1. adım. Model kendiliğinden seçilir (en yeni kararlı "flash"; kota/hata olursa sıradakine geçer). Anahtar `ayar.aiKey` (yönetici kaydeder, ekip kullanır).
+  - *Gizlilik:* ücretsiz katmanda Google gönderilen içeriği ürün geliştirmede kullanabildiği için firma adları **F12** gibi kodlarla gider; telefon, e-posta, adres, yetkili ve personel adları gönderilmez (yazı içinde geçse bile silinir). Cevaptaki kodlar telefonda gerçek adlara çevrilir. Tutarlar, sektör, ürün ve tarihler gider.
+  - *💬 Müdürle konuş:* gerçek verilere (ajan bulguları, en önemli 120 firma, ürün/maliyet, hammadde, kurallar) bakarak cevap verir; hazır sorular; sohbet cihazda saklanır (son 40).
+  - *🧠 Müdür'ün bugünkü planı:* günlük öncelikli eylem planı (cihazda günlük saklanır).
+  - *✨ Firmaya özel mesaj:* her işte "✨ Özel yaz" → firmanın geçmişine göre mesaj; selam (yetkili adıyla) ve imza programca eklenir. "✨ Önemli işlerin mesajlarını yaz" toplu (kota için ~7 sn arayla).
+  - *🛠 Kurulum ekranı:* 6 adımlı kontrol listesi (anahtar, kural, ajan hesabı, bildirim anahtarı, GitHub, bu telefonda bildirim).
+  - *🔔 Bildirim:* VAPID anahtar çifti programda üretilir (açık anahtar `ayar.vapidPub`, gizli anahtar sadece GitHub secret `VAPID_PRIVATE`). Telefon aboneliği `ajan/abone/<uid>/<cihaz>`. Bildirime dokununca `?git=ajan` ile Ajanlar açılır (sw.js push + notificationclick). sw.js önbellek mag-v18.
+  - *Firebase kuralı değişti:* `ajan` (okuma/yazma yönetici; `abone/<uid>` kişinin kendisi) → ☁ → Kuralı kopyala → Firebase Rules → Publish.
+
+## 🌙 Gece ajanı (GitHub Actions — ücretsiz)
+- Dosyalar: `ajan-gece.mjs` + `.github/workflows/ajan-gece.yml`. Her gün 08:12 (Türkiye) ve Actions → "Ajan sabah raporu" → **Run workflow** ile elle.
+- Ajan kuralları **index.html'den okunur** (v11 AJAN MERKEZİ bloğu + v12 yapay zekâ bloğu) — kural değişince betiği ayrıca güncellemek gerekmez. Yardımcı fonksiyonlar da adlarıyla index.html'den alınır (adı değişirse betikteki YARDIMCI listesi güncellenmeli).
+- Secrets (Settings → Secrets and variables → Actions): `FB_EMAIL`, `FB_PASSWORD` (ajanın kendi hesabı; ilk çalışmada kendisi açar → Yönetim'den **Yönetici** yapılmalı), `VAPID_PRIVATE`, `GEMINI_KEY` (isteğe bağlı: rapora Müdür yorumu).
+- Yaptığı: girer → leads/ayar/katalog/users okur → ajanları çalıştırır → `ajan/rapor/son` yazar (programda Müdür ekranında "🌙 Gece ajanının raporu") → yöneticilerin abone cihazlarına bildirim (eskimiş abonelikleri siler).
+- Depo herkese açık: betik **log'a müşteri bilgisi yazmaz** (sadece sayılar).
+- GitHub, depoda 60 gün hiç değişiklik olmazsa zamanlanmış görevi durdurur; durursa Actions sekmesinden yeniden açılır.
+
 ## Kâr modeli — ücretsiz ajan yol haritası
 Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullanılırsa, ileride kendi altyapımızla değiştirilebilecek şekilde bağlanır (Geoapify → mag-veri örneğinde olduğu gibi).
 1. ✅ **Ajan Merkezi (v11)** — kural tabanlı ajanlar, program içinde.
-2. ⏳ **Uygulama kapalıyken çalışma** — GitHub Actions zamanlanmış görev (ücretsiz) her sabah Firebase'deki veriyi okur, aynı kuralları çalıştırır, Müdür raporunu ücretsiz Telegram botuyla telefona gönderir.
-3. ⏳ **Yazan ajanlar (yapay zekâ)** — mesajları firmaya özel yazdırmak için ücretsiz yapay zekâ katmanı (ör. Google Gemini ücretsiz anahtar, kart yok) ya da Claude Pro üyeliğiyle zamanlanmış görev; seçim 3. adımda.
+2. ✅ **Uygulama kapalıyken çalışma (v12)** — GitHub Actions zamanlanmış görev (ücretsiz) her sabah Firebase'deki veriyi okur, aynı kuralları çalıştırır, Müdür raporunu buluta yazar ve telefona bildirim (web push) gönderir — ek uygulama gerekmez.
+3. ✅ **Yazan ajanlar (yapay zekâ, v12)** — mesajları firmaya özel yazdırmak için Google Gemini ücretsiz anahtarı (kart yok), firma adları kodlanarak.
 4. ⏳ **Sevkiyat ve maliyet bağlantısı** — sevkiyat programındaki siparişler/tahsilatlar ve ADET&MALİYET hesaplamasındaki gerçek maliyetler ajanlara bağlanır.
 
 - **Alan adı notu (30.10.2026):** magambalaj.com Natro'da (NS1/NS2.NATROHOST.COM). İleride `pazar.magambalaj.com` → Cloudflare Pages için Natro DNS'e CNAME `pazar` → `mag-pazar-analiz.pages.dev` eklenecek (siteyi kuranlarla birlikte yapılacak); sonra Firebase "Authorized domains"a eklenip program deposu gizlenebilir.

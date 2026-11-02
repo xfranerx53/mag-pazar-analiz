@@ -88,6 +88,9 @@ dialog.sheet[open]{display:flex}
 .ajk{border-left:4px solid var(--br)}.ajk.kritik{border-left-color:var(--rd)}.ajk.onemli{border-left-color:var(--or)}.ajk.bilgi{border-left-color:var(--pr)}.ajh{display:flex;gap:10px;align-items:flex-start}.ajik{font-size:24px;line-height:1.1}.ajet{font-weight:700;color:var(--gr);margin-top:2px}
 .ajmsg{margin:8px 0 0}.ajmsg summary{cursor:pointer;color:var(--pr)}.ajmsg div{background:var(--ac);border-radius:8px;padding:8px 10px;margin-top:6px;white-space:pre-wrap}.ajrap{white-space:pre-wrap;font:13px/1.5 inherit;font-family:inherit;background:var(--ac);border-radius:8px;padding:10px;margin:6px 0;max-height:340px;overflow:auto}
 .ajoz{cursor:pointer;border:1px solid var(--pr);background:var(--ac)}.menu-grid .ajm{grid-column:1/-1;background:var(--pr);color:var(--on);border-color:var(--pr)}
+.sohbet #sohL{display:flex;flex-direction:column;gap:8px;max-height:58vh;overflow:auto}.sb{padding:9px 12px;border-radius:14px;max-width:88%;line-height:1.45}.sb.ben{align-self:flex-end;background:var(--pr);color:var(--on);border-bottom-right-radius:4px}.sb.ai{align-self:flex-start;background:var(--ac);border-bottom-left-radius:4px}
+.chip{border-radius:999px;padding:6px 11px;font-size:13px}.ajai{background:var(--ac);border-radius:8px;padding:10px;margin:6px 0;line-height:1.5}.warn-c{border-left:4px solid var(--or)}
+.kur.tamam{opacity:.75}.kurh{display:flex;align-items:center;gap:8px;margin-bottom:6px}.kurn{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--pr);color:var(--on);align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:0 0 auto}.kur.tamam .kurn{background:var(--gr)}.kur .mu a{color:var(--pr);font-weight:600}
 .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.menu-grid button{padding:20px 10px;font-size:15px;line-height:1.6}
 .selbar{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));z-index:15;background:var(--pr);color:var(--on);padding:9px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
 .selbar button{padding:6px 12px;font-size:14px}
@@ -1316,6 +1319,7 @@ function rulesText(O){
   ortak:{".read":APP,"$k":{".write":APP}},
   vitrin:{".read":true,".write":ADM},
   musteri:{"$t":{".read":true,".write":APP}},
+  ajan:{".read":ADM,rapor:{".write":ADM},abone:{".write":ADM,"$u":{".read":"auth != null && auth.uid === $u",".write":"auth != null && auth.uid === $u"}}},
   talep:{".read":APP,"$k":{".write":`${APP} || (!data.exists() && newData.child('token').isString() && root.child('mag_pazar/musteri/'+newData.child('token').val()).exists())`}}}}},null,2);
 }
 function cloudUi(){
@@ -2215,18 +2219,20 @@ function ajRapor(l){l=l||ajCalistir();const d=new Date(),m=ajMasada(l).filter(a=
 function ajOzetKart(){if(!data.length)return"";const l=ajCalistir(),k=l.filter(f=>f.sev==="kritik").length,o=l.filter(f=>f.sev==="onemli").length,top=ajMasada(l).reduce((a,z)=>a+z[1],0);
  if(!l.length)return"";
  return `<div class="card ajoz" data-go="ajan"><b>🤖 Ajanlar ${l.length} iş buldu</b>${k?` <span class="tag warn">${k} acil</span>`:""}${o?` <span class="tag">${o} önemli</span>`:""}<div class="mu">${top>=1?"Masada ≈ <b>"+TL(top)+"</b> var • ":""}Müdür raporunu ve işleri görmek için dokun ›</div></div>`}
-function ajKart(f,i){const x=f.id?data.find(v=>v.id===f.id):null,tel=x&&waNum(x.telefon),ara=x&&digits(x.telefon);
+function ajKart(f,i){const x=f.id?data.find(v=>v.id===f.id):null,tel=x&&waNum(x.telefon),ara=x&&digits(x.telefon),am=typeof aiMsgOf==="function"?aiMsgOf(f):null,mm=am||f.msg,yz=typeof aiYaziyor!=="undefined"&&aiYaziyor.has(ajKey(f)),aiOk=typeof aiKey==="function"&&!!aiKey()&&f.msg&&x;
  const acts=arr(f.act).map(a=>`<button data-a="${a.a}" ${a.id!=null?`data-id="${esc(a.id)}"`:""} ${a.i!=null?`data-i="${a.i}"`:""}>${a.lb}</button>`).join("");
  return `<div class="card ajk ${f.sev}"><div class="ajh"><span class="ajik">${AJIK(f.ag)}</span><div style="flex:1;min-width:0"><b>${esc(f.bas)}</b><div class="mu">${esc(f.det)}</div>${f.etki>=1?`<div class="ajet">≈ ${TL(f.etki)}</div>`:""}</div></div>
- ${f.msg?`<details class="ajmsg"><summary>✉ Hazır mesaj</summary><div>${esc(f.msg)}</div></details>`:""}
- <div class="row">${ara?`<a class="btn" href="tel:${ara}">📞 Ara</a>`:""}${f.msg&&tel?`<button class="p" data-a="ajwa" data-i="${i}">💬 WhatsApp</button>`:""}${f.msg?`<button data-a="ajkop" data-i="${i}">📋 Kopyala</button>`:""}${acts}<button data-a="ajert" data-i="${i}" title="3 gün gösterme">✓ Sonra</button></div></div>`}
+ ${f.msg?`<details class="ajmsg" ${am||yz?"open":""}><summary>${am?"✨ Firmaya özel mesaj (yapay zekâ)":"✉ Hazır mesaj"}</summary><div>${yz?"✍ Müdür yazıyor…":esc(mm)}</div></details>`:""}
+ <div class="row">${ara?`<a class="btn" href="tel:${ara}">📞 Ara</a>`:""}${f.msg&&tel?`<button class="p" data-a="ajwa" data-i="${i}">💬 WhatsApp</button>`:""}${f.msg?`<button data-a="ajkop" data-i="${i}">📋 Kopyala</button>`:""}${aiOk?`<button data-a="ajai" data-i="${i}" ${yz?"disabled":""}>${am?"✨ Yeniden yaz":"✨ Özel yaz"}</button>`:""}${acts}<button data-a="ajert" data-i="${i}" title="3 gün gösterme">✓ Sonra</button></div></div>`}
 function renderAjan(){const el=$("ajL");if(!el)return;const l=ajCalistir();window.__aj=l;const R=AJ();
  const say=k=>k==="mudur"?l.filter(f=>f.sev!=="bilgi").length:l.filter(f=>f.ag===k).length;
  let h=`<div class="ajbar">`+AJLER.map(a=>`<button class="${ajFiltre===a.k?"on":""}" data-ajf="${a.k}"><span>${a.ik}</span>${a.ad}${say(a.k)?`<i>${say(a.k)}</i>`:""}</button>`).join("")+`</div>`;
  const A_=AJLER.find(a=>a.k===ajFiltre)||AJLER[0];
  h+=`<div class="mu" style="margin:6px 2px 10px">${A_.ik} <b>${A_.ad}:</b> ${A_.ac}</div>`;
+ if(window.ajOzel&&ajOzel[ajFiltre]){el.innerHTML=h+ajOzel[ajFiltre]();return}
  if(ajFiltre==="mudur"){const m=ajMasada(l);
   h+=`<div class="stats">`+m.map(a=>`<div class="st"><b>${TL(a[1])}</b><span>${a[0]}</span></div>`).join("")+`</div>`;
+  h+=window.ajMudurEk?ajMudurEk(l):"";
   h+=`<div class="card"><h3>📋 Sabah raporu</h3><pre class="ajrap">${esc(ajRapor(l))}</pre><div class="row"><button class="p" data-a="ajrap">💬 WhatsApp'a gönder</button><button data-a="ajrapk">📋 Kopyala</button><button data-a="ajyen">↻ Yeniden çalıştır</button></div><div class="mu">WhatsApp'ta kendini ya da yönetim grubunu seçerek gönderebilirsin.</div></div>`;
   const imp=l.filter(f=>f.sev!=="bilgi");
   h+=imp.length?`<h4>🔥 Önce bunlar (${imp.length})</h4>`+imp.slice(0,15).map(f=>ajKart(f,l.indexOf(f))).join(""):`<div class="empty">Acil ya da önemli iş yok. 👍</div>`;
@@ -2245,11 +2251,11 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-ajf]");if(
 function ajWaAc(f){const x=f.id&&data.find(v=>v.id===f.id);if(!x||!f.msg)return;
  if(x.aramayin){alert("Bu firma Aramayın listesinde.");return}
  if(x.izin==="Çıkış yaptı"&&!confirm("Bu firma ticari ileti almak istemediğini bildirmiş (Çıkış yaptı). Yine de mesaj açılsın mı?"))return;
- window.open("https://wa.me/"+waNum(x.telefon)+"?text="+encodeURIComponent(f.msg),"_blank");
- const o={...x};o.gorus=[...arr(o.gorus),{t:Date.now(),tip:"WhatsApp",not:"🤖 "+AJAD(f.ag)+": "+f.msg.slice(0,90)+(f.msg.length>90?"…":""),kim:me.ad||""}];if(o.durum==="Yeni")o.durum="İletişim kuruldu";put(o)}
+ const mm=(typeof aiMsgOf==="function"&&aiMsgOf(f))||f.msg;window.open("https://wa.me/"+waNum(x.telefon)+"?text="+encodeURIComponent(mm),"_blank");
+ const o={...x};o.gorus=[...arr(o.gorus),{t:Date.now(),tip:"WhatsApp",not:"🤖 "+AJAD(f.ag)+": "+mm.slice(0,90)+(mm.length>90?"…":""),kim:me.ad||""}];if(o.durum==="Yeni")o.durum="İletişim kuruldu";put(o)}
 Object.assign(A,{
  ajwa:(id,i)=>{const f=(window.__aj||[])[+i];if(f)ajWaAc(f)},
- ajkop:(id,i)=>{const f=(window.__aj||[])[+i];if(f&&f.msg)navigator.clipboard.writeText(f.msg).then(()=>alert("Mesaj kopyalandı."),()=>prompt("Kopyala:",f.msg))},
+ ajkop:(id,i)=>{const f=(window.__aj||[])[+i];if(!f||!f.msg)return;const mm=(typeof aiMsgOf==="function"&&aiMsgOf(f))||f.msg;navigator.clipboard.writeText(mm).then(()=>alert("Mesaj kopyalandı."),()=>prompt("Kopyala:",mm))},
  ajert:(id,i)=>{const f=(window.__aj||[])[+i];if(!f)return;const o=lsJ(AJKAP,{});o[ajKey(f)]=plus(3);ls.set(AJKAP,JSON.stringify(o));renderAjan();renderToday()},
  ajrap:()=>window.open("https://wa.me/?text="+encodeURIComponent(ajRapor()),"_blank"),
  ajrapk:()=>{const t=ajRapor();navigator.clipboard.writeText(t).then(()=>alert("Rapor kopyalandı."),()=>prompt("Kopyala:",t))},
@@ -2275,6 +2281,195 @@ NAVOF.ajan="diger";
 {const _rt=renderToday;renderToday=function(){_rt();try{const k=ajOzetKart();if(k)$("today").insertAdjacentHTML("afterbegin",k)}catch(e){console.warn(e)}}}
 {const _r=render;render=function(){_r();if(tab==="ajan")try{renderAjan()}catch(e){console.warn(e)}}}
 try{renderToday()}catch(e){}
+
+/* ================= v12 — 🧠 YAPAY ZEKÂ BEYNİ (ücretsiz Gemini) =================
+   Gizlilik: Google'ın ücretsiz katmanına giden veride firma adları KOD (F12 gibi) olur;
+   telefon, e-posta, adres, yetkili ve personel adı hiç gönderilmez. Cevaptaki kodlar
+   bu cihazda gerçek adlarla değiştirilir. */
+AJLER.splice(1,0,{k:"sohbet",ik:"💬",ad:"Müdürle konuş",ac:"Sorunu yaz; Müdür gerçek verilerine bakarak cevap verir (yapay zekâ)."});
+AJLER.push({k:"kurulum",ik:"🛠",ad:"Kurulum",ac:"Yapay zekâ, bildirim ve gece çalışan ajan ayarları — adım adım."});
+const AIB="https://generativelanguage.googleapis.com/v1beta/";
+const aiKey=()=>String(ayar.aiKey||ls.get("mag_aikey")||"").trim();
+let aiSon=0;
+const uyu=ms=>new Promise(r=>setTimeout(r,ms));
+async function aiModeller(force){
+ const c=lsJ("mag_aimod",null);if(!force&&c&&c.k===aiKey().slice(-6)&&Date.now()-c.t<3*864e5&&arr(c.l).length)return c.l;
+ const r=await fetch(AIB+"models?pageSize=200&key="+encodeURIComponent(aiKey()));const j=await r.json().catch(()=>({}));
+ if(!r.ok)throw new Error(aiHata(j,r.status));
+ const ver=n=>{const m=n.match(/gemini-(\d+(?:\.\d+)?)/);return m?+m[1]:0};
+ const l=arr(j.models).filter(m=>arr(m.supportedGenerationMethods).includes("generateContent")).map(m=>m.name.replace(/^models\//,""))
+  .filter(n=>/^gemini/.test(n)&&/flash/.test(n)&&!/(image|tts|audio|live|embed|vision|native|thinking|exp|learnlm|gemma|computer|robotics)/.test(n));
+ const puan=n=>(/preview/.test(n)?2:0)+(/lite/.test(n)?1:0)+(/latest/.test(n)?0.5:0);
+ l.sort((a,b)=>puan(a)-puan(b)||ver(b)-ver(a));
+ if(!l.length)throw new Error("Bu anahtarla kullanılabilir Gemini Flash modeli bulunamadı.");
+ ls.set("mag_aimod",JSON.stringify({k:aiKey().slice(-6),t:Date.now(),l}));return l}
+function aiHata(j,st){const m=(j&&j.error&&j.error.message)||"";
+ if(st===400&&/API key/i.test(m))return"Anahtar geçersiz. aistudio.google.com/apikey adresindeki anahtarı eksiksiz kopyala.";
+ if(st===403)return"Anahtarın bu işlem için izni yok ("+m.slice(0,120)+").";
+ if(st===429)return"Ücretsiz kotada kısa süreli sınır doldu. 1 dakika sonra tekrar dene.";
+ if(/location|region|country/i.test(m))return"Google bu bölgede ücretsiz katmanı açmıyor: "+m.slice(0,140);
+ return"Yapay zekâ hatası ("+st+"): "+m.slice(0,160)}
+async function aiSor(sys,mesajlar,o){o=o||{};if(!aiKey())throw new Error("Önce 🛠 Kurulum'dan yapay zekâ anahtarını gir.");
+ const bek=(o.toplu?7000:1200)-(Date.now()-aiSon);if(bek>0)await uyu(bek);
+ const mods=await aiModeller();let son="";
+ for(const m of mods.slice(0,4)){aiSon=Date.now();
+  const body={systemInstruction:{parts:[{text:sys}]},contents:mesajlar.map(x=>({role:x.r==="ai"?"model":"user",parts:[{text:x.m}]})),generationConfig:{temperature:o.sicak??0.4,maxOutputTokens:o.max||4096}};
+  let r,j;try{r=await fetch(AIB+"models/"+m+":generateContent?key="+encodeURIComponent(aiKey()),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});j=await r.json().catch(()=>({}))}catch(e){son="Bağlantı hatası: "+e.message;continue}
+  if(r.ok){const t=arr(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts).map(p=>p.text||"").join("").trim();if(t){ls.set("mag_aison",m);return t}son="Boş cevap geldi ("+((j.candidates&&j.candidates[0]&&j.candidates[0].finishReason)||"?")+").";continue}
+  son=aiHata(j,r.status);if(r.status===400&&/API key/i.test(son))break;if([429,404,500,503].includes(r.status))continue;break}
+ throw new Error(son||"Yapay zekâ cevap vermedi.")}
+
+/* --- anonimleştirme --- */
+let aiKod=null;
+function aiKodla(){const m=new Map(),ad=new Map(),l=[...data].sort((a,b)=>(a.c||0)-(b.c||0));l.forEach((x,i)=>{const k="F"+(i+1);m.set(x.id,k);ad.set(k,x.firma||k)});
+ const kisi=new Set();l.forEach(x=>{const y=String(x.yetkili||"").trim();if(y.length>=3){kisi.add(y);y.split(/\s+/).forEach(w=>{if(w.length>=3&&!/^(bey|hanım|hanim|bay|bayan|usta|abi|abla)$/i.test(w))kisi.add(w)})}});
+ Object.values(users||{}).forEach(u=>{const y=String(u.ad||"").trim();if(y.length>=3){kisi.add(y);y.split(/\s+/).forEach(w=>w.length>=3&&kisi.add(w))}});if(me&&me.ad&&me.ad.length>=3)kisi.add(me.ad);
+ const isimler=l.map(x=>[String(x.firma||"").trim(),m.get(x.id)]).filter(z=>z[0].length>=3).concat([...kisi].map(k=>[k,"[kişi]"])).sort((a,b)=>b[0].length-a[0].length);
+ const rx=isimler.length?new RegExp("(?<![\\p{L}\\p{N}])(?:"+isimler.map(z=>z[0].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")+")(?![\\p{L}\\p{N}])","giu"):null;
+ const low=new Map();isimler.forEach(z=>{const k=z[0].toLocaleLowerCase("tr");if(!low.has(k))low.set(k,z[1])});
+ aiKod={id:m,ad,rx,low};return aiKod}
+const kodOf=x=>(aiKod||aiKodla()).id.get(x.id)||"F?";
+function anon(s){s=String(s??"");const K=aiKod||aiKodla();if(K.rx)s=s.replace(K.rx,t=>K.low.get(t.toLocaleLowerCase("tr"))||t);
+ return s.replace(/(\+?\d[\d\s().-]{8,}\d)/g,"[tel]").replace(/[\w.+-]+@[\w-]+\.[\w.]+/g,"[e-posta]")}
+const deanon=s=>String(s??"").replace(/\bF(\d{1,5})\b/g,(t)=>(aiKod||aiKodla()).ad.get(t)||t);
+function aiHtml(s){return esc(deanon(s)).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/^\s*[-*•]\s+/gm,"• ").replace(/^#{1,4}\s*(.+)$/gm,"<b>$1</b>").replace(/\n/g,"<br>")}
+
+/* --- Müdür'ün gördüğü veri (anonim) --- */
+function ajBaglam(){aiKodla();const l=ajCalistir(),m=ym(today()),R=AJ();
+ const sonG=x=>{const g=arr(x.gorus).slice().sort((a,b)=>(b.t||0)-(a.t||0))[0];return g?{tarih:fd(fmt(new Date(g.t))),tip:g.tip||"",not:anon(g.not||"").slice(0,120)}:null};
+ const secim=data.filter(x=>["Müşteri","Teklif verildi","İlgileniyor","İletişim kuruldu"].includes(x.durum)||bakiye(x)>0.5)
+  .concat(data.filter(x=>x.durum==="Yeni").sort((a,b)=>(b.aday||0)-(a.aday||0)).slice(0,25));
+ const mus=[...new Set(secim)].sort((a,b)=>ciro(b)-ciro(a)).slice(0,120).map(x=>{const s=arr(x.siparis).filter(sipAktif).map(o=>o.tar).filter(Boolean).sort(),v=vadeDurum(x),ro=reorderList().find(o=>o.x.id===x.id);
+  return{kod:kodOf(x),sektor:x.sektor||"",durum:x.durum,ilce:x.il||"",oncelik:x.oncelik||"",aday:x.aday??null,ciro:Math.round(ciro(x)),bakiye:Math.round(bakiye(x)),gecikmisAlacak:Math.round(v.tut),gecikmeGun:v.enEski?v.enEski.gec:0,
+   siparisSayisi:s.length,sonSiparis:s.length?fd(s[s.length-1]):"",ortAralikGun:ro?ro.ort:null,acikTeklif:arr(x.teklif).filter(t=>t.durum==="Beklemede").map(t=>({tarih:fd(t.tar),tutar:Math.round(docTop(t)),kalemler:anon(kalemOzet(t,true)).slice(0,140)})),
+   sonGorusme:sonG(x),rakip:anon(x.rakip||""),rakipFiyat:x.rakipFiyat||""}});
+ const dur={};data.forEach(x=>dur[x.durum]=(dur[x.durum]||0)+1);
+ return{bugun:fd(today()),firmamiz:"MAG AMBALAJ — Silivri/İstanbul, plastik poşet üreticisi (atlet, rulo manav, HDPE/LDPE torba, el geçme/kulplu, baskılı ve baskısız)",paraBirimi:PARA(),
+  kurallar:{asgariKarMarji:R.minMarj,hedefKarMarji:ayar.hedefMarj??25,varsayilanVadeGun:R.vade,aylikVadeFarkiYuzde:R.vadeFaiz,uyuyanMusteriGun:+ayar.uyku||60},
+  ozet:{kayit:data.length,durumlar:dur,buAySiparis:Math.round(data.reduce((s,x)=>s+arr(x.siparis).filter(o=>sipAktif(o)&&ym(o.tar)===m).reduce((a,o)=>a+docTop(o),0),0)),buAyTahsilat:Math.round(data.reduce((s,x)=>s+arr(x.odeme).filter(p=>ym(p.tar)===m).reduce((a,p)=>a+(+p.tutar||0),0),0)),toplamAlacak:Math.round(data.reduce((s,x)=>s+Math.max(0,bakiye(x)),0))},
+  masadakiPara:Object.fromEntries(ajMasada(l).map(z=>[z[0].replace(/^\S+ /,""),Math.round(z[1])])),
+  ajanBulgulari:l.slice(0,40).map(f=>({ajan:AJAD(f.ag),onem:f.sev,baslik:anon(f.bas),detay:anon(f.det),etki:Math.round(f.etki||0)})),
+  musteriler:mus,
+  urunler:katalog.slice(0,80).map(u=>({ad:anon(u.ad),birim:u.birim||"",fiyat:+u.fiyat||0,maliyet:+u.maliyet||0,marjYuzde:+u.maliyet&&+u.fiyat?Math.round((u.fiyat-u.maliyet)/u.fiyat*100):null,hammadde:u.hm||""})),
+  hammaddeler:hamL().map(h=>{const g=arr(h.gecmis),p=g.length>1?+g[g.length-2][1]:null;return{ad:h.ad,fiyatKg:+h.fiyat||0,sonGiris:g.length?fd(g[g.length-1][0]):"",oncekiFiyat:p}})}}
+const AISYS=()=>`Sen MAG AMBALAJ'ın yapay zekâ "Müdür" ajanısın. Patronla Türkçe, kısa, net ve samimi konuşursun.
+KURALLAR:
+- Yalnızca aşağıdaki VERİ'yi kullan; rakam, firma, sipariş uydurma. Veri yoksa "bu bilgi programda yok" de ve nasıl girileceğini söyle.
+- Firmalar gizlilik için F12 gibi KODLARLA verildi. Cevapta firmayı aynen bu kodla yaz (program gerçek adı kendisi koyar). Kod uydurma.
+- Somut ol: kim (kod), ne yapılacak, ne kadar (₺), ne zaman. Önce paraya en çok etki edeni söyle.
+- Fiyat önerirken maliyet ve asgari kâr marjı kuralına uy; zararına fiyat önerme.
+- Kısa yaz: madde işaretli, en fazla 12 satır (patron daha fazlasını isterse uzat).
+VERİ (JSON, ${fd(today())}):
+${JSON.stringify(ajBaglam())}`;
+
+/* --- 💬 Müdürle konuş --- */
+const SOHK="mag_ajsohbet";
+let sohb=lsJ(SOHK,[]);if(!Array.isArray(sohb))sohb=[];let sohMesgul=false;
+const SORULAR=["Bugün ne yapayım?","Kimden tahsilat isteyelim?","Hangi ürünlere zam yapmalıyız?","Bu hafta kimi aramalıyım?","Kârımızı nasıl artırırız?","Hangi müşteriyi kaybetmek üzereyiz?"];
+function sohbetHtml(){
+ const msj=sohb.map(m=>`<div class="sb ${m.r}">${m.r==="ai"?aiHtml(m.m):esc(m.m)}</div>`).join("");
+ return `${aiKey()?"":`<div class="card warn-c"><b>🧠 Yapay zekâ henüz bağlı değil.</b><div class="mu">Ücretsiz anahtarı 🛠 Kurulum'dan bir kez girmen yeterli.</div><div class="row"><button class="p" data-ajf="kurulum">🛠 Kuruluma git</button></div></div>`}
+ <div class="card sohbet"><div id="sohL">${msj||`<div class="mu">Müdür'e bir şey sor. Örnek sorular aşağıda. Müdür; müşterilerine, siparişlere, tahsilata, ürün maliyetlerine ve ajanların bulduklarına bakarak cevap verir.</div>`}${sohMesgul?`<div class="sb ai mu">👔 düşünüyor…</div>`:""}</div>
+ <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:8px">${SORULAR.map(s=>`<button class="chip" data-soru="${esc(s)}">${esc(s)}</button>`).join("")}</div>
+ <div class="row" style="margin-top:8px"><textarea id="sohI" rows="2" placeholder="Müdür'e yaz…" style="flex:1"></textarea><button class="p" data-a="sohgon" ${sohMesgul?"disabled":""}>Gönder</button></div>
+ <div class="row"><button data-a="sohtem">🗑 Sohbeti temizle</button><span class="mu">Firma adları Google'a gitmez, kodla gider.</span></div></div>`}
+async function sohbetGonder(t){t=String(t||"").trim();if(!t||sohMesgul)return;
+ sohb.push({r:"ben",m:t,t:Date.now()});sohMesgul=true;renderAjan();
+ try{const hist=sohb.slice(-12).map(m=>({r:m.r,m:m.r==="ben"?anon(m.m):m.m}));const c=await aiSor(AISYS(),hist);sohb.push({r:"ai",m:c,t:Date.now()})}
+ catch(e){sohb.push({r:"ai",m:"⚠ "+e.message,t:Date.now(),hata:1})}
+ sohMesgul=false;sohb=sohb.slice(-40);ls.set(SOHK,JSON.stringify(sohb));renderAjan();const L=$("sohL");if(L)L.lastElementChild&&L.lastElementChild.scrollIntoView({block:"end"})}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-soru]");if(b)sohbetGonder(b.dataset.soru)});
+document.addEventListener("keydown",e=>{if(e.target&&e.target.id==="sohI"&&e.key==="Enter"&&!e.shiftKey){e.preventDefault();sohbetGonder(e.target.value)}});
+
+/* --- ✨ firmaya özel mesaj --- */
+const AIMK="mag_ajmsg";
+const aiMsgL=()=>lsJ(AIMK,{});
+function aiMsgOf(f){const o=aiMsgL()[ajKey(f)];return o&&o.d===today()?o.m:null}
+async function aiMesajYaz(f,toplu){const x=f.id&&data.find(v=>v.id===f.id);if(!x||!f.msg)return;aiKodla();
+ const s=arr(x.siparis).filter(sipAktif).sort((a,b)=>(b.tar||"").localeCompare(a.tar||""));
+ const bilgi={amac:AJAD(f.ag),durum:anon(f.bas)+" — "+anon(f.det),firma:{sektor:x.sektor||"",durum:x.durum,musteriOlali:x.mt?daysSince(tsDay(x.mt))+" gün":"",siparisSayisi:s.length,sonSiparis:s[0]?fd(s[0].tar)+" — "+anon(kalemOzet(s[0],true)).slice(0,120):"",sonGorusmeler:arr(x.gorus).slice(-3).map(g=>anon(g.not||"").slice(0,100))},hazirSablon:anon(f.msg)};
+ const sys=`MAG AMBALAJ (Silivri, plastik poşet üreticisi) adına bir firmaya gönderilecek WhatsApp mesajının GÖVDESİNİ yazıyorsun.
+- Türkçe, samimi ama saygılı, esnafa uygun; 2-4 cümle; en fazla 1 emoji.
+- "Merhaba" gibi selamlama ve imza YAZMA (program ekliyor). Firma adını ya da kodunu yazma; "işletmeniz" de.
+- Sadece verilen bilgileri kullan; yeni fiyat, indirim, tarih UYDURMA. Borç hatırlatmada kibar ama net ol.
+- Sonunda karşı tarafı kolay cevap vermeye davet eden kısa bir soru olsun.
+Sadece mesaj gövdesini yaz.`;
+ const g=await aiSor(sys,[{r:"ben",m:JSON.stringify(bilgi)}],{toplu,sicak:0.7,max:2048});
+ const govde=deanon(g).replace(/^["“]|["”]$/g,"").replace(/^\s*merhaba[^,.!]*[,.!]\s*/i,"").trim();
+ const tam=`${selam(x)} ${govde} ${imza()}`;
+ const o=aiMsgL();o[ajKey(f)]={d:today(),m:tam};const ks=Object.keys(o);if(ks.length>200)ks.slice(0,ks.length-200).forEach(k=>delete o[k]);ls.set(AIMK,JSON.stringify(o));return tam}
+let aiYaziyor=new Set();
+async function aiTopluYaz(){const l=arr(window.__aj).filter(f=>f.msg&&f.id&&f.sev!=="bilgi"&&!aiMsgOf(f)).slice(0,10);if(!l.length){alert("Yazılacak yeni mesaj yok.");return}
+ if(!confirm(l.length+" önemli iş için firmaya özel mesaj yazılsın mı? (ücretsiz kota için her biri ~7 sn sürer)"))return;
+ for(const f of l){aiYaziyor.add(ajKey(f));renderAjan();try{await aiMesajYaz(f,true)}catch(e){aiYaziyor.delete(ajKey(f));alert(e.message);break}aiYaziyor.delete(ajKey(f))}renderAjan()}
+
+/* --- 👔 Müdür yorumu (günlük plan) + 🌙 gece raporu --- */
+const AIYK="mag_ajyorum";let yorumMesgul=false,geceRapor=null,geceOkundu=0;
+async function mudurYorum(){if(yorumMesgul)return;yorumMesgul=true;renderAjan();
+ try{const t=await aiSor(AISYS(),[{r:"ben",m:"Bugünün planını çıkar: öncelik sırasıyla en fazla 6 madde (kim/kod, ne yapılacak, neden, ₺ etkisi). Sonunda tek cümle genel değerlendirme."}]);ls.set(AIYK,JSON.stringify({d:today(),m:t}))}
+ catch(e){alert(e.message)}yorumMesgul=false;renderAjan()}
+async function geceYukle(){if(!root||Date.now()-geceOkundu<60e3)return;geceOkundu=Date.now();try{geceRapor=(await root.child("ajan/rapor/son").once("value")).val();if(tab==="ajan")renderAjan()}catch(e){geceRapor={hata:e.message}}}
+function mudurEk(l){let h="";const y=lsJ(AIYK,null);
+ if(geceRapor&&geceRapor.metin)h+=`<details class="card"><summary><b>🌙 Gece ajanının raporu</b> <span class="mu">${fdt(geceRapor.t)}</span></summary>${geceRapor.yorum?`<div class="ajai">${aiHtml(geceRapor.yorum)}</div>`:""}<pre class="ajrap">${esc(geceRapor.metin)}</pre></details>`;
+ h+=`<div class="card"><h3>🧠 Müdür'ün bugünkü planı</h3>${y&&y.d===today()?`<div class="ajai">${aiHtml(y.m)}</div>`:`<div class="mu">${aiKey()?"Yapay zekâ verilerine bakıp bugün için öncelikli plan çıkarır.":"Yapay zekâ bağlanınca Müdür bugünün planını kendisi yazar (🛠 Kurulum)."}</div>`}
+ <div class="row">${aiKey()?`<button class="p" data-a="ajyorum" ${yorumMesgul?"disabled":""}>${yorumMesgul?"👔 düşünüyor…":y&&y.d===today()?"↻ Yeniden yaz":"✨ Planı yaz"}</button><button data-ajf="sohbet">💬 Müdürle konuş</button>${l.some(f=>f.msg&&f.sev!=="bilgi")?`<button data-a="ajtop">✨ Önemli işlerin mesajlarını yaz</button>`:""}`:`<button class="p" data-ajf="kurulum">🛠 Kurulum</button>`}</div></div>`;
+ return h}
+
+/* ================= 🛠 KURULUM + 🔔 BİLDİRİM ================= */
+const b64u=u8=>btoa(String.fromCharCode(...u8)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const u8b64=s=>{s=String(s).replace(/-/g,"+").replace(/_/g,"/");s+="===".slice((s.length+3)%4);return Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
+let kur={kural:null,abone:null,ozel:null,test:""};
+async function kurKontrol(){
+ if(root){try{await root.child("ajan/rapor/son").once("value");kur.kural=true;geceOkundu=0;geceYukle()}catch(e){kur.kural=false}}else kur.kural=null;
+ try{const r=await navigator.serviceWorker.ready;const s=await r.pushManager.getSubscription();kur.abone=!!s&&Notification.permission==="granted"}catch(e){kur.abone=false}
+ if(tab==="ajan")renderAjan()}
+function ajanHesabi(){return Object.entries(users).find(([,u])=>/ajan/i.test((u.ad||"")+" "+(u.email||"")))}
+function kurulumHtml(){const ok=v=>v===true?"✅":v===false?"❌":"⚪",adm=isAdmin(),ah=ajanHesabi(),bulut=!!root;
+ const adim=(n,d,bas,ic)=>`<div class="card kur ${d===true?"tamam":""}"><div class="kurh"><span class="kurn">${d===true?"✓":n}</span><b>${bas}</b><span style="margin-left:auto">${ok(d)}</span></div>${ic}</div>`;
+ let h=`<div class="mu" style="margin:0 2px 8px">Sırayla git. Hepsi ücretsiz. Telefonda yapılabilir.</div>`;
+ h+=adim(1,!!aiKey(),"🧠 Yapay zekâ anahtarı (Google Gemini)",`<div class="mu">1) <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> sayfasını aç, Google hesabınla gir.<br>2) <b>Create API key</b> → anahtarı kopyala (AIza… ile başlar).<br>3) Buraya yapıştır → <b>Kaydet ve dene</b>.</div>
+  <div class="row"><input id="kurAi" placeholder="AIza…" value="${esc(aiKey())}" style="flex:1" autocomplete="off"><button class="p" data-a="kurai">Kaydet ve dene</button></div><div class="mu" id="kurAiT">${esc(kur.test||(aiKey()?"Kayıtlı. Model: "+(ls.get("mag_aison")||"henüz denenmedi"):""))}</div>
+  <div class="mu">ℹ Ücretsiz katmanda Google gönderilen içeriği kendi ürünlerini geliştirmek için kullanabiliyor. Bu yüzden program firma adlarını kodlar (F12), telefon/e-posta/adres/kişi adı göndermez; tutarlar ve sektör gider.</div>`);
+ h+=adim(2,bulut?kur.kural:null,"🔐 Bulut kuralını güncelle",bulut?`<div class="mu">Ajanların sabah raporu ve bildirim kaydı için kural güncellenmeli (bir kerelik).<br>1) ☁ (sağ üst) → <b>Kuralı kopyala</b><br>2) <a href="https://console.firebase.google.com/project/mag-pazar/database/mag-pazar-default-rtdb/rules" target="_blank" rel="noopener">Firebase → Realtime Database → Rules</a> → hepsini sil, yapıştır → <b>Publish</b><br>3) Buraya dön → <b>Kontrol et</b></div><div class="row"><button data-a="kurkural">☁ Kuralı kopyala</button><button data-a="kurkon">Kontrol et</button></div>`:`<div class="mu">Önce ☁ ile buluta giriş yap (sağ üst).</div>`);
+ h+=adim(3,bulut?!!(ah&&ah[1].rol==="admin"):null,"🤖 Gece ajanının hesabı",`<div class="mu">Gece çalışan ajan buluttaki kayıtları okumak için kendi hesabını kullanır. Hesabı ajan ilk çalıştığında <b>kendisi açar</b> ("🤖 Ajan" adıyla, Onay bekliyor olarak düşer).<br>Sen sadece: Diğer → 🛡 Yönetim → "🤖 Ajan" → rolü <b>Yönetici</b> yap.</div>${ah?`<div class="mu">Bulundu: <b>${esc(ah[1].ad||ah[1].email)}</b> — rol: <b>${esc(ROLN[ah[1].rol]||ah[1].rol)}</b></div>`:`<div class="mu">Henüz yok (5. adımdaki ilk çalıştırmadan sonra görünür).</div>`}<div class="row">${adm?`<button data-a="ajgo" data-id="yonetim">🛡 Yönetim</button>`:""}</div>`);
+ h+=adim(4,!!ayar.vapidPub,"🔔 Bildirim anahtarı (bir kerelik)",adm?`<div class="mu">Telefonuna "sabah raporu hazır" bildirimi gelmesi için anahtar çifti üretilir. Açık anahtar programa kaydedilir; <b>gizli anahtarı</b> sadece GitHub'a yapıştıracaksın (5. adım, adı <b>VAPID_PRIVATE</b>).</div>
+  ${kur.ozel?`<div class="mu"><b>Gizli anahtar</b> (bir kez gösterilir — kopyala, GitHub'a yapıştır):</div><div class="row"><input readonly id="kurPriv" value="${esc(kur.ozel)}" style="flex:1"><button data-a="kurkop">📋 Kopyala</button></div>`:""}
+  <div class="row"><button class="${ayar.vapidPub?"":"p"}" data-a="kurvapid">${ayar.vapidPub?"↻ Yeniden üret (eski bildirimler durur)":"🔑 Anahtar üret"}</button></div>`:`<div class="mu">${ayar.vapidPub?"Yönetici kurmuş.":"Yönetici kuracak."}</div>`);
+ h+=adim(5,geceRapor&&geceRapor.t?true:null,"🌙 Gece ajanını GitHub'da aç",`<div class="mu">GitHub → <b>mag-pazar-analiz</b> deposu → <b>Settings → Secrets and variables → Actions → New repository secret</b> ile şunları ekle:<br>• <b>FB_EMAIL</b>: ajan için bir e-posta (ör. ajan@magambalaj.com — gerçek olması gerekmez)<br>• <b>FB_PASSWORD</b>: ajan için güçlü bir şifre (en az 8 karakter)<br>• <b>VAPID_PRIVATE</b>: 4. adımdaki gizli anahtar<br>• <b>GEMINI_KEY</b>: 1. adımdaki anahtar (isteğe bağlı — sabah raporuna Müdür yorumu ekler)<br>Sonra <b>Actions → "Ajan sabah raporu" → Run workflow</b>. İlk çalışmada ajan hesabı açılır → 3. adımı yap → bir kez daha Run workflow.</div>
+  <div class="mu">Son gece raporu: <b>${geceRapor&&geceRapor.t?fdt(geceRapor.t):"henüz yok"}</b>${geceRapor&&geceRapor.hata?" ("+esc(geceRapor.hata)+")":""}</div><div class="row"><button data-a="kurkon">↻ Yenile</button></div>`);
+ h+=adim(6,kur.abone,"📱 Bu telefonda sabah bildirimi",`<div class="mu">Her sabah ~08:15'te rapor hazır olunca bildirim gelir; dokununca Ajanlar açılır. Önce programı "Ana ekrana ekle / Uygulamayı yükle" ile kurman önerilir. Her telefon için ayrı açılır.</div><div class="row"><button class="${kur.abone?"":"p"}" data-a="kurabone" ${!bulut||!ayar.vapidPub?"disabled":""}>${kur.abone?"↻ Yenile":"🔔 Bildirimi aç"}</button>${kur.abone?`<button data-a="kuriptal">Kapat</button>`:""}</div>${!bulut?`<div class="mu">Buluta giriş gerekli.</div>`:!ayar.vapidPub?`<div class="mu">Önce 4. adım.</div>`:""}`);
+ return h}
+async function kurAiKaydet(){const v=$("kurAi").value.trim();if(v&&!/^AIza[0-9A-Za-z_-]{30,}$/.test(v)){alert("Anahtar AIza ile başlamalı. aistudio.google.com/apikey sayfasından kopyala.");return}
+ if(isAdmin()){ayar.aiKey=v;saveAyar()}ls.set("mag_aikey",v);ls.del("mag_aimod");kur.test=v?"Deneniyor…":"";renderAjan();if(!v)return;
+ try{const t=await aiSor("Kısa cevap ver.",[{r:"ben",m:"Sadece şunu yaz: Hazırım"}],{max:512});kur.test="✅ Çalışıyor — model: "+(ls.get("mag_aison")||"?")+" • cevap: "+t.slice(0,40)}catch(e){kur.test="❌ "+e.message}renderAjan()}
+async function kurVapid(){if(ayar.vapidPub&&!confirm("Yeni anahtar üretilirse GitHub'daki VAPID_PRIVATE de değişmeli ve herkes bildirimi yeniden açmalı. Devam?"))return;
+ const k=await crypto.subtle.generateKey({name:"ECDSA",namedCurve:"P-256"},true,["sign","verify"]);
+ const pub=b64u(new Uint8Array(await crypto.subtle.exportKey("raw",k.publicKey))),jwk=await crypto.subtle.exportKey("jwk",k.privateKey);
+ ayar.vapidPub=pub;saveAyar();kur.ozel=jwk.d;renderAjan()}
+async function kurAbone(){try{
+ if(!("serviceWorker" in navigator)||!("PushManager" in window))throw new Error("Bu tarayıcı bildirim desteklemiyor. Chrome kullan.");
+ if(await Notification.requestPermission()!=="granted")throw new Error("Bildirim izni verilmedi. Chrome → Site ayarları → Bildirimler'den izin ver.");
+ const r=await navigator.serviceWorker.ready;let s=await r.pushManager.getSubscription();
+ if(s&&s.options&&s.options.applicationServerKey&&b64u(new Uint8Array(s.options.applicationServerKey))!==ayar.vapidPub){await s.unsubscribe();s=null}
+ if(!s)s=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8b64(ayar.vapidPub)});
+ const j=s.toJSON(),id=b64u(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(j.endpoint)))).slice(0,16);
+ await root.child("ajan/abone/"+me.uid+"/"+id).set({sub:j,ad:me.ad||me.email||"",t:Date.now(),cihaz:navigator.userAgent.slice(0,90)});
+ ls.set("mag_aboneid",id);kur.abone=true;renderAjan();alert("Tamam. Sabah raporu hazır olunca bu telefona bildirim gelecek.")}catch(e){alert(e.message)}}
+async function kurIptal(){try{const r=await navigator.serviceWorker.ready,s=await r.pushManager.getSubscription();if(s)await s.unsubscribe();const id=ls.get("mag_aboneid");if(root&&id)await root.child("ajan/abone/"+me.uid+"/"+id).remove()}catch(e){}kur.abone=false;renderAjan()}
+
+Object.assign(A,{
+ sohgon:()=>{const i=$("sohI");sohbetGonder(i&&i.value)},
+ sohtem:()=>{if(confirm("Sohbet silinsin mi?")){sohb=[];ls.set(SOHK,"[]");renderAjan()}},
+ ajai:async(id,i)=>{const f=(window.__aj||[])[+i];if(!f)return;aiYaziyor.add(ajKey(f));renderAjan();try{await aiMesajYaz(f)}catch(e){alert(e.message)}aiYaziyor.delete(ajKey(f));renderAjan()},
+ ajtop:()=>aiTopluYaz(),ajyorum:()=>mudurYorum(),
+ kurai:()=>kurAiKaydet(),kurkon:()=>kurKontrol(),kurvapid:()=>kurVapid(),kurabone:()=>kurAbone(),kuriptal:()=>kurIptal(),
+ kurkural:()=>{try{copyRules()}catch(e){alert(e.message)}},
+ kurkop:()=>{const v=kur.ozel;navigator.clipboard.writeText(v).then(()=>alert("Gizli anahtar kopyalandı. GitHub'da VAPID_PRIVATE olarak yapıştır."),()=>prompt("Kopyala:",v))}
+});
+window.ajOzel={sohbet:sohbetHtml,kurulum:kurulumHtml};window.ajMudurEk=mudurEk;
+{const _go2=go;go=function(t){_go2(t);if(t==="ajan"){geceYukle();if(ajFiltre==="kurulum")kurKontrol()}}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-ajf]");if(b&&b.dataset.ajf==="kurulum")kurKontrol()});
+if(new URLSearchParams(location.search).get("git")==="ajan")setTimeout(()=>go("ajan"),300);
 
 /* eski adreste (pages.dev) yalnızca bu cihazda kayıt varsa: önce yedek, sonra yeni adres */
 if(window.__ESKI_ADRES){const T=window.__ESKI_ADRES;document.body.insertAdjacentHTML("afterbegin",`<div style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px"><div class="card" style="max-width:420px"><h3>📍 Programın adresi değişti</h3><p>Yeni ve tek adres:<br><b>xfranerx53.github.io/mag-pazar-analiz</b></p><p class="mu">Bu eski adreste bulutla eşitlenmemiş kayıtların var. Önce yedeği indir, yeni adreste ☁ Bulut / Araçlar → yedekten geri yükle ile aç.</p><div class="row"><button class="p" onclick="exportJson()">📥 Yedeği indir</button><button onclick="location.replace('${T}')">Yeni adrese git ›</button></div></div></div>`)}
