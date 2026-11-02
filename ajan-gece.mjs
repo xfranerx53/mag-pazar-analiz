@@ -225,6 +225,65 @@ if (calis("sevkiyat")) {
       await yaz("ajan/maliyetDurum", g.tok, { t: Date.now(), urunN: Z.urun.length, hamN: Z.ham.length, eksik: Z.eksik.slice(0, 40), giderKaynak: Z.giderKaynak || "" });
       malMetin = `; maliyet: ${Z.ham.length} hammadde${hD ? ` (${hD} fiyat değişti)` : ""}, ${Z.urun.length} ürün${uD ? ` (${uD} maliyet güncellendi)` : ""}${uY ? `, ${uY} yeni ürün kataloğa eklendi` : ""}${Z.eksik.length ? `, ${Z.eksik.length} eksik var` : ""}`;
       log("Maliyet:", Z.ham.length, "hammadde •", Z.urun.length, "ürün •", Z.eksik.length, "eksik");
+      /* 🏭 FABRİKA ZEKÂSI: üretim planı + vardiya yükü, sevkiyat rotası, stok, denetim bekçisi, müşteri kârlılığı, zam sinyali */
+      try {
+        const now = Date.now(), Q2 = (alan, bas) => Q(alan, "startAt", bas);
+        const [stk, sh, dn, sevA, sevE, tal] = await Promise.all([
+          sorgu("stokKalem", "shallow=false").catch(() => ({})), sorgu("stokHareket", Q2("zaman", now - 60 * 864e5)).catch(() => ({})),
+          sorgu("denetim", Q2("zaman", now - 26 * 3600e3)).catch(() => ({})), sorgu("sevkAdresleri", "shallow=false").catch(() => ({})),
+          sorgu("urunler", Q("durum", "equalTo", "sevk_edilecek")).catch(() => ({})), sorgu("sevkTalimat", Q("durum", "equalTo", "bekliyor")).catch(() => ({}))]);
+        const kurU = +(((M.kur || {}).USD || {}).efektif) || 0, kurE = +(((M.kur || {}).EUR || {}).efektif) || 0, kurOf = pb => pb === "USD" ? kurU : pb === "EUR" ? kurE : 1;
+        const nfx = s => String(s || "").toLocaleLowerCase("tr").replace(/[^a-z0-9çğıöşü]+/g, " ").trim();
+        const ortMal = Z.urun.filter(u => u.mal > 0 && !u.uyar.length), ortM = ortMal.length ? ortMal.reduce((a, u) => a + u.mal, 0) / ortMal.length : 0;
+        const malBul = e => { const t = nfx([e.stok, e.urunAdi, e.formul].join(" ")).split(" ").filter(w => w.length > 2); let en = null, ep = 0; for (const u of ortMal) { const w = nfx(u.ad).split(" "); const p = t.filter(x => w.includes(x)).length; if (p > ep) { ep = p; en = u; } } return ep >= 2 ? en.mal : ortM; };
+        const isl = Object.values(ise || {}).filter(e => e && e.no), kgOf = e => X.arr(e.siparis).reduce((a, r) => a + (+r.kg || 0), 0) || X.arr(Object.values(e.etiket || {})).reduce((a, r) => a + (+r.kg || 0), 0);
+        // 1) üretim planı: aşama kuyrukları, aynı formül/renk art arda (geçiş azalsın), en eski sipariş önce
+        const ASM = ["etiket", "ekstruder", "baski", "kesim", "depo"], acik = isl.filter(e => e.asama && e.asama !== "bitti");
+        const kuyruk = {}; for (const a of ASM) { const l = acik.filter(e => e.asama === a).sort((x, y) => String(x.spTarih || "").localeCompare(String(y.spTarih || "")) || (x.eklenmeTarihi || 0) - (y.eklenmeTarihi || 0));
+          if (a === "ekstruder") l.sort((x, y) => String(x.formul || "").localeCompare(String(y.formul || "")) || String(x.renk || "").localeCompare(String(y.renk || "")));
+          kuyruk[a] = l.map(e => ({ no: e.no, musteri: e.musteri || "", urun: e.urunAdi || e.stok || "", kg: Math.round(kgOf(e)), formul: e.formul || "", renk: e.renk || "", baski: !!e.baskiVar, gun: e.spTarih ? X.daysSince(e.spTarih) : null })); }
+        const HIZ = Object.assign({ ekstruder: 60, baski: 80, kesim: 25 }, O.hiz || {}); // kg/saat (makine/kişi başı) — programdan değiştirilebilir
+        const yuk = {}; for (const a of ["ekstruder", "baski", "kesim"]) { const kg = kuyruk[a].reduce((s, e) => s + e.kg, 0) + (a !== "ekstruder" ? ASM.slice(0, ASM.indexOf(a)).reduce((s, b) => s + kuyruk[b].filter(e => a !== "baski" || e.baski).reduce((t, e) => t + e.kg, 0), 0) : kuyruk.etiket.reduce((s, e) => s + e.kg, 0));
+          yuk[a] = { kg: Math.round(kg), saat: Math.round(kg / HIZ[a] * 10) / 10, vardiya: Math.round(kg / HIZ[a] / 12 * 10) / 10 }; }
+        const gecGun = acik.filter(e => e.spTarih && X.daysSince(e.spTarih) > 10).map(e => e.no);
+        // 2) sevkiyat günü rotası (fabrika → sevk edilecekler + talimatlar + tahsilat talepleri)
+        const adrHarita = {}; for (const a of Object.values(sevA || {})) if (a && a.ad) adrHarita[nfx(a.ad)] = a;
+        const durak = [];
+        for (const u of Object.values(sevE || {})) if (u) durak.push({ tur: "sevk", ad: u.musteri || "", adres: u.adres || ((adrHarita[nfx(u.musteri)] || {}).adres) || "", harita: u.haritaUrl || ((adrHarita[nfx(u.musteri)] || {}).haritaUrl) || "", not: `${u.kg || ""} kg ${String(u.urun || "").split("\n")[0]}`.trim() });
+        for (const t of Object.values(tal || {})) if (t) durak.push({ tur: "talimat", ad: t.adresAd || "", adres: t.adres || "", harita: t.haritaUrl || "", not: String(t.metin || "").slice(0, 80) });
+        for (const t of Object.values(tah || {})) if (t && t.durum === "bekliyor") durak.push({ tur: "tahsilat", ad: t.cari || "", adres: t.adres || ((adrHarita[nfx(t.cari)] || {}).adres) || "", harita: t.haritaUrl || ((adrHarita[nfx(t.cari)] || {}).haritaUrl) || "", not: String(t.not || "").slice(0, 80) });
+        const ko = h => { const m = String(h || "").match(/(-?\d{1,2}\.\d{2,})(?:,|%2C|\s)+(-?\d{1,3}\.\d{2,})/i); return m ? { lat: +m[1], lon: +m[2] } : null; };
+        const merk = O.merkez && isFinite(+O.merkez.lat) ? { lat: +O.merkez.lat, lon: +O.merkez.lon } : { lat: 41.0701, lon: 28.2851 };
+        durak.forEach(d => { d.k = ko(d.harita); }); const sirali = [], kalan = durak.filter(d => d.k); let c = merk;
+        while (kalan.length) { kalan.sort((a, b) => X.hav(c.lat, c.lon, a.k.lat, a.k.lon) - X.hav(c.lat, c.lon, b.k.lat, b.k.lon)); const n = kalan.shift(); sirali.push(n); c = n.k; }
+        const rotaL = [...sirali, ...durak.filter(d => !d.k)], hedefler = rotaL.map(d => d.k ? d.k.lat + "," + d.k.lon : encodeURIComponent(d.adres || d.ad)).filter(Boolean).slice(0, 9);
+        const rota = { t: now, duraklar: rotaL.map(d => ({ tur: d.tur, ad: d.ad, adres: d.adres, not: d.not })), url: hedefler.length ? "https://www.google.com/maps/dir/" + [merk.lat + "," + merk.lon, ...hedefler].join("/") : "" };
+        // 3) stok: son 60 günlük çıkışa göre kaç gün yeter
+        const cikis = {}; for (const h of Object.values(sh || {})) if (h && h.tip === "cikis") { const k = h.kalemId; const m = h.mik || {}; const b = Object.keys(m)[0]; if (!b) continue; cikis[k] = cikis[k] || {}; cikis[k][b] = (cikis[k][b] || 0) + (+m[b] || 0); }
+        const stok = []; for (const [id, k] of Object.entries(stk || {})) { if (!k || !k.ad) continue; const mik = k.mik || {}; for (const b of Object.keys(mik)) { const var_ = +mik[b] || 0, gunluk = ((cikis[id] || {})[b] || 0) / 60; if (!gunluk) { if (var_ <= 0) stok.push({ ad: k.ad, birim: b, kalan: 0, gun: 0, ted: k.tedarikci || "", not: "stok yok" }); continue; } const g = Math.floor(var_ / gunluk); if (g <= 14) stok.push({ ad: k.ad, birim: b, kalan: var_, gun: g, gunluk: Math.round(gunluk * 10) / 10, ted: k.tedarikci || "" }); } }
+        stok.sort((a, b) => a.gun - b.gun);
+        // 4) denetim bekçisi (son 26 saat)
+        const den = []; for (const d of Object.values(dn || {})) { if (!d || !d.zaman) continue; const sa = new Date(d.zaman).getHours(), tur = String(d.tur || "");
+          if (/sil|cop|geri|tahsilat-duz|duzelt/i.test(tur) || /sil|geri al|düzelt/i.test(d.baslik || "")) den.push({ t: d.zaman, kim: d.kim || "", ne: `${tur}: ${String(d.baslik || "").slice(0, 90)}` });
+          else if (sa >= 0 && sa < 6 && !/Claude|Ajan/.test(d.kim || "")) den.push({ t: d.zaman, kim: d.kim || "", ne: `gece ${String(sa).padStart(2, "0")}:00 işlem — ${tur}: ${String(d.baslik || "").slice(0, 70)}` }); }
+        // 5) müşteri kârlılığı (son 120 gün iş emirleri: fiyat × kg − maliyet)
+        const kar = {}; for (const e of isl) { const kg = kgOf(e), f = +e.fiyat || 0; if (!kg || !f || !e.musteri) continue; const tl = f * kurOf(e.paraBirimi) / (e.kdvDahil ? 1.2 : 1), mal = malBul(e);
+          const o = kar[e.musteri] = kar[e.musteri] || { musteri: e.musteri, kg: 0, ciro: 0, maliyet: 0, is: 0 }; o.kg += kg; o.ciro += kg * tl; o.maliyet += kg * mal; o.is++; }
+        const karL = Object.values(kar).map(o => ({ ...o, kg: Math.round(o.kg), ciro: Math.round(o.ciro), maliyet: Math.round(o.maliyet), kar: Math.round(o.ciro - o.maliyet), marj: o.ciro ? Math.round((o.ciro - o.maliyet) / o.ciro * 100) : 0 })).sort((a, b) => a.marj - b.marj);
+        // 6) zam sinyali: hammadde fiyatının 30 günlük değişimi
+        const zam = (ayar.hammadde || []).map(h => { const g = X.arr(h.gecmis), eski = g.filter(q => X.daysSince(q[0]) >= 25).pop() || g[0]; return eski && +eski[1] ? { ad: h.ad, simdi: +h.fiyat, eski: +eski[1], degisim: Math.round((h.fiyat - eski[1]) / eski[1] * 1000) / 10 } : null; }).filter(z => z && Math.abs(z.degisim) >= 3);
+        const fab = { t: now, kuyruk, yuk, hiz: HIZ, gecGun, rota, stok: stok.slice(0, 20), denetim: den.slice(0, 20), karlilik: karL.slice(0, 40), zam, ozet: { acikIs: acik.length, asama: Object.fromEntries(ASM.map(a => [a, kuyruk[a].length])), bekleyenSevk: Object.keys(sevE || {}).length, bekleyenTahsilat: durak.filter(d => d.tur === "tahsilat").length, kritikStok: stok.length } };
+        await yaz("ajan/fabrika", g.tok, fab);
+        // personel tarafı (Fabrika Sevkiyat → 🤖 Yapay Zekâ ekranı) — yalnız iş bilgisi, fiyat/kârlılık yazılmaz
+        try { const r = await istek(DBS + "/ai.json?auth=" + encodeURIComponent(tk), { method: "PUT", body: JSON.stringify({ t: now, kuyruk, yuk, gecGun, rota, stok: stok.slice(0, 20) }) }); if (!r.ok) log("Fabrika'ya plan yazılamadı (" + r.st + ")"); } catch (e) { }
+        if (den.length) SICAK.push(`🛡 Fabrika denetim: son 24 saatte ${den.length} dikkat çeken işlem (silme/düzeltme/gece)`);
+        const zarar = karL.filter(o => o.marj < 5); if (zarar.length) SICAK.push(`📉 ${zarar.length} müşteride kâr %5'in altında (${zarar.slice(0, 2).map(o => o.musteri).join(", ")})`);
+        malMetin += `; fabrika: ${acik.length} açık iş, rota ${rotaL.length} durak, ${stok.length} stok uyarısı${den.length ? ", " + den.length + " denetim uyarısı" : ""}`;
+        // 7) teslim edilen siparişler için müşteriye bilgi e-postası (kuyruk → Deneme/Açık moduna uyar)
+        if (O.teslimEposta !== false) for (const o of O2.values()) { const x = o.x; if (!x.eposta) continue; for (const sv of o.sevk) { if (X.daysSince(sv.tar) > 2 || X.arr(x.teslimBildirim).includes(sv.k)) continue;
+          await yaz("ajan/kuyruk/tes_" + sv.k.replace(/[^\w-]/g, ""), g.tok, { t: now, tip: "eposta", firmaId: x.id, konu: "Siparişiniz teslim edildi — " + (ayar.firma && ayar.firma.ad || "MAG AMBALAJ"), metin: `Merhaba${x.yetkili ? " " + x.yetkili : ""},\n\n${X.fd(sv.tar)} tarihinde ${sv.kg ? sv.kg + " kg " : ""}${sv.urun || "siparişiniz"} teslim edilmiştir. Bizi tercih ettiğiniz için teşekkür ederiz. Herhangi bir sorun ya da yeni ihtiyacınız olursa bu e-postayı yanıtlamanız yeterli.` }).catch(() => { });
+          await guncelle(x, { teslimBildirim: [...X.arr(x.teslimBildirim), sv.k].slice(-30) }).catch(() => { }); } }
+      } catch (e) { log("Fabrika zekâsı atlandı:", String(e.message).slice(0, 80)); }
     } catch (e) { malMetin = /401|izin/.test(e.message) ? "; maliyet bölümüne okuma izni yok (Fabrika Sevkiyat kuralını yayınla)" : "; maliyet okunamadı"; await yaz("ajan/maliyetDurum", g.tok, { t: Date.now(), hata: malMetin.slice(2) }).catch(() => { }); }
     not_("🚚", `Fabrika Sevkiyat'tan ${nS} yeni sevkiyat ve ${nT} tahsilat işledi${nG ? `; orada olup listede olmayan ${nG} gerçek müşteriyi ekledi` : ""}${malMetin}`, "sevkiyat");
     log("Sevkiyat köprüsü:", nS, "sevkiyat •", nT, "tahsilat •", nG, "yeni müşteri");
