@@ -80,6 +80,10 @@ dialog.sheet[open]{display:flex}
 .srow.on{background:var(--ac);font-weight:600;border-left:4px solid var(--pr)}.srow .sv{font-size:12px;color:var(--pr);font-weight:700}
 .sgh{display:flex;justify-content:space-between;align-items:center;margin:16px 0 4px;font-weight:700;color:var(--mu);font-size:12px;text-transform:uppercase;letter-spacing:.04em}.sgh button{font-size:12px;padding:3px 9px;text-transform:none}
 .rcard{cursor:pointer}.rcard.sel{border:2px solid var(--pr);background:var(--ac)}.rhd{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.rhd b{font-size:16px}.rkm{white-space:nowrap;font-weight:700;color:var(--pr)}
+.ajbar{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}.ajbar button{flex:0 0 auto;display:flex;align-items:center;gap:5px;border-radius:999px;padding:7px 12px;white-space:nowrap}.ajbar button.on{background:var(--pr);color:var(--on);border-color:var(--pr)}.ajbar i{font-style:normal;background:var(--rd);color:#fff;border-radius:999px;font-size:11px;padding:1px 6px}
+.ajk{border-left:4px solid var(--br)}.ajk.kritik{border-left-color:var(--rd)}.ajk.onemli{border-left-color:var(--or)}.ajk.bilgi{border-left-color:var(--pr)}.ajh{display:flex;gap:10px;align-items:flex-start}.ajik{font-size:24px;line-height:1.1}.ajet{font-weight:700;color:var(--gr);margin-top:2px}
+.ajmsg{margin:8px 0 0}.ajmsg summary{cursor:pointer;color:var(--pr)}.ajmsg div{background:var(--ac);border-radius:8px;padding:8px 10px;margin-top:6px;white-space:pre-wrap}.ajrap{white-space:pre-wrap;font:13px/1.5 inherit;font-family:inherit;background:var(--ac);border-radius:8px;padding:10px;margin:6px 0;max-height:340px;overflow:auto}
+.ajoz{cursor:pointer;border:1px solid var(--pr);background:var(--ac)}.menu-grid .ajm{grid-column:1/-1;background:var(--pr);color:var(--on);border-color:var(--pr)}
 .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.menu-grid button{padding:20px 10px;font-size:15px;line-height:1.6}
 .selbar{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));z-index:15;background:var(--pr);color:var(--on);padding:9px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
 .selbar button{padding:6px 12px;font-size:14px}
@@ -165,7 +169,7 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 </div>
 
 <div class="sec" id="s-bugun">
-<div class="bar"><button class="p" onclick="callStart(todayCallIds())">📞 Arama modu</button><button onclick="route()">🗺 Ziyaret rotası (en kısa sıra)</button><button onclick="printList()">🖨 Arama listesini yazdır</button><button onclick="askNotify()">🔔 Bildirimleri aç</button></div>
+<div class="bar"><button class="p" onclick="callStart(todayCallIds())">📞 Arama modu</button><button onclick="route()">🗺 Ziyaret rotası (en kısa sıra)</button><button onclick="printList()">🖨 Arama listesini yazdır</button><button data-go="ajan">🤖 Ajanlar</button><button onclick="askNotify()">🔔 Bildirimleri aç</button></div>
 <div id="today"></div></div>
 
 <div class="sec" id="s-teklif"><div class="seg subnav"><button data-go="teklif">Teklifler</button><button data-go="siparis">Siparişler</button><button data-go="tahsilat">Tahsilat</button></div><div class="bar"><select id="ft"></select></div><div class="stats" id="tstats"></div><div id="tlist"></div></div>
@@ -187,8 +191,10 @@ details.card>summary{font-weight:600;color:var(--tx);font-size:14px}
 
 <div class="sec" id="s-yonetim"><div id="ylist"></div></div>
 <div class="sec" id="s-arac"><div id="alist"></div></div>
+<div class="sec" id="s-ajan"><div id="ajL"></div></div>
 
 <div class="sec" id="s-diger"><div class="menu-grid">
+<button data-go="ajan" class="ajm">🤖 Ajanlar — Müdür raporu ve bugünün işleri</button>
 <button data-go="analiz">📊<br>Analiz ve raporlar</button><button data-go="urun">📦<br>Ürünler ve fiyatlar</button>
 <button onclick="openAyar()">⚙<br>Ayarlar</button><button onclick="openCloud()">☁<br>Bulut / Giriş</button>
 <button data-go="arac">🧰<br>Araçlar</button><button data-go="yonetim" id="mY">🛡<br>Yönetim</button><button onclick="nextTema()" id="tb2">◐<br>Tema</button>
@@ -2072,4 +2078,197 @@ document.querySelectorAll("dialog").forEach(d=>{let dn=false;
 if(SIPT){musteriSayfasi()}else{render();initCloud();vIndex().catch(()=>{});pinBaslat()}
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 if(!SIPT){setTimeout(()=>{if(!root)notifyToday()},2500);setInterval(()=>notifyToday(),36e5)}
+
+/* ================= v11 — 🤖 AJAN MERKEZİ =================
+   Ücretsiz, kural tabanlı ajanlar. Tamamen bu cihazda / tarayıcıda çalışır,
+   hiçbir dış servise para ödemez. Her ajan "bulgu" üretir; Müdür hepsini
+   paraya etkisine göre sıralar ve sabah raporunu yazar. */
+const AJDEF={minMarj:10,vade:30,vadeFaiz:4,teklifGun:3,adayN:10,hamGun:15};
+const AJ=()=>({...AJDEF,...(ayar.ajan||{})});
+const AJLER=[
+ {k:"mudur",ik:"👔",ad:"Müdür",ac:"Diğer ajanların bulduklarını toplar, paraya etkisine göre sıralar ve sabah raporunu yazar."},
+ {k:"fiyat",ik:"🛡",ad:"Fiyat Bekçisi",ac:"Zararına ya da asgari kârın altında teklif ve ürün fiyatı bırakmaz."},
+ {k:"tahsilat",ik:"💰",ad:"Tahsilat",ac:"Vadesi geçen alacakları, gecikme gününü ve vade farkını çıkarır."},
+ {k:"teklif",ik:"📨",ad:"Teklif Takipçisi",ac:"Cevapsız kalan teklifleri zamanında hatırlatır."},
+ {k:"tekrar",ik:"🔁",ad:"Tekrar Sipariş",ac:"Poşeti bitmek üzere olan müşteriyi rakipten önce yakalar."},
+ {k:"uyuyan",ik:"😴",ad:"Uyuyan Müşteri",ac:"Sipariş vermeyi bırakan müşterileri geri kazanmaya çalışır."},
+ {k:"avci",ik:"🎯",ad:"Müşteri Avcısı",ac:"Listedeki en değerli yeni adayları her gün sıraya koyar."},
+ {k:"ham",ik:"🧪",ad:"Hammadde",ac:"Hammadde fiyat değişiminin ürün kârına etkisini izler."}
+];
+const AJAD=k=>(AJLER.find(a=>a.k===k)||{}).ad||k;
+const AJIK=k=>(AJLER.find(a=>a.k===k)||{}).ik||"🤖";
+const SEVR={kritik:0,onemli:1,bilgi:2};
+const addDays=(s,n)=>fmt(new Date(new Date((s||today())+"T00:00:00").getTime()+n*864e5));
+const marjAlt=(m,k)=>Math.round((+m)/(1-Math.min(95,Math.max(0,k))/100)*100)/100;
+const selam=x=>"Merhaba"+(x.yetkili?" "+x.yetkili:"")+",";
+const imza=()=>(ayar.firma&&ayar.firma.ad)||"MAG AMBALAJ";
+let ajFiltre="mudur",ajSon=null;
+
+/* --- 🛡 Fiyat Bekçisi --- */
+function satilan90(u){let q=0;data.forEach(x=>arr(x.siparis).filter(sipAktif).forEach(s=>{if(daysSince(s.tar||today())>90)return;arr(toDoc(s).kalemler).forEach(k=>{if((k.urunId&&k.urunId===u.id)||k.urun===u.ad)q+=+k.mik||0})}));return q}
+function ajFiyat(){const R=AJ(),out=[];
+ data.forEach(x=>arr(x.teklif).forEach((t0,i)=>{if(t0.durum!=="Beklemede"||!t0.kalemler)return;const t=toDoc(t0);
+  arr(t.kalemler).forEach(k=>{const u=k.urunId?katalog.find(u=>u.id===k.urunId):katalog.find(u=>u.ad===k.urun);
+   const mNow=u&&+u.maliyet?+u.maliyet:(+k.maliyet||0);if(!mNow||!+k.fiyat)return;
+   const net=(+k.fiyat)*(1-(+k.isk||0)/100),marj=(net-mNow)/net*100;if(marj>=R.minMarj)return;
+   const zam=+k.maliyet&&mNow>+k.maliyet*1.005,alt=marjAlt(mNow,R.minMarj);
+   out.push({ag:"fiyat",id:x.id,sev:marj<0?"kritik":"onemli",bas:`${x.firma} • ${t.no||"teklif"} • ${k.urun}`,
+    det:`Satış ${TL2(net)} • maliyet ${TL2(mNow)} → kâr %${Math.round(marj)} (kuralımız en az %${R.minMarj}).${zam?` Teklif verildikten sonra maliyet ${TL2(k.maliyet)} → ${TL2(mNow)} oldu.`:""} En az ${TL2(alt)} olmalı.`,
+    etki:(+k.mik||0)*Math.max(0,alt-net),act:[{a:"tedit",id:x.id,i,lb:"✎ Teklifi düzelt"}]})})}));
+ katalog.forEach((u,i)=>{if(!+u.maliyet||!+u.fiyat)return;const marj=(u.fiyat-u.maliyet)/u.fiyat*100;if(marj>=R.minMarj)return;
+  const q=satilan90(u),alt=marjAlt(u.maliyet,R.minMarj);
+  out.push({ag:"fiyat",sev:marj<0?"kritik":"onemli",bas:`Liste fiyatı düşük: ${u.ad}`,
+   det:`Liste ${TL2(u.fiyat)} • maliyet ${TL2(u.maliyet)} → kâr %${Math.round(marj)}. Kural için en az ${TL2(alt)}, hedef kârla önerilen ${TL2(oner(u.maliyet))}.${q?` Son 90 günde ${NUM(q)} ${u.birim||""} satıldı.`:""}`,
+   etki:q?q/3*Math.max(0,alt-u.fiyat):0,act:isAdmin()?[{a:"uedit",i,lb:"✎ Fiyatı düzelt"}]:[]})});
+ return out}
+
+/* --- 💰 Tahsilat (vade + vade farkı, ödemeler en eski siparişten düşülür) --- */
+function vadeDurum(x){const R=AJ(),v=+x.vade||R.vade;
+ const sip=arr(x.siparis).filter(sipAktif).map(s=>({tar:s.tar||today(),kal:docTop(s),no:s.no||""})).sort((a,b)=>a.tar.localeCompare(b.tar));
+ let od=odenen(x);sip.forEach(s=>{const d=Math.min(od,s.kal);s.kal-=d;od-=d});
+ const ac=sip.filter(s=>s.kal>0.5).map(s=>{const due=addDays(s.tar,v);return{...s,due,gec:daysSince(due)}});
+ const gec=ac.filter(s=>s.gec>0),yak=ac.filter(s=>s.gec<=0&&s.gec>=-3);
+ const tut=gec.reduce((a,s)=>a+s.kal,0),fark=gec.reduce((a,s)=>a+s.kal*R.vadeFaiz/100*s.gec/30,0);
+ return{v,gec,yak,tut,fark,enEski:gec[0]}}
+function ajTahsilat(){const out=[];
+ data.forEach(x=>{if(bakiye(x)<=0.5)return;const d=vadeDurum(x);
+  if(d.gec.length){const g=d.enEski.gec;
+   out.push({ag:"tahsilat",id:x.id,sev:g>30?"kritik":"onemli",bas:`${x.firma} • ${TL2(d.tut)} vadesi geçmiş`,
+    det:`En eski: ${d.enEski.no||"sipariş"} • vade ${fd(d.enEski.due)} • ${g} gün gecikme • vade ${d.v} gün${d.fark>=1?` • vade farkı ≈ ${TL2(d.fark)} (aylık %${AJ().vadeFaiz})`:""}`,
+    etki:d.tut,msg:`${selam(x)} ${x.firma} cari hesabınızda vadesi ${fd(d.enEski.due)} tarihinde dolan ${TL2(d.tut)} tutarında ödeme görünmektedir. Ödeme planınızı paylaşabilirseniz seviniriz. Ödendiyse lütfen dikkate almayınız. ${imza()}`,
+    act:[{a:"pay",id:x.id,lb:"+ Ödeme"}]})}
+  else if(d.yak.length){const s=d.yak[0];
+   out.push({ag:"tahsilat",id:x.id,sev:"bilgi",bas:`${x.firma} • ${TL2(s.kal)} vadesi yaklaşıyor`,det:`${s.no||"Sipariş"} • vade ${fd(s.due)} (${-s.gec} gün kaldı)`,etki:0,
+    msg:`${selam(x)} ${fd(s.due)} vadeli ${TL2(s.kal)} tutarındaki ödemenizi hatırlatmak isteriz. İyi çalışmalar. ${imza()}`,act:[{a:"pay",id:x.id,lb:"+ Ödeme"}]})}});
+ return out}
+
+/* --- 📨 Teklif Takipçisi --- */
+function ajTeklif(){const R=AJ(),out=[];
+ data.forEach(x=>{if(x.aramayin||x.durum==="İlgilenmiyor")return;
+  arr(x.teklif).forEach((t,i)=>{if(t.durum!=="Beklemede"||!t.tar)return;const g=daysSince(t.tar);if(g<R.teklifGun)return;
+   const son=arr(x.gorus).reduce((m,o)=>Math.max(m,+o.t||0),0);if(son&&(Date.now()-son)/864e5<R.teklifGun)return;
+   out.push({ag:"teklif",id:x.id,sev:g>14?"onemli":"bilgi",bas:`${x.firma} • ${t.no||"teklif"} ${g} gündür cevapsız`,det:`${kalemOzet(t,true)} • ${TL2(docTop(t))}`,
+    etki:docAra(t)*0.3,msg:`${selam(x)} ${fd(t.tar)} tarihinde ${t.no?t.no+" numaralı ":""}teklifimizi iletmiştik. Değerlendirme fırsatınız oldu mu? Ölçü, adet ya da baskıda değişiklik isterseniz hemen güncelleyelim. ${imza()}`,
+    act:[{a:"tpr",id:x.id,i,lb:"🖨 Teklif"},{a:"gor",id:x.id,lb:"+ Görüşme"}]})})});
+ return out}
+
+/* --- 🔁 Tekrar Sipariş --- */
+const ortSip=x=>{const s=arr(x.siparis).filter(sipAktif);return s.length?s.reduce((a,o)=>a+docAra(o),0)/s.length:0};
+function ajTekrar(){const sl=new Set(sleepers().map(o=>o.x.id));return reorderList().filter(o=>!o.x.aramayin&&!sl.has(o.x.id)).map(o=>{const s=arr(o.x.siparis).filter(sipAktif).sort((a,b)=>(a.tar||"").localeCompare(b.tar||"")),son=s[s.length-1];
+ return{ag:"tekrar",id:o.x.id,sev:o.kalan<0?"onemli":"bilgi",bas:`${o.x.firma} • sipariş zamanı ${o.kalan>=0?o.kalan+" gün sonra":(-o.kalan)+" gün geçti"}`,
+  det:`${o.ort} günde bir sipariş veriyor • son ${fd(o.son)}${son?" • "+kalemOzet(son,true):""} • ortalama ${TL(ortSip(o.x))}`,etki:ortSip(o.x),
+  msg:`${selam(o.x)} son siparişiniz ${fd(o.son)} tarihindeydi; stoklarınız azalmış olabilir diye düşündük.${son?" Geçen seferki ürünlerden ("+kalemOzet(son,true)+")":" Aynı ürünlerden"} hazırlayalım mı? ${imza()}`,
+  act:[{a:"sip",id:o.x.id,lb:"+ Sipariş"}]}})}
+
+/* --- 😴 Uyuyan Müşteri --- */
+function aylikCiro(x){const s=arr(x.siparis).filter(sipAktif).map(o=>o.tar).filter(Boolean).sort();if(!s.length)return 0;const ay=Math.max(1,(daysSince(s[0])-daysSince(s[s.length-1]))/30+1);return arr(x.siparis).filter(sipAktif).reduce((a,o)=>a+docAra(o),0)/ay}
+function ajUyuyan(){
+ return sleepers().filter(o=>!o.x.aramayin).map(o=>({ag:"uyuyan",id:o.x.id,sev:"onemli",bas:`${o.x.firma} • ${daysSince(o.l)} gündür sipariş yok`,
+  det:`Son alım ${fd(o.l)} • toplam ${TL(ciro(o.x))} • ayda ≈ ${TL(aylikCiro(o.x))} kaybediliyor olabilir${o.x.rakip?" • rakip: "+o.x.rakip:""}`,etki:aylikCiro(o.x),
+  msg:`${selam(o.x)} uzun zamandır sipariş alamadık, sizi özledik. Poşet ihtiyacınızı şu an nereden karşılıyorsunuz? Size özel güncel fiyat çıkarmak ve numune getirmek isteriz. ${imza()}`,
+  act:[{a:"gor",id:o.x.id,lb:"+ Görüşme"},{a:"tek",id:o.x.id,lb:"+ Teklif"}]}))}
+
+/* --- 🎯 Müşteri Avcısı --- */
+const sekK=x=>(TSEK.find(s=>s.ad===x.sektor)||{}).k;
+function ajAvci(){const R=AJ(),kf=+ayar.kgFiyat||0;
+ const l=data.filter(x=>x.durum==="Yeni"&&!x.aramayin&&digits(x.telefon)&&!arr(x.gorus).length&&!x.sonraki)
+  .map(x=>({x,p:(x.aday||0)+(x.oncelik==="Sıcak"?20:x.oncelik==="Ilık"?8:0)})).sort((a,b)=>b.p-a.p).slice(0,R.adayN);
+ return l.map((o,n)=>{const x=o.x,k=sekK(x),kg=k?tuk(k):0;
+  return{ag:"avci",id:x.id,sev:"bilgi",bas:`${n+1}. ${x.firma}${x.aday!=null?" • aday puanı "+x.aday:""}`,
+   det:`${x.sektor||""}${x.il?" • "+x.il:""}${x.mesafe?" • "+NUM(x.mesafe)+" km":""}${kg?` • tahmini ${NUM(kg)} kg/ay poşet`:""}`,etki:kg*kf,
+   msg:`${selam(x)} Silivri'deki fabrikamızda atlet, rulo ve baskılı/baskısız poşet üretiyoruz. ${x.sektor?x.sektor+" işletmelerine ":""}aracısız fabrika fiyatı verebiliriz. Uygun olursanız numune bırakalım. ${imza()}`,
+   act:[{a:"gor",id:x.id,lb:"+ Görüşme"},{a:"num",id:x.id,lb:"🎁 Numune"}]}})}
+
+/* --- 🧪 Hammadde --- */
+function ajHam(){const R=AJ(),out=[];
+ hamL().forEach(h=>{const g=arr(h.gecmis);if(!g.length)return;const son=g[g.length-1],gun=daysSince(son[0]);
+  if(gun>=R.hamGun)out.push({ag:"ham",sev:"bilgi",bas:`${h.ad} fiyatı ${gun} gündür girilmedi`,det:`Son fiyat ${TL2(h.fiyat)} (${fd(son[0])}). Güncel fiyatı girersen bağlı ürünlerin maliyeti ve kârı kendiliğinden düzelir.`,etki:0,act:isAdmin()?[{a:"hmed",i:hamL().indexOf(h),lb:"Fiyat gir"}]:[]});
+  if(g.length>1&&gun<=30){const p=+g[g.length-2][1],ch=p?(h.fiyat-p)/p*100:0;if(Math.abs(ch)<1)return;
+   const bag=katalog.filter(u=>u.hm===h.ad),dus=bag.filter(u=>+u.maliyet&&+u.fiyat&&(u.fiyat-u.maliyet)/u.fiyat*100<(ayar.hedefMarj??25));
+   out.push({ag:"ham",sev:ch>0&&dus.length?"onemli":"bilgi",bas:`${h.ad} ${ch>0?"▲ zamlandı":"▼ ucuzladı"} %${Math.abs(Math.round(ch*10)/10)}`,
+    det:`${NUM(p)} → ${NUM(h.fiyat)} (${fd(son[0])}) • bağlı ${bag.length} ürün${dus.length?` • hedef kârın altına düşenler: ${dus.map(u=>u.ad).join(", ")}`:""}${ch>0?" • Açık tekliflerini Fiyat Bekçisi kontrol ediyor.":" • Rakiplerden önce fiyat avantajını kullanabilirsin."}`,etki:0,act:[{a:"ajgo",id:"urun",lb:"Ürünler"}]})}});
+ return out}
+
+/* --- 👔 Müdür --- */
+const AJKAP="mag_ajkapat";
+const ajKey=f=>f.ag+"|"+(f.id||"")+"|"+f.bas;
+function ajKapali(){const o=lsJ(AJKAP,{}),t=today();let d=false;for(const k in o)if(o[k]<=t){delete o[k];d=true}if(d)ls.set(AJKAP,JSON.stringify(o));return o}
+function ajCalistir(){const all=[];const run=(k,f)=>{try{f().forEach(o=>all.push(o))}catch(e){console.warn("ajan",k,e)}};
+ run("fiyat",ajFiyat);run("tahsilat",ajTahsilat);run("teklif",ajTeklif);run("tekrar",ajTekrar);run("uyuyan",ajUyuyan);run("avci",ajAvci);run("ham",ajHam);
+ const kap=ajKapali();ajSon=Date.now();
+ return all.filter(f=>!kap[ajKey(f)]).sort((a,b)=>(SEVR[a.sev]-SEVR[b.sev])||((b.etki||0)-(a.etki||0)))}
+function ajMasada(l){const s=k=>l.filter(f=>f.ag===k).reduce((a,f)=>a+(f.etki||0),0);
+ return[["💰 Vadesi geçen alacak",s("tahsilat")],["🔁 Beklenen tekrar sipariş",s("tekrar")],["📨 Açık tekliflerden olası",s("teklif")],["😴 Uyuyanlardan aylık",s("uyuyan")],["🛡 Düşük fiyattan kayıp",s("fiyat")]]}
+function ajRapor(l){l=l||ajCalistir();const d=new Date(),m=ajMasada(l).filter(a=>a[1]>=1),top=l.filter(f=>f.sev!=="bilgi").slice(0,7);
+ let t=`👔 ${imza()} • Müdür raporu • ${fd(today())}\n`;
+ t+=`\n${l.length} iş bulundu: `+AJLER.filter(a=>a.k!=="mudur").map(a=>[a,l.filter(f=>f.ag===a.k).length]).filter(z=>z[1]).map(z=>z[0].ik+" "+z[1]).join("  ")+"\n";
+ if(m.length)t+=`\n💵 Masadaki para:\n`+m.map(a=>"• "+a[0].replace(/^\S+ /,"")+": "+TL(a[1])).join("\n")+"\n";
+ if(top.length)t+=`\n🔥 Bugün önce bunlar:\n`+top.map((f,i)=>`${i+1}. ${AJIK(f.ag)} ${f.bas}`).join("\n")+"\n";
+ const av=l.filter(f=>f.ag==="avci").length;if(av)t+=`\n🎯 Aranacak ${av} yeni aday hazır.\n`;
+ return t.trim()}
+
+/* --- ekran --- */
+function ajOzetKart(){if(!data.length)return"";const l=ajCalistir(),k=l.filter(f=>f.sev==="kritik").length,o=l.filter(f=>f.sev==="onemli").length,top=ajMasada(l).reduce((a,z)=>a+z[1],0);
+ if(!l.length)return"";
+ return `<div class="card ajoz" data-go="ajan"><b>🤖 Ajanlar ${l.length} iş buldu</b>${k?` <span class="tag warn">${k} acil</span>`:""}${o?` <span class="tag">${o} önemli</span>`:""}<div class="mu">${top>=1?"Masada ≈ <b>"+TL(top)+"</b> var • ":""}Müdür raporunu ve işleri görmek için dokun ›</div></div>`}
+function ajKart(f,i){const x=f.id?data.find(v=>v.id===f.id):null,tel=x&&waNum(x.telefon),ara=x&&digits(x.telefon);
+ const acts=arr(f.act).map(a=>`<button data-a="${a.a}" ${a.id!=null?`data-id="${esc(a.id)}"`:""} ${a.i!=null?`data-i="${a.i}"`:""}>${a.lb}</button>`).join("");
+ return `<div class="card ajk ${f.sev}"><div class="ajh"><span class="ajik">${AJIK(f.ag)}</span><div style="flex:1;min-width:0"><b>${esc(f.bas)}</b><div class="mu">${esc(f.det)}</div>${f.etki>=1?`<div class="ajet">≈ ${TL(f.etki)}</div>`:""}</div></div>
+ ${f.msg?`<details class="ajmsg"><summary>✉ Hazır mesaj</summary><div>${esc(f.msg)}</div></details>`:""}
+ <div class="row">${ara?`<a class="btn" href="tel:${ara}">📞 Ara</a>`:""}${f.msg&&tel?`<button class="p" data-a="ajwa" data-i="${i}">💬 WhatsApp</button>`:""}${f.msg?`<button data-a="ajkop" data-i="${i}">📋 Kopyala</button>`:""}${acts}<button data-a="ajert" data-i="${i}" title="3 gün gösterme">✓ Sonra</button></div></div>`}
+function renderAjan(){const el=$("ajL");if(!el)return;const l=ajCalistir();window.__aj=l;const R=AJ();
+ const say=k=>k==="mudur"?l.filter(f=>f.sev!=="bilgi").length:l.filter(f=>f.ag===k).length;
+ let h=`<div class="ajbar">`+AJLER.map(a=>`<button class="${ajFiltre===a.k?"on":""}" data-ajf="${a.k}"><span>${a.ik}</span>${a.ad}${say(a.k)?`<i>${say(a.k)}</i>`:""}</button>`).join("")+`</div>`;
+ const A_=AJLER.find(a=>a.k===ajFiltre)||AJLER[0];
+ h+=`<div class="mu" style="margin:6px 2px 10px">${A_.ik} <b>${A_.ad}:</b> ${A_.ac}</div>`;
+ if(ajFiltre==="mudur"){const m=ajMasada(l);
+  h+=`<div class="stats">`+m.map(a=>`<div class="st"><b>${TL(a[1])}</b><span>${a[0]}</span></div>`).join("")+`</div>`;
+  h+=`<div class="card"><h3>📋 Sabah raporu</h3><pre class="ajrap">${esc(ajRapor(l))}</pre><div class="row"><button class="p" data-a="ajrap">💬 WhatsApp'a gönder</button><button data-a="ajrapk">📋 Kopyala</button><button data-a="ajyen">↻ Yeniden çalıştır</button></div><div class="mu">WhatsApp'ta kendini ya da yönetim grubunu seçerek gönderebilirsin.</div></div>`;
+  const imp=l.filter(f=>f.sev!=="bilgi");
+  h+=imp.length?`<h4>🔥 Önce bunlar (${imp.length})</h4>`+imp.slice(0,15).map(f=>ajKart(f,l.indexOf(f))).join(""):`<div class="empty">Acil ya da önemli iş yok. 👍</div>`;
+ }else{const f=l.filter(f=>f.ag===ajFiltre);
+  if(ajFiltre==="avci"&&f.length)h+=`<div class="row"><button class="p" data-a="ajcall">📞 Bu ${f.length} adayı sırayla ara</button></div>`;
+  h+=f.length?f.map(z=>ajKart(z,l.indexOf(z))).join(""):`<div class="empty">Bu ajanın şu an yapacağı iş yok.</div>`}
+ h+=`<details class="card" style="margin-top:14px"><summary><b>⚙ Ajanların uyduğu kurallar</b></summary>
+ <div class="g3"><div><label>Asgari kâr marjı (%)</label><input id="aj_mm" type="number" value="${R.minMarj}"></div><div><label>Varsayılan vade (gün)</label><input id="aj_vd" type="number" value="${R.vade}"></div><div><label>Vade farkı (aylık %)</label><input id="aj_vf" type="number" step="0.1" value="${R.vadeFaiz}"></div>
+ <div><label>Teklif takibi (kaç gün sonra)</label><input id="aj_tg" type="number" value="${R.teklifGun}"></div><div><label>Günlük aday sayısı</label><input id="aj_an" type="number" value="${R.adayN}"></div><div><label>Hammadde fiyat hatırlatma (gün)</label><input id="aj_hg" type="number" value="${R.hamGun}"></div></div>
+ <div class="mu">Firmanın kendi vadesi kayıttaki "Vade (gün)" alanındaysa o kullanılır. Hedef kâr marjı ve uyuyan müşteri günü ⚙ Ayarlar'da.</div>
+ <div class="row">${isAdmin()||!cloudOn()?`<button class="p" data-a="ajkur">Kaydet</button>`:`<span class="mu">Kuralları yalnızca yönetici değiştirebilir.</span>`}</div></details>
+ <div class="mu" style="margin:8px 2px">Son çalışma: ${fdt(ajSon||Date.now())} • Ajanlar her açılışta ve her değişiklikte kendiliğinden çalışır; ücretsizdir, veriler bu programın dışına çıkmaz.</div>`;
+ el.innerHTML=h}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-ajf]");if(b){ajFiltre=b.dataset.ajf;renderAjan();window.scrollTo(0,0)}});
+
+function ajWaAc(f){const x=f.id&&data.find(v=>v.id===f.id);if(!x||!f.msg)return;
+ if(x.aramayin){alert("Bu firma Aramayın listesinde.");return}
+ if(x.izin==="Çıkış yaptı"&&!confirm("Bu firma ticari ileti almak istemediğini bildirmiş (Çıkış yaptı). Yine de mesaj açılsın mı?"))return;
+ window.open("https://wa.me/"+waNum(x.telefon)+"?text="+encodeURIComponent(f.msg),"_blank");
+ const o={...x};o.gorus=[...arr(o.gorus),{t:Date.now(),tip:"WhatsApp",not:"🤖 "+AJAD(f.ag)+": "+f.msg.slice(0,90)+(f.msg.length>90?"…":""),kim:me.ad||""}];if(o.durum==="Yeni")o.durum="İletişim kuruldu";put(o)}
+Object.assign(A,{
+ ajwa:(id,i)=>{const f=(window.__aj||[])[+i];if(f)ajWaAc(f)},
+ ajkop:(id,i)=>{const f=(window.__aj||[])[+i];if(f&&f.msg)navigator.clipboard.writeText(f.msg).then(()=>alert("Mesaj kopyalandı."),()=>prompt("Kopyala:",f.msg))},
+ ajert:(id,i)=>{const f=(window.__aj||[])[+i];if(!f)return;const o=lsJ(AJKAP,{});o[ajKey(f)]=plus(3);ls.set(AJKAP,JSON.stringify(o));renderAjan();renderToday()},
+ ajrap:()=>window.open("https://wa.me/?text="+encodeURIComponent(ajRapor()),"_blank"),
+ ajrapk:()=>{const t=ajRapor();navigator.clipboard.writeText(t).then(()=>alert("Rapor kopyalandı."),()=>prompt("Kopyala:",t))},
+ ajyen:()=>renderAjan(),
+ ajcall:()=>callStart(arr(window.__aj).filter(f=>f.ag==="avci").map(f=>f.id)),
+ ajgo:id=>go(id),
+ ajkur:()=>{const n=(i,d)=>{const v=$(i).value;return v===""||!isFinite(+v)?d:+v};
+  ayar.ajan={minMarj:n("aj_mm",AJDEF.minMarj),vade:n("aj_vd",AJDEF.vade),vadeFaiz:n("aj_vf",AJDEF.vadeFaiz),teklifGun:n("aj_tg",AJDEF.teklifGun),adayN:Math.max(1,n("aj_an",AJDEF.adayN)),hamGun:n("aj_hg",AJDEF.hamGun)};
+  saveAyar();renderAjan();alert("Kurallar kaydedildi.")}
+});
+
+/* --- 🛡 Fiyat Bekçisi: teklif/sipariş kaydedilirken son kontrol --- */
+{const _saveDoc=saveDoc;
+ saveDoc=async function(pr){try{const R=AJ(),bad=[];
+  arr(dk&&dk.kalemler).forEach(k=>{if(!String(k.urun||"").trim()||!+k.fiyat)return;const u=k.urunId?katalog.find(u=>u.id===k.urunId):katalog.find(u=>u.ad===k.urun);const m=u&&+u.maliyet?+u.maliyet:+k.maliyet||0;if(!m)return;
+   const net=(+k.fiyat)*(1-(+k.isk||0)/100),mj=(net-m)/net*100;if(mj<R.minMarj)bad.push(`• ${k.urun}: ${TL2(net)} (maliyet ${TL2(m)}, kâr %${Math.round(mj)}) → en az ${TL2(marjAlt(m,R.minMarj))}`)});
+  if(bad.length&&!confirm(`🛡 Fiyat Bekçisi uyarıyor:\nŞu kalemler asgari kârın (%${R.minMarj}) altında${bad.some(s=>s.includes("kâr %-"))?" — bazıları ZARARINA":""}:\n\n${bad.join("\n")}\n\nYine de kaydedilsin mi?`))return}catch(e){console.warn(e)}
+  return _saveDoc(pr)}}
+
+/* --- bağlantılar: Bugün özeti, sekme, yeniden çizim --- */
+NAVOF.ajan="diger";
+{const _go=go;go=function(t){_go(t);if(t==="ajan")renderAjan()}}
+{const _rt=renderToday;renderToday=function(){_rt();try{const k=ajOzetKart();if(k)$("today").insertAdjacentHTML("afterbegin",k)}catch(e){console.warn(e)}}}
+{const _r=render;render=function(){_r();if(tab==="ajan")try{renderAjan()}catch(e){console.warn(e)}}}
+try{renderToday()}catch(e){}
 </script></body></html>

@@ -104,6 +104,25 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
   - **Firebase kuralları değişti** (kisisel, ortak, vitrin, musteri, talep) → ☁ → kuralı kopyala → Firebase Rules → Publish.
   - Yapılamayanlar: uygulama kapalıyken bildirim (ücretli sunucu gerekir; yerine takvim), sevkiyat entegrasyonu (sevkiyat index.html'i gerekli), tüm arayüzün çevirisi (şimdilik sadece PDF).
 - **v10.1 (30.10.2026) — e-posta:** Tarama sonuçlarında e-posta: OpenStreetMap'te kayıtlıysa doğrudan gelir (kendi veri, Geoapify, Overpass). Yoksa ve web sitesi varsa "🔎 E-posta bul" (tek firma) veya seçilenlerde "✉ E-posta bul" (toplu) web sitesinin ana sayfasını ve iletişim sayfasını tarar (ücretsiz açık aracı sunucular: allorigins, corsproxy, r.jina.ai; [at]/(at) gibi gizlemeler çözülür). Filtre: E-posta var / yok / "yok ama web sitesi var". Listeye eklenince e-posta kayda geçer; kayıtta "🔎 Web'den e-posta bul". CSV'ye E-posta sütunu. mag-veri kayıtlarına 10. alan olarak e-posta eklendi (bir sonraki derlemede).
+- **v11 (02.11.2026) — 🤖 AJAN MERKEZİ (kâr modeli, 1. adım):** Diğer → 🤖 Ajanlar (Bugün ekranında da özet kartı ve düğme). Tamamen ücretsiz, kural tabanlı; tarayıcıda çalışır, veri dışarı çıkmaz.
+  - 👔 *Müdür:* tüm bulguları aciliyet + paraya etkisine göre sıralar; "masadaki para" (vadesi geçen alacak, beklenen tekrar sipariş, açık tekliflerden olası, uyuyanlardan aylık, düşük fiyattan kayıp); sabah raporu → WhatsApp / kopyala.
+  - 🛡 *Fiyat Bekçisi:* bekleyen tekliflerde ve katalogda asgari kâr marjının altındaki kalemler (teklif verildikten sonra maliyet artmışsa belirtir); teklif/sipariş **kaydedilirken** asgari marjın altındaysa uyarır, onaysız kaydetmez.
+  - 💰 *Tahsilat:* ödemeler en eski siparişten düşülür, vade = firmanın "Vade (gün)" alanı ya da varsayılan; gecikme günü, vade farkı (aylık %), vadesi 3 gün içinde dolacaklar; hazır hatırlatma mesajı.
+  - 📨 *Teklif Takipçisi:* N gündür cevapsız teklifler (son görüşmeden beri N gün geçmişse), olası değer = teklifin %30'u.
+  - 🔁 *Tekrar Sipariş* (sipariş aralığına göre) ve 😴 *Uyuyan Müşteri* (Ayarlar'daki uyku günü; aylık kayıp tahmini); hazır mesajlar.
+  - 🎯 *Müşteri Avcısı:* durumu Yeni, telefonu olan, hiç görüşülmemiş kayıtlardan aday puanı + öncelik ile günün ilk N adayı; "sırayla ara" ve tanıtım mesajı.
+  - 🧪 *Hammadde:* son 30 günde fiyatı değişen hammaddeler ve hedef kârın altına düşen bağlı ürünler; N gündür fiyatı girilmeyen hammadde hatırlatması.
+  - Her bulguda: Ara, 💬 WhatsApp (görüşme geçmişine "🤖 ajan adı" ile yazılır, Yeni → İletişim kuruldu), Kopyala, ilgili işlem düğmesi, "✓ Sonra" (3 gün gizle, cihazda).
+  - *Kurallar* (Ajanlar ekranının altında, yönetici kaydeder → `ayar.ajan`): asgari kâr %10, vade 30 gün, vade farkı aylık %4, teklif takibi 3 gün, günlük 10 aday, hammadde hatırlatma 15 gün.
+  - sw.js önbellek sürümü mag-v16.
+
+## Kâr modeli — ücretsiz ajan yol haritası
+Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullanılırsa, ileride kendi altyapımızla değiştirilebilecek şekilde bağlanır (Geoapify → mag-veri örneğinde olduğu gibi).
+1. ✅ **Ajan Merkezi (v11)** — kural tabanlı ajanlar, program içinde.
+2. ⏳ **Uygulama kapalıyken çalışma** — GitHub Actions zamanlanmış görev (ücretsiz) her sabah Firebase'deki veriyi okur, aynı kuralları çalıştırır, Müdür raporunu ücretsiz Telegram botuyla telefona gönderir.
+3. ⏳ **Yazan ajanlar (yapay zekâ)** — mesajları firmaya özel yazdırmak için ücretsiz yapay zekâ katmanı (ör. Google Gemini ücretsiz anahtar, kart yok) ya da Claude Pro üyeliğiyle zamanlanmış görev; seçim 3. adımda.
+4. ⏳ **Sevkiyat ve maliyet bağlantısı** — sevkiyat programındaki siparişler/tahsilatlar ve ADET&MALİYET hesaplamasındaki gerçek maliyetler ajanlara bağlanır.
+
 - **Alan adı notu (30.10.2026):** magambalaj.com Natro'da (NS1/NS2.NATROHOST.COM). İleride `pazar.magambalaj.com` → Cloudflare Pages için Natro DNS'e CNAME `pazar` → `mag-pazar-analiz.pages.dev` eklenecek (siteyi kuranlarla birlikte yapılacak); sonra Firebase "Authorized domains"a eklenip program deposu gizlenebilir.
 
 ## Google Haritalar anahtarı nasıl alınır (isteğe bağlı)
