@@ -149,6 +149,8 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
   - *Gece ajanı:* ✉ e-posta avcısı (web sitesi olup e-postası olmayan en çok 30 kayıt/gece, ana sayfa + iletişim sayfası; bulunamazsa 30 gün tekrar denenmez; `eposta`, `epKaynak`, `epDenendi`) ve 📅 haftalık strateji (Pazartesi ya da son rapor 7 günden eskiyse → `ajan/rapor/hafta`, Müdür ekranında).
   - *Düzeltmeler:* Analiz tabloları telefonda sayfayı yana taşırmıyor; liste özet kutuları 3 sütun; teklif listesinde kâr kuralının altındakilere "🛡" etiketi; program başlangıcı tüm modüller yüklendikten sonra (`__baslat`); yapay zekâ JSON cevap modu. sw.js önbellek mag-v19.
 
+- **v13.1 (02.11.2026):** Yapay zekâ istekleri artık takılı kalmaz: istek başına 45 sn süre sınırı (aşılırsa açık hata mesajı), bekleme sırasında saniye sayacı ("Google düşünüyor • 12 sn") ve **Vazgeç** düğmesi; hızlı cevap için düşük düşünme modu (Gemini 3: thinkingLevel low, 2.5 Flash: thinkingBudget 0; model kabul etmezse kendiliğinden ayarsız tekrar dener); "düşünce" parçaları cevaptan ayıklanır. Gece ajanı da aynı kodu kullanır.
+
 ## Kâr modeli — ücretsiz ajan yol haritası
 Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullanılırsa, ileride kendi altyapımızla değiştirilebilecek şekilde bağlanır (Geoapify → mag-veri örneğinde olduğu gibi).
 1. ✅ **Ajan Merkezi (v11)** — kural tabanlı ajanlar, program içinde.

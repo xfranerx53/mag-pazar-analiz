@@ -2335,15 +2335,28 @@ function aiHata(j,st){const m=(j&&j.error&&j.error.message)||"";
  if(st===429)return"Ücretsiz kotada kısa süreli sınır doldu. 1 dakika sonra tekrar dene.";
  if(/location|region|country/i.test(m))return"Google bu bölgede ücretsiz katmanı açmıyor: "+m.slice(0,140);
  return"Yapay zekâ hatası ("+st+"): "+m.slice(0,160)}
+let aiCtrl=null,aiBas=0,aiAdim="";
+function aiVazgec(){if(aiCtrl){aiCtrl.vazgec=true;aiCtrl.abort()}}
+const dusun=m=>/gemini-[3-9]/.test(m)?{thinkingLevel:"low"}:/2\.5-flash/.test(m)?{thinkingBudget:0}:null;
 async function aiSor(sys,mesajlar,o){o=o||{};if(!aiKey())throw new Error("Önce 🛠 Kurulum'dan yapay zekâ anahtarını gir.");
  const bek=(o.toplu?7000:1200)-(Date.now()-aiSon);if(bek>0)await uyu(bek);
+ aiBas=Date.now();aiAdim="Google'a bağlanılıyor";
  const mods=await aiModeller();let son="";
- for(const m of mods.slice(0,4)){aiSon=Date.now();
-  const body={systemInstruction:{parts:[{text:sys}]},contents:mesajlar.map(x=>({role:x.r==="ai"?"model":"user",parts:[{text:x.m}]})),generationConfig:Object.assign({temperature:o.sicak??0.4,maxOutputTokens:o.max||4096},o.json?{responseMimeType:"application/json"}:{})};
-  let r,j;try{r=await fetch(AIB+"models/"+m+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":aiKey()},body:JSON.stringify(body)});j=await r.json().catch(()=>({}))}catch(e){son="Bağlantı hatası: "+e.message;continue}
-  if(r.ok){const t=arr(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts).map(p=>p.text||"").join("").trim();if(t){ls.set("mag_aison",m);return t}son="Boş cevap geldi ("+((j.candidates&&j.candidates[0]&&j.candidates[0].finishReason)||"?")+").";continue}
-  son=aiHata(j,r.status);if(r.status===400&&/API key/i.test(son))break;if([401,403,429,404,500,503].includes(r.status))continue;break}
+ try{for(const m of mods.slice(0,4)){let dz=dusun(m);
+  for(let den=0;den<2;den++){aiSon=Date.now();aiAdim="Google düşünüyor ("+m.replace(/^gemini-/,"")+")";
+   const gc=Object.assign({temperature:o.sicak??0.4,maxOutputTokens:o.max||4096},o.json?{responseMimeType:"application/json"}:{},dz?{thinkingConfig:dz}:{});
+   const body={systemInstruction:{parts:[{text:sys}]},contents:mesajlar.map(x=>({role:x.r==="ai"?"model":"user",parts:[{text:x.m}]})),generationConfig:gc};
+   const c=new AbortController();aiCtrl=c;const to=setTimeout(()=>c.abort(),o.zaman||45000);
+   let r,j;try{r=await fetch(AIB+"models/"+m+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":aiKey()},body:JSON.stringify(body),signal:c.signal});j=await r.json().catch(()=>({}))}
+   catch(e){clearTimeout(to);if(c.vazgec)throw new Error("Vazgeçildi.");son=c.signal.aborted?"Google "+Math.round((o.zaman||45000)/1000)+" saniyede cevap vermedi (internet yavaş ya da Google yoğun). Biraz sonra tekrar dene.":"Bağlantı hatası: "+e.message+" — internetini kontrol et.";break}
+   clearTimeout(to);
+   if(r.ok){const t=arr(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts).filter(p=>!p.thought).map(p=>p.text||"").join("").trim();if(t){ls.set("mag_aison",m);return t}son="Boş cevap geldi ("+((j.candidates&&j.candidates[0]&&j.candidates[0].finishReason)||(j.promptFeedback&&j.promptFeedback.blockReason)||"?")+").";break}
+   const ham=JSON.stringify(j);if(r.status===400&&dz&&/thinking/i.test(ham)){dz=null;continue}
+   son=aiHata(j,r.status);if(r.status===400&&/API key/i.test(son))throw new Error(son);break}
+  if(/Vazgeçildi|cevap vermedi|Bağlantı hatası/.test(son))break}}
+ finally{aiCtrl=null;aiAdim=""}
  throw new Error(son||"Yapay zekâ cevap vermedi.")}
+setInterval(()=>{if(!aiAdim)return;const t=Math.floor((Date.now()-aiBas)/1000);document.querySelectorAll(".aiSure").forEach(e=>e.textContent=aiAdim+" • "+t+" sn")},1000);
 
 /* --- anonimleştirme --- */
 let aiKod=null;
@@ -2395,7 +2408,7 @@ const SORULAR=["Bugün ne yapayım?","Kimden tahsilat isteyelim?","Hangi ürünl
 function sohbetHtml(){
  const msj=sohb.map(m=>`<div class="sb ${m.r}">${m.r==="ai"?aiHtml(m.m):esc(m.m)}</div>`).join("");
  return `${aiKey()?"":`<div class="card warn-c"><b>🧠 Yapay zekâ henüz bağlı değil.</b><div class="mu">Ücretsiz anahtarı 🛠 Kurulum'dan bir kez girmen yeterli.</div><div class="row"><button class="p" data-ajf="kurulum">🛠 Kuruluma git</button></div></div>`}
- <div class="card sohbet"><div id="sohL">${msj||`<div class="mu">Müdür'e bir şey sor. Örnek sorular aşağıda. Müdür; müşterilerine, siparişlere, tahsilata, ürün maliyetlerine ve ajanların bulduklarına bakarak cevap verir.</div>`}${sohMesgul?`<div class="sb ai mu">👔 düşünüyor…</div>`:""}</div>
+ <div class="card sohbet"><div id="sohL">${msj||`<div class="mu">Müdür'e bir şey sor. Örnek sorular aşağıda. Müdür; müşterilerine, siparişlere, tahsilata, ürün maliyetlerine ve ajanların bulduklarına bakarak cevap verir.</div>`}${sohMesgul?`<div class="sb ai mu">👔 düşünüyor… <span class="aiSure"></span> <button type="button" onclick="aiVazgec()">Vazgeç</button></div>`:""}</div>
  <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:8px">${SORULAR.map(s=>`<button class="chip" data-soru="${esc(s)}">${esc(s)}</button>`).join("")}</div>
  <div class="row" style="margin-top:8px"><textarea id="sohI" rows="2" placeholder="Müdür'e yaz…" style="flex:1"></textarea><button class="p" data-a="sohgon" ${sohMesgul?"disabled":""}>Gönder</button></div>
  <div class="row"><button data-a="sohtem">🗑 Sohbeti temizle</button><span class="mu">Firma adları Google'a gitmez, kodla gider.</span></div></div>`}
@@ -2438,7 +2451,7 @@ async function geceYukle(){if(!root||Date.now()-geceOkundu<60e3)return;geceOkund
 function mudurEk(l){let h="";const y=lsJ(AIYK,null);
  if(geceRapor&&geceRapor.metin)h+=`<details class="card"><summary><b>🌙 Gece ajanının raporu</b> <span class="mu">${fdt(geceRapor.t)}</span></summary>${geceRapor.yorum?`<div class="ajai">${aiHtml(geceRapor.yorum)}</div>`:""}<pre class="ajrap">${esc(geceRapor.metin)}</pre></details>`;
  h+=`<div class="card"><h3>🧠 Müdür'ün bugünkü planı</h3>${y&&y.d===today()?`<div class="ajai">${aiHtml(y.m)}</div>`:`<div class="mu">${aiKey()?"Yapay zekâ verilerine bakıp bugün için öncelikli plan çıkarır.":"Yapay zekâ bağlanınca Müdür bugünün planını kendisi yazar (🛠 Kurulum)."}</div>`}
- <div class="row">${aiKey()?`<button class="p" data-a="ajyorum" ${yorumMesgul?"disabled":""}>${yorumMesgul?"👔 düşünüyor…":y&&y.d===today()?"↻ Yeniden yaz":"✨ Planı yaz"}</button><button data-ajf="sohbet">💬 Müdürle konuş</button>${l.some(f=>f.msg&&f.sev!=="bilgi")?`<button data-a="ajtop">✨ Önemli işlerin mesajlarını yaz</button>`:""}`:`<button class="p" data-ajf="kurulum">🛠 Kurulum</button>`}</div></div>`;
+ <div class="row">${aiKey()?`${yorumMesgul?`<span class="mu aiSure"></span>`:""}<button class="p" data-a="ajyorum" ${yorumMesgul?"disabled":""}>${yorumMesgul?"👔 düşünüyor…":y&&y.d===today()?"↻ Yeniden yaz":"✨ Planı yaz"}</button><button data-ajf="sohbet">💬 Müdürle konuş</button>${l.some(f=>f.msg&&f.sev!=="bilgi")?`<button data-a="ajtop">✨ Önemli işlerin mesajlarını yaz</button>`:""}`:`<button class="p" data-ajf="kurulum">🛠 Kurulum</button>`}</div></div>`;
  return h}
 
 /* ================= 🛠 KURULUM + 🔔 BİLDİRİM ================= */
@@ -2531,7 +2544,7 @@ function listeRota(ids){const l=ids.map(i=>data.find(v=>v.id===i)).filter(x=>x&&
 document.body.insertAdjacentHTML("beforeend",`<dialog id="dlgAI" class="wide"><form onsubmit="return false"><b id="aiT">✨</b><div id="aiB" class="ajai" style="min-height:60px;margin-top:8px"></div><div class="row" id="aiBt"></div><div class="row"><button type="button" onclick="dlgAI.close()">Kapat</button></div></form></dialog>`);
 const dlgAI=document.getElementById("dlgAI");dlgAI.addEventListener("click",e=>{if(e.target===dlgAI)dlgAI.close()});
 function aiPencere(baslik,html,butonlar){$("aiT").textContent=baslik;$("aiB").innerHTML=html;$("aiBt").innerHTML=butonlar||"";if(!dlgAI.open)dlgAI.showModal()}
-const yukleniyor=m=>`<div class="mu">👔 ${esc(m||"Müdür düşünüyor…")}</div>`;
+const yukleniyor=m=>`<div class="mu">👔 ${esc(m||"Müdür düşünüyor…")}</div><div class="mu aiSure">başlıyor…</div><div class="row"><button type="button" onclick="aiVazgec()">Vazgeç</button></div>`;
 
 /* --- ✨ Satış koçu: bu firmaya nasıl satarım? --- */
 function sektorEmsal(x){const k=x.sektor;const es=data.filter(y=>y.id!==x.id&&y.sektor===k&&y.durum==="Müşteri");const urun={};
@@ -2571,7 +2584,7 @@ function kocGonder(id){const x=data.find(v=>v.id===id),m=$("kocM").value.trim();
 let gAi=null;
 {const g=document.getElementById("gnot");if(g)g.insertAdjacentHTML("afterend",`<div class="row" id="gAiR"><button type="button" onclick="akilliNot()">✨ Nottan doldur</button><span class="mu" id="gAiS">Notu yaz → durum, öncelik, sonraki arama ve takip mesajı önerilir.</span></div>`)}
 async function akilliNot(){const not=$("gnot").value.trim();if(!not){alert("Önce görüşme notunu yaz (ne konuştunuz?).");return}const x=data.find(v=>v.id===gId);if(!x)return;
- $("gAiS").textContent="👔 okunuyor…";
+ $("gAiS").innerHTML=`👔 okunuyor… <span class="aiSure"></span>`;
  try{const j=aiJson(await aiSor(`Bir poşet üreticisinin satışçısı müşteriyle görüştü ve not aldı. Notu oku, SADECE şu JSON'u döndür:
 {"durum": "${DUR.join('" | "')}", "oncelik": "Sıcak" | "Ilık" | "Soğuk", "sonrakiGun": sayı (kaç gün sonra tekrar aranmalı, 0-90), "kayipSebebi": "" ya da kısa sebep (sadece İlgilenmiyor ise), "ozet": "tek cümle", "takipMesaji": "müşteriye gönderilecek kısa WhatsApp mesajı gövdesi (selam/imza yok) ya da boş"}`,
   [{r:"ben",m:JSON.stringify({mevcutDurum:x.durum,sektor:x.sektor||"",not:anon(not),bugun:fd(today())})}],{json:true,sicak:0.2,max:1500}));
@@ -2595,7 +2608,7 @@ async function fiyatDanis(){if(!dk)return;const x=data.find(v=>v.id===dk.id);if(
   const st=a=>a.length?{adet:a.length,en_dusuk:Math.min(...a),ort:Math.round(a.reduce((s,v)=>s+v,0)/a.length*100)/100,en_yuksek:Math.max(...a)}:null;
   return{i,urun:anon(k.urun),miktar:+k.mik||0,birim:k.birim||"",suankiFiyat:+k.fiyat||null,iskontoYuzde:+k.isk||0,maliyet:m||null,enAzFiyat:m?marjAlt(m,R.minMarj):null,hedefFiyat:m?oner(m):null,listeFiyati:u?+u.fiyat||null:null,buMusterininGecmisFiyatlari:st(gecmis),digerMusterilerinFiyatlari:st(emsal)}}).filter(k=>String(k.urun).trim());
  if(!ks.length){alert("Önce kalem ekle.");return}
- $("dAIs").textContent="👔 hesaplıyor…";$("dAIb").innerHTML="";
+ $("dAIs").innerHTML=`👔 hesaplıyor… <span class="aiSure"></span>`;$("dAIb").innerHTML="";
  try{const j=aiJson(await aiSor(`Sen poşet üreticisi MAG AMBALAJ'ın fiyat danışmanısın. Her kalem için kârı en yükseğe çıkarıp müşteriyi kaçırmayacak birim fiyat öner.
 Kurallar: maliyeti bilinen kalemde fiyat ASLA enAzFiyat'ın altında olamaz. Yeni müşteride ilk sipariş için hafif rekabetçi, sadık müşteride geçmiş fiyatın altına inme. Rakip fiyatı varsa ona göre konumla. Büyük miktarda küçük indirim olabilir.
 SADECE JSON döndür: {"kalemler":[{"i":sayı,"fiyat":sayı,"gerekce":"kısa"}],"genel":"1-2 cümle strateji"}`,
@@ -2619,7 +2632,7 @@ function kampanyaAc(ids){kIds=ids.slice();if(!aiKey()){alert("Yapay zekâ bağl�
  const sek={};l.forEach(x=>sek[x.sektor||"?"]=(sek[x.sektor||"?"]||0)+1);
  $("kHedef").innerHTML=`${l.length} firma seçili • WhatsApp'a uygun: <b>${wa.length}</b> • ${Object.entries(sek).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>esc(k)+" "+v).join(", ")}`;
  $("kV").innerHTML="";$("kS").textContent="";dlgK.showModal()}
-async function kampanyaYaz(){const l=kIds.map(i=>data.find(v=>v.id===i)).filter(Boolean);if(!l.length)return;$("kS").textContent="👔 yazıyor…";$("kV").innerHTML="";
+async function kampanyaYaz(){const l=kIds.map(i=>data.find(v=>v.id===i)).filter(Boolean);if(!l.length)return;$("kS").innerHTML=`👔 yazıyor… <span class="aiSure"></span>`;$("kV").innerHTML="";
  const sek={},dur={};l.forEach(x=>{sek[x.sektor||"?"]=(sek[x.sektor||"?"]||0)+1;dur[x.durum]=(dur[x.durum]||0)+1});
  try{const j=aiJson(await aiSor(`MAG AMBALAJ (Silivri, plastik poşet üreticisi: atlet, rulo manav, kasap/dürüm poşeti, baskılı/baskısız torba) için toplu WhatsApp kampanya mesajı yaz.
 - 3 farklı üslupta (kısa-net, samimi-esnaf, profesyonel) mesaj; her biri 2-4 cümle, en fazla 1 emoji.
