@@ -131,7 +131,7 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
 ## 🌙 Gece ajanı (GitHub Actions — ücretsiz)
 - Dosyalar: `ajan-gece.mjs` + `.github/workflows/ajan-gece.yml`. Her gün 08:12 (Türkiye) ve Actions → "Ajan sabah raporu" → **Run workflow** ile elle.
 - Ajan kuralları **index.html'den okunur** (v11 AJAN MERKEZİ bloğu + v12 yapay zekâ bloğu) — kural değişince betiği ayrıca güncellemek gerekmez. Yardımcı fonksiyonlar da adlarıyla index.html'den alınır (adı değişirse betikteki YARDIMCI listesi güncellenmeli).
-- Secrets (Settings → Secrets and variables → Actions): `FB_EMAIL`, `FB_PASSWORD` (ajanın kendi hesabı; ilk çalışmada kendisi açar → Yönetim'den **Yönetici** yapılmalı), `VAPID_PRIVATE`, `GEMINI_KEY` (isteğe bağlı: rapora Müdür yorumu).
+- Secrets (Settings → Secrets and variables → Actions): `GMAIL_USER`, `GMAIL_APP_PASSWORD` (isteğe bağlı, e-posta), `FB_EMAIL`, `FB_PASSWORD` (ajanın kendi hesabı; ilk çalışmada kendisi açar → Yönetim'den **Yönetici** yapılmalı), `VAPID_PRIVATE`, `GEMINI_KEY` (isteğe bağlı: rapora Müdür yorumu).
 - Yaptığı: girer → leads/ayar/katalog/users okur → ajanları çalıştırır → `ajan/rapor/son` yazar → (Pazartesi) haftalık strateji → web sitelerinden e-posta bulur (programda Müdür ekranında "🌙 Gece ajanının raporu") → yöneticilerin abone cihazlarına bildirim (eskimiş abonelikleri siler).
 - Depo herkese açık: betik **log'a müşteri bilgisi yazmaz** (sadece sayılar).
 - GitHub, depoda 60 gün hiç değişiklik olmazsa zamanlanmış görevi durdurur; durursa Actions sekmesinden yeniden açılır.
@@ -152,6 +152,22 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
 - **v13.1 (02.11.2026):** Yapay zekâ istekleri artık takılı kalmaz: istek başına 45 sn süre sınırı (aşılırsa açık hata mesajı), bekleme sırasında saniye sayacı ("Google düşünüyor • 12 sn") ve **Vazgeç** düğmesi; hızlı cevap için düşük düşünme modu (Gemini 3: thinkingLevel low, 2.5 Flash: thinkingBudget 0; model kabul etmezse kendiliğinden ayarsız tekrar dener); "düşünce" parçaları cevaptan ayıklanır. Gece ajanı da aynı kodu kullanır.
 
 - **v13.2 (02.11.2026):** Yapay zekâ cevabı **akış (stream)** ile alınır (`streamGenerateContent?alt=sse`): metin yazıldıkça ekrana gelir (Satış koçu, sohbet, bölge yorumu); süre sınırı artık "40 sn hiç veri gelmezse" (yazmaya devam ettiği sürece kesilmez); 2 model üst üste cevap vermezse durur. 🛠 Kurulum → **🩺 Hız testi**: ilk 6 modeli kısa bir soruyla dener (model başına en çok 25 sn), çalışanları hıza göre sıralar ve en hızlıyı 30 gün kullanır.
+
+- **v14 (02.11.2026) — 🤖 OTONOM AJANLAR + 🏠 TEK EKRAN:**
+  - *Açılış ekranı "🏠 Bugün" (iş akışı):* üstte "🤖 Ajanlar bugün çalıştı" günlüğü (`ajan/gunluk/<tarih>`), ilerleme çubuğu, sonra sırayla işler: 📨 e-postaya cevap verenler → acil/önemli ajan işleri → bugünkü planlı aramalar → adaylar/çapraz satış. Her işte tek büyük düğme (💬 Gönder = gece yazılmış hazır mesaj / 📞 Ara → aramadan sonra görüşme penceresi), altında Yarına / ✓ Bitti (3 gün gizler). İlk 15 iş, "daha göster".
+  - *Alt menü 5 sekme:* 🏠 Bugün • 🔍 Tara • 📋 Müşteriler • 💬 Müdür (sohbet) • ☰ Diğer (🤖 Ajanlar, 💼 Satış, 📅 Planlı aramalar, Analiz, Ürünler, Ayarlar…). `?git=<sekme>` ile açılış.
+  - *Sade müşteri kartı:* durum, Aramayın, sonraki arama, bakiye, 📨 cevap verdi, aday puanı, son temas; düğmeler Ara • WhatsApp • + Görüşme • ✨ Koç; geri kalan her şey "⋯ Daha fazla"da. Liste 60'ar kart (sayfalama), telefonda üstteki sayı kutuları gizli.
+  - *Gece ajanı otonom (günde 3 kez: 08:12 tam tur, 13:12 ve 18:12 gelen kutusu + e-posta):*
+    - 🔄 Takip ayarı: ilgilenen/teklifli/iletişimdekilerde boş sonraki arama, sipariş zamanı, uyuyan müşteri, gecikmiş alacak, aday puanı ≥50/70 → öncelik ve tarih (gecede en çok 300 kayıt).
+    - 🎯 Otomatik tarama: `ayar.otonom.merkez` çevresinde kendi verimizden (mag-veri dunya.json + w/i + w/t .gz) seçili sektörler (yoksa poşet tüketimi ≥20 kg/ay olanlar); zincir, rakip, listede olan (telefon/isim+300 m) ve daha önce eklenen (`ajan/gorulen`) elenir; aday puanına göre günde N (varsayılan 15) yeni kayıt, kaynak "🤖 Gece ajanı", sahibi bölge sahibi ya da yönetici; aday tükenirse yarıçap her gece +5 km (en fazla `yaricapMax`).
+    - ✍ Hazır mesajlar: en önemli N (12) iş için firmaya özel WhatsApp mesajı → `ajan/taslak` (programda "💬 Gönder" bunları kullanır, 2 gün geçerli).
+    - 📧 Gmail (isteğe bağlı, secrets `GMAIL_USER`, `GMAIL_APP_PASSWORD`): e-postası olan Yeni adaylara tanıtım, 5 gün cevapsızlara 1 takip, bekleyen teklife hatırlatma; yapay zekâ yazar, altbilgide firma bilgisi + "İPTAL yazın"; `List-Unsubscribe`; mod `kapali/deneme/acik` (deneme: her firmadan bir örnek sadece GMAIL_USER'a, günde en çok 3), günlük sınır (20). Kayda `epGonderim`, görüşme notu, durum Yeni→İletişim kuruldu, sonraki +5 gün.
+    - 📨 Gelen kutusu (IMAP): kayıtlı e-postalardan (ya da aynı kurumsal alan adından) gelen cevaplar sınıflanır (ilgileniyor/soru/iptal/olumsuz/otomatik); İPTAL → Aramayın + izin çıkış; olumsuz → İlgilenmiyor; ilgileniyor/soru → İlgileniyor + Sıcak + bugün ara + **anında bildirim** + Gmail Taslaklar'a cevap taslağı (In-Reply-To ile). Gelen metindeki telefon/e-posta/imza satırları ve telefondan önceki isimler yapay zekâya gitmeden silinir.
+    - Durum `ajan/durum` (tarih, epN, taramaR, sonGelen); günlük 30 gün tutulur. Bildirim: sabah özeti + sıcak gelişmeler (`./?git=akis`).
+  - *Kurulum 7. adım:* fabrika konumu (GPS ya da Tara ekranı merkezi), yarıçap, günlük aday, hazır mesaj sayısı, e-posta modu ve sınırı, sektörler (Tara ekranındakileri kullan), Gmail kurulum anlatımı. 2. adım artık yazma iznini de dener.
+  - *Firebase kuralı değişti:* `ajan` altı yönetici okur/yazar (`abone/<uid>` kişinin kendisi) → ☁ → Kuralı kopyala → Publish.
+  - *Workflow değişti:* 3 zamanlama, `nodemailer imapflow mailparser` kurulumu, GMAIL secrets, 25 dk süre.
+  - *Düzeltmeler:* "⭐ Önce kazandıracaklar" vadesi geçmeyen bakiyeyi artık geciken saymıyor; toplu "E-posta bul" listeden ayrılmadan çalışır (ilerleme tostla); WhatsApp "Gönder" yalnızca cep numarasında (sabit hatta "Ara"); deneme modunda aynı firmaya ikinci örnek gitmez. sw.js mag-v20.
 
 ## Kâr modeli — ücretsiz ajan yol haritası
 Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullanılırsa, ileride kendi altyapımızla değiştirilebilecek şekilde bağlanır (Geoapify → mag-veri örneğinde olduğu gibi).

@@ -92,6 +92,12 @@ dialog.sheet[open]{display:flex}
 .chip{border-radius:999px;padding:6px 11px;font-size:13px}.ajai{background:var(--ac);border-radius:8px;padding:10px;margin:6px 0;line-height:1.5}.warn-c{border-left:4px solid var(--or)}
 .kur.tamam{opacity:.75}.kurh{display:flex;align-items:center;gap:8px;margin-bottom:6px}.kurn{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--pr);color:var(--on);align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:0 0 auto}.kur.tamam .kurn{background:var(--gr)}.kur .mu a{color:var(--pr);font-weight:600}
 #analiz .card,#analiz2 .card{overflow-x:auto}@media(max-width:560px){#stats{grid-template-columns:repeat(3,1fr)}#stats .st{padding:8px 4px}#stats .st b{font-size:17px}}.tb{min-width:0}
+.buyuk{display:block;width:100%;font-size:17px;padding:13px;margin-top:10px;border-radius:12px}.akmsg{background:var(--ac);border-radius:10px;padding:9px 11px;margin-top:8px;font-size:14px;line-height:1.45;white-space:pre-wrap;max-height:7.5em;overflow:hidden}
+.akalt{margin-top:6px}.akalt button,.akalt .btn{padding:6px 10px;font-size:13px}.akis.kritik{border-left:4px solid var(--rd)}.akis.onemli{border-left:4px solid var(--or)}.akis.bilgi{border-left:4px solid var(--pr)}
+.akil{display:flex;align-items:center;gap:10px;margin:4px 2px 10px}.akbar{flex:1;height:8px;background:var(--ac);border-radius:9px;overflow:hidden}.akbar i{display:block;height:100%;background:var(--gr);border-radius:9px}
+.ajg{background:linear-gradient(135deg,var(--ac),var(--card))}.ajgh{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:6px}.ajgs{display:flex;gap:8px;font-size:14px;line-height:1.4;margin:4px 0}.ajgs span:first-child{flex:0 0 auto}
+#tost{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom));background:#222;color:#fff;padding:10px 16px;border-radius:12px;z-index:50;max-width:90vw;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.tam{display:block;width:100%;margin:8px 0}.musk h3{margin-bottom:4px}@media(max-width:560px){#stats{display:none}}
 .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.menu-grid button{padding:20px 10px;font-size:15px;line-height:1.6}
 .selbar{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));z-index:15;background:var(--pr);color:var(--on);padding:9px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
 .selbar button{padding:6px 12px;font-size:14px}
@@ -823,7 +829,7 @@ function render(){try{paraLabels()}catch(e){}
  else r.sort((a,b)=>(b.c||0)-(a.c||0));
  shown=r.map(x=>x.id);
  [...sel].forEach(i=>{if(!data.some(x=>x.id===i))sel.delete(i)});
- $("list").innerHTML=r.length?r.map(x=>card(x,true)).join(""):`<div class="empty">Kayıt yok. "+ Yeni kayıt" ile ekleyin veya Excel/CSV içe aktarın.</div>`;
+ $("list").innerHTML=r.length?r.slice(0,typeof listeN==="number"?listeN:9e9).map(x=>card(x,true)).join("")+(typeof listeN==="number"&&r.length>listeN?`<button class="tam" onclick="listeN+=60;render()">${r.length-listeN} kayıt daha göster</button>`:""):`<div class="empty">Kayıt yok. "+ Yeni kayıt" ile ekleyin veya Excel/CSV içe aktarın.</div>`;
  $("tabY").hidden=!isAdmin();$("mY").hidden=!isAdmin();$("uadd").hidden=!isAdmin();$("bdel").hidden=!isAdmin();
  $("urunDL").innerHTML=katalog.map(u=>`<option value="${esc(u.ad)}">`).join("");
  renderBulk();renderTaraG();if(tab==="tara")renderTara();renderToday();renderTeklif();renderSiparis();renderTahsilat();renderUrun();
@@ -1321,7 +1327,7 @@ function rulesText(O){
   ortak:{".read":APP,"$k":{".write":APP}},
   vitrin:{".read":true,".write":ADM},
   musteri:{"$t":{".read":true,".write":APP}},
-  ajan:{".read":ADM,rapor:{".write":ADM},abone:{".write":ADM,"$u":{".read":"auth != null && auth.uid === $u",".write":"auth != null && auth.uid === $u"}}},
+  ajan:{".read":ADM,".write":ADM,abone:{"$u":{".read":"auth != null && auth.uid === $u",".write":"auth != null && auth.uid === $u"}}},
   talep:{".read":APP,"$k":{".write":`${APP} || (!data.exists() && newData.child('token').isString() && root.child('mag_pazar/musteri/'+newData.child('token').val()).exists())`}}}}},null,2);
 }
 function cloudUi(){
@@ -2539,7 +2545,7 @@ function firsatHazirla(){const ro=new Map(reorderList().map(o=>[o.x.id,o])),mm=(
  const memo=new Map();
  return x=>{if(memo.has(x.id))return memo.get(x.id);let p=0;
   if(x.aramayin)p-=1000;if(x.durum==="İlgilenmiyor")p-=200;
-  const bk=bakiye(x);if(bk>0.5){const s=arr(x.siparis).filter(sipAktif).map(o=>o.tar).filter(Boolean).sort();const ilk=s[0];if(ilk&&daysSince(ilk)>(+x.vade||mm))p+=60+Math.min(40,Math.log10(bk+1)*8);else p+=10}
+  const bk=bakiye(x);if(bk>0.5){const v=vadeDurum(x);if(v.tut>0.5)p+=60+Math.min(40,Math.log10(v.tut+1)*8);else p+=10}
   const r=ro.get(x.id);if(r)p+=45+Math.max(0,10-Math.abs(r.kalan));
   const tk=arr(x.teklif).filter(q=>q.durum==="Beklemede");if(tk.length)p+=35+Math.min(15,Math.log10(docAra(tk[0])+1)*3);
   if(x.sonraki&&x.sonraki<=t)p+=30;
@@ -2694,7 +2700,133 @@ async function haftaYukle(){if(!root||Date.now()-haftaOkundu<60e3)return;haftaOk
 
 Object.assign(A,{koc:id=>satisKocu(id),kocwa:id=>kocWa(id),kocgon:id=>kocGonder(id)});
 
+/* ================= v14 — 🏠 TEK EKRAN İŞ AKIŞI + OTONOM AJAN AYARLARI =================
+   Açılışta "Bugün" ekranı: ajanların gece yaptıkları + sırayla bugünün işleri, her işte tek büyük düğme. */
+let gunluk=null,gunlukOkundu=0,bulutTaslak={};
+async function akisYukle(force){if(!root||(!force&&Date.now()-gunlukOkundu<60e3))return;gunlukOkundu=Date.now();
+ try{const[g1,ts]=await Promise.all([root.child("ajan/gunluk").orderByKey().limitToLast(2).once("value"),root.child("ajan/taslak").once("value")]);
+  const v=g1.val()||{},ks=Object.keys(v).sort();gunluk=ks.length?{tarih:ks[ks.length-1],...v[ks[ks.length-1]]}:null;bulutTaslak=ts.val()||{};
+  if(tab==="akis")renderAkis()}catch(e){gunluk={hata:e.message}}}
+{const _am=aiMsgOf;aiMsgOf=function(f){const m=_am(f);if(m)return m;const k=ajKey(f);for(const o of Object.values(bulutTaslak||{}))if(o&&o.k===k&&daysSince(o.d)<=2)return o.m;return null}}
+const AKK=()=>"mag_akis_"+today();
+const akisBitti=()=>new Set(lsJ(AKK(),[]));
+function akisIsaretle(k){const s=akisBitti();s.add(k);ls.set(AKK(),JSON.stringify([...s]))}
+let akisN=15;
+function akisIsleri(){const l=ajCalistir(),ks=new Set(),bit=akisBitti(),out=[];
+ // 📨 sıcak e-posta cevapları
+ data.filter(x=>x.epCevap&&["ilgileniyor","soru"].includes(x.epCevap.tur)&&Date.now()-x.epCevap.t<3*864e5).forEach(x=>{const k="cevap|"+x.id+"|"+x.epCevap.t;if(bit.has(k))return;
+  out.push({k,ag:"cevap",id:x.id,sev:"kritik",bas:`${x.firma} e-postana cevap verdi`,det:x.epCevap.ozet||"",sira:-1})});
+ const R={kritik:0,onemli:1,bilgi:3};
+ l.forEach(f=>{const k=ajKey(f);if(bit.has(k))return;ks.add(f.id);out.push({...f,k,sira:R[f.sev]+(f.ag==="avci"?0.5:0)})});
+ // 📞 planlı aramalar (ajanların bulmadığı)
+ const{a,b}=todayLists();[...a,...b].forEach(x=>{if(ks.has(x.id))return;const k="plan|"+x.id+"|"+x.sonraki;if(bit.has(k))return;
+  out.push({k,ag:"plan",id:x.id,sev:"onemli",bas:`${x.firma} • ${x.sonraki<today()?"aranması gecikti":"bugün aranacak"}`,det:[x.durum,x.sektor,(arr(x.gorus).slice(-1)[0]||{}).not].filter(Boolean).join(" • ").slice(0,140),sira:2})});
+ return out.sort((p,q)=>p.sira-q.sira||((q.etki||0)-(p.etki||0)))}
+const AKIK={cevap:"📨",plan:"📞"};
+function akisKart(f,i){const x=f.id&&data.find(v=>v.id===f.id),tel=x&&digits(x.telefon)&&!x.aramayin,wa=x&&isMobile(x.telefon)&&!x.aramayin,mm=f.msg?(aiMsgOf(f)||f.msg):"";
+ let ana="";
+ if(f.ag==="cevap")ana=tel?`<button class="p buyuk" data-a="akara" data-i="${i}">📞 Hemen ara</button>`:"";
+ else if(mm&&wa)ana=`<button class="p buyuk" data-a="akgon" data-i="${i}">💬 Gönder</button>`;
+ else if(tel)ana=`<button class="p buyuk" data-a="akara" data-i="${i}">📞 Ara</button>`;
+ else if(arr(f.act)[0]){const a=f.act[0];ana=`<button class="p buyuk" data-a="${a.a}" ${a.id!=null?`data-id="${esc(a.id)}"`:""} ${a.i!=null?`data-i="${a.i}"`:""}>${a.lb}</button>`}
+ const ik=AKIK[f.ag]||AJIK(f.ag);
+ return `<div class="card akis ${f.sev}"><div class="ajh"><span class="ajik">${ik}</span><div style="flex:1;min-width:0"><b>${esc(f.bas)}</b>${f.det?`<div class="mu">${esc(f.det).slice(0,220)}</div>`:""}${f.etki>=1?`<div class="ajet">≈ ${TL(f.etki)}</div>`:""}</div></div>
+ ${mm?`<div class="akmsg">${aiMsgOf(f)?"✨ ":""}${esc(mm)}</div>`:""}
+ ${ana}<div class="row akalt">${f.ag==="cevap"&&x&&x.epTaslak?`<a class="btn" target="_blank" rel="noopener" href="https://mail.google.com/mail/u/0/#drafts">✉ Gmail'deki cevap taslağı</a>`:""}${mm&&wa&&tel?`<button data-a="akara" data-i="${i}">📞 Ara</button>`:""}${mm?`<button data-a="akkop" data-i="${i}">📋</button>`:""}${x?`<button data-a="koc" data-id="${x.id}" ${aiKey()?"":"hidden"}>✨ Koç</button>`:""}<button data-a="akatla" data-i="${i}">Yarına</button><button data-a="akbit" data-i="${i}">✓ Bitti</button></div></div>`}
+function renderAkis(){const el=$("akisL");if(!el)return;akisYukle();
+ const l=akisIsleri();window.__ak=l;const bit=akisBitti().size,top=l.length+bit;
+ let h="";
+ // 🤖 ajanların yaptıkları
+ if(gunluk&&arr(gunluk.isler).length){const gs=arr(gunluk.isler);
+  h+=`<div class="card ajg"><div class="ajgh"><b>🤖 Ajanlar ${gunluk.tarih===today()?"bugün":fd(gunluk.tarih)} çalıştı</b><span class="mu">${fdt(gunluk.t)}</span></div>${gs.slice(-7).map(q=>`<div class="ajgs"><span>${q.ik}</span><span>${esc(q.metin)}</span></div>`).join("")}</div>`}
+ else h+=`<div class="card ajg"><b>🤖 Ajanlar henüz çalışmadı</b><div class="mu">${root?"Gece ajanı her gün 08:12, 13:12 ve 18:12'de kendi kendine çalışır: yeni müşteri bulur, mesajları yazar, e-posta gönderir, cevapları okur.":"Ajanların gece çalışması için ☁ ile buluta giriş yap."} </div><div class="row"><button data-a="akkur">🛠 Kurulum</button></div></div>`;
+ // ilerleme
+ if(top)h+=`<div class="akil"><div class="akbar"><i style="width:${Math.round(bit/top*100)}%"></i></div><span><b>${bit}/${top}</b> iş bitti</span></div>`;
+ h+=l.length?l.slice(0,akisN).map((f,i)=>akisKart(f,i)).join("")+(l.length>akisN?`<button class="tam" data-a="akdaha">${l.length-akisN} iş daha göster</button>`:""):`<div class="empty">🎉 Bugünlük iş kalmadı.<br><span class="mu">Yeni müşteri için 🔍 Tara ya da Müdür'e sor.</span></div>`;
+ el.innerHTML=h;const n=l.filter(f=>f.sev!=="bilgi").length;const bd=$("bdA");if(bd){bd.hidden=!n;bd.textContent=n}}
+function akisBitir(f,yarin){if(!f)return;akisIsaretle(f.k);if(!yarin&&!/^(cevap|plan)\|/.test(f.k)){const o=lsJ(AJKAP,{});o[f.k]=plus(3);ls.set(AJKAP,JSON.stringify(o))}renderAkis()}
+Object.assign(A,{
+ akgon:(id,i)=>{const f=(window.__ak||[])[+i];if(!f)return;const mm=aiMsgOf(f)||f.msg;ajWaAc({...f,msg:mm});akisBitir(f)},
+ akara:(id,i)=>{const f=(window.__ak||[])[+i];if(!f)return;const x=data.find(v=>v.id===f.id);if(!x)return;location.href="tel:"+digits(x.telefon);akisBitir(f);setTimeout(()=>openG(x.id,"Arama"),800)},
+ akkop:(id,i)=>{const f=(window.__ak||[])[+i];if(!f)return;const mm=aiMsgOf(f)||f.msg;navigator.clipboard.writeText(mm).then(()=>tost("Mesaj kopyalandı"),()=>prompt("Kopyala:",mm))},
+ akatla:(id,i)=>akisBitir((window.__ak||[])[+i],true),
+ akbit:(id,i)=>akisBitir((window.__ak||[])[+i]),
+ akdaha:()=>{akisN+=15;renderAkis()},
+ akkur:()=>{ajFiltre="kurulum";go("ajan");kurKontrol()}
+});
+/* küçük bildirim (tost) */
+document.body.insertAdjacentHTML("beforeend",`<div id="tost" hidden></div>`);
+let tostT=null;function tost(m,ms){const e=$("tost");e.textContent=m;e.hidden=false;clearTimeout(tostT);tostT=setTimeout(()=>e.hidden=true,ms||2500)}
+
+/* --- ekran, alt menü, Diğer menüsü --- */
+{const m=document.querySelector("main"),s=document.createElement("div");s.className="sec";s.id="s-akis";s.innerHTML=`<div id="akisL"></div>`;m.insertBefore(s,m.querySelector(".sec"))}
+{const n=document.querySelector("nav.bnav");if(n)n.innerHTML=`<button data-go="akis"><b>🏠</b>Bugün<span class="badge" id="bdA" hidden></span></button><button data-go="tara"><b>🔍</b>Tara</button><button data-go="liste"><b>📋</b>Müşteriler</button><button data-go="mudur"><b>💬</b>Müdür</button><button data-go="diger"><b>☰</b>Diğer</button><span id="bd2" hidden></span>`}
+{const g=document.querySelector("#s-diger .menu-grid");if(g){const a=g.querySelector(".ajm");if(a){a.textContent="🤖 Ajanlar — rapor, ayrıntılar, kurulum";a.dataset.go="ajan"}
+ g.insertAdjacentHTML("afterbegin",`<button data-go="teklif">💼<br>Satış (teklif, sipariş, tahsilat)</button><button data-go="bugun">📅<br>Planlı aramalar</button>`);
+ const k=g.querySelector(".ajm");if(k)g.insertBefore(k,g.firstChild)}}
+Object.assign(NAVOF,{akis:"akis",ajan:"mudur",bugun:"diger",teklif:"diger",siparis:"diger",tahsilat:"diger"});
+{const _g=go;go=function(t){if(t==="mudur"){ajFiltre="sohbet";t="ajan"}else if(t==="ajan"&&ajFiltre==="sohbet")ajFiltre="mudur";_g(t);if(t==="akis")renderAkis()}}
+{const _r=render;render=function(){_r();if(tab==="akis")try{renderAkis()}catch(e){console.warn(e)}else{try{const l=akisIsleri().filter(f=>f.sev!=="bilgi").length,bd=$("bdA");if(bd){bd.hidden=!l;bd.textContent=l}}catch(e){}}}}
+
+/* --- sade müşteri kartı --- */
+card=function(x,ck){const od=x.sonraki&&x.sonraki<=today(),wa=waNum(x.telefon)&&!x.aramayin,bk=bakiye(x),tel=digits(x.telefon)&&!x.aramayin;
+ const t=[`<span class="tag">${esc(x.durum)}</span>`];
+ if(x.aramayin)t.push(`<span class="tag warn">⛔ Aramayın</span>`);
+ if(x.sonraki)t.push(`<span class="tag ${od?"warn":""}">📞 ${x.sonraki===today()?"bugün":fd(x.sonraki)}</span>`);
+ if(bk>0.5)t.push(`<span class="tag warn">Bakiye ${TL(bk)}</span>`);
+ if(x.epCevap&&Date.now()-x.epCevap.t<7*864e5)t.push(`<span class="tag ok">📨 cevap verdi</span>`);
+ if(x.aday!=null&&["Yeni","İletişim kuruldu","İlgileniyor"].includes(x.durum))t.push(`<span class="tag ${x.aday>=60?"ok":""}" title="Aday puanı">⭐ ${x.aday}</span>`);
+ t.push(sonTemas(x));
+ const ek=[x.izin==="Çıkış yaptı"?"İzin: Çıkış yaptı":x.izin==="Var"?"İzin: Var":"",cloudOn()&&isAdmin()&&x.sahipAd?"👤 "+x.sahipAd:"",x.kayip?"Kayıp: "+x.kayip:"",x.puan?"★ "+x.puan:"",x.numune&&!numuneDone(x)?"🎁 Numune "+fd(x.numune.tar):"",x.vade?"Vade "+x.vade+" gün":"",x.rakip?"Rakip: "+x.rakip+(x.rakipFiyat?" "+TL2(x.rakipFiyat):""):"",x.kaynak?"Kaynak: "+x.kaynak:"",x.adres?"📍 "+x.adres:"",x.not||""].filter(Boolean);
+ return `<div class="card musk"><h3>${ck?`<input type="checkbox" class="ck" data-sel="${x.id}" ${sel.has(x.id)?"checked":""}>`:""}${esc(x.firma)} ${x.oncelik?`<span class="pr ${esc(x.oncelik)}">${esc(x.oncelik)}</span>`:""}</h3>
+ <div>${t.join("")}</div><div class="mu">${[x.sektor,x.yetkili,x.il,x.mesafe!=null?x.mesafe+" km":"",x.telefon,x.eposta].filter(Boolean).map(esc).join(" • ")}</div>
+ <div class="row">${tel?`<a class="btn" href="tel:${digits(x.telefon)}">📞 Ara</a>`:""}${wa?`<button data-a="wa" data-id="${x.id}">💬 WhatsApp</button>`:""}<button data-a="gor" data-id="${x.id}">+ Görüşme</button>${aiKey()?`<button data-a="koc" data-id="${x.id}">✨ Koç</button>`:""}</div>
+ <details class="more"><summary>⋯ Daha fazla</summary>${ek.length?`<div class="mu">${ek.map(esc).join(" • ")}</div>`:""}<div class="row">${addr(x)||x.konum?`<a class="btn" target="_blank" rel="noopener" href="${x.konum?"https://www.google.com/maps/search/?api=1&query="+x.konum.lat+","+x.konum.lon:mapUrl(x)}">🗺 Harita</a>`:""}${/^https?:/i.test(x.web||"")?`<a class="btn" target="_blank" rel="noopener" href="${esc(x.web)}">🌐 Web</a>`:x.web?`<a class="btn" target="_blank" rel="noopener" href="https://${esc(x.web)}">🌐 Web</a>`:""}${x.foto?`<button data-a="foto" data-id="${x.id}">📷</button>`:""}<button data-a="tek" data-id="${x.id}">+ Teklif</button><button data-a="sip" data-id="${x.id}">+ Sipariş</button>${arr(x.siparis).length?`<button data-a="pay" data-id="${x.id}">+ Ödeme</button>`:""}<button data-a="ziy" data-id="${x.id}">📍 Buradayım</button><button data-a="num" data-id="${x.id}">🎁 Numune</button><button data-a="edit" data-id="${x.id}">✎ Düzenle</button>${x.sonraki?`<button data-a="ical" data-id="${x.id}">📅 Takvime</button>`:""}<button data-a="slink" data-id="${x.id}">🔗 Sipariş linki</button>${x.konum?`<button data-a="osmn" data-id="${x.id}">🌍 OSM'e bildir</button>`:""}${x.web&&!x.eposta?`<button data-a="lmail" data-id="${x.id}">🔎 E-posta bul</button>`:""}<button data-a="nocall" data-id="${x.id}">${x.aramayin?"✅ Aramayın'dan çıkar":"⛔ Aramayın"}</button>${isAdmin()?`<button data-a="del" data-id="${x.id}">Sil</button>`:""}</div>${hist(x)}</details></div>`};
+
+/* --- liste: çok kayıtta telefon yavaşlamasın (sayfalama; render içinde ilk listeN kart) --- */
+let listeN=60;
+
+/* --- 🛠 Kurulum: kural yazma kontrolü + 7. adım otonom ajan ayarları --- */
+{const _k=kurKontrol;kurKontrol=async function(){await _k();if(root&&isAdmin()){try{await root.child("ajan/durum/kontrol").set(Date.now());await root.child("ajan/durum/kontrol").remove()}catch(e){kur.kural=false}if(tab==="ajan")renderAjan()}}}
+const SEKV=()=>TSEK.filter(s=>tuk(s.k)>=20).map(s=>s.k);
+function otonomHtml(){const O=Object.assign({tarama:true,yaricap:10,yaricapMax:30,gunlukAday:15,taslakSayisi:12,eposta:"deneme",gunlukEposta:20},ayar.otonom||{}),adm=isAdmin();
+ const sek=arr(O.sektorler).length?O.sektorler:SEKV();
+ return `<div class="card kur ${O.merkez?"tamam":""}"><div class="kurh"><span class="kurn">7</span><b>🤖 Otonom ajanlar (gece kendi başına çalışır)</b><span style="margin-left:auto">${O.merkez?"✅":"⚪"}</span></div>
+ <div class="mu">Her gün 08:12'de ajanlar: <b>yeni müşteri bulur</b> ve listeye ekler, <b>takip tarihlerini ayarlar</b>, <b>mesajları hazır yazar</b>, <b>e-posta gönderir</b>; 13:12 ve 18:12'de <b>gelen cevapları okur</b>, ilgilenenleri sana bildirir ve Gmail'de cevap taslağı hazırlar.</div>
+ ${adm?`<label>Fabrika konumu (tarama merkezi)</label><div class="row"><span class="mu" style="flex:1">${O.merkez?`📍 ${esc(O.merkez.ad||"")} (${(+O.merkez.lat).toFixed(4)}, ${(+O.merkez.lon).toFixed(4)})`:"seçilmedi"}</span><button data-a="otkon">📍 Şu an buradayım</button>${tara.c?`<button data-a="otmer">🔍 Tara ekranındaki merkez</button>`:""}</div>
+ <div class="g3"><div><label>Başlangıç yarıçapı (km)</label><input id="ot_r" type="number" value="${O.yaricap}"></div><div><label>En fazla (km)</label><input id="ot_rm" type="number" value="${O.yaricapMax}"></div><div><label>Her gün yeni aday</label><input id="ot_n" type="number" value="${O.gunlukAday}"></div>
+ <div><label>Hazır mesaj sayısı</label><input id="ot_m" type="number" value="${O.taslakSayisi}"></div><div><label>E-posta modu</label><select id="ot_e"><option value="kapali" ${O.eposta==="kapali"?"selected":""}>Kapalı</option><option value="deneme" ${O.eposta!=="kapali"&&O.eposta!=="acik"?"selected":""}>Deneme (önce bana gönder)</option><option value="acik" ${O.eposta==="acik"?"selected":""}>Açık (firmalara gönder)</option></select></div><div><label>Günde en çok e-posta</label><input id="ot_en" type="number" value="${O.gunlukEposta}"></div></div>
+ <label><input type="checkbox" id="ot_t" ${O.tarama!==false?"checked":""}> Otomatik müşteri taraması açık</label>
+ <div class="mu">Taranacak sektörler: <b>${sek.length}</b> (${sek.slice(0,6).map(k=>esc(secAd(k))).join(", ")}${sek.length>6?"…":""}) ${tSek&&tSek.size?`<button data-a="otsek">Tara ekranındaki ${tSek.size} sektörü kullan</button>`:""}</div>
+ <div class="row"><button class="p" data-a="otkay">Kaydet</button></div>
+ <details style="margin-top:8px"><summary><b>📧 Gmail bağlantısı (e-posta göndermek ve cevapları okumak için)</b></summary><div class="mu">
+ 1) Ayrı bir Gmail açman önerilir (ör. magambalaj.satis@gmail.com) — ana hesabın etkilenmez.<br>
+ 2) O hesapta <a href="https://myaccount.google.com/signinoptions/twosv" target="_blank" rel="noopener">2 Adımlı Doğrulama</a>'yı aç.<br>
+ 3) <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Uygulama şifreleri</a> → ad: "MAG Ajan" → <b>Oluştur</b> → 16 harfli şifreyi kopyala.<br>
+ 4) GitHub → mag-pazar-analiz → Settings → Secrets and variables → Actions → New repository secret:<br>&nbsp;&nbsp;• <b>GMAIL_USER</b> = o Gmail adresi<br>&nbsp;&nbsp;• <b>GMAIL_APP_PASSWORD</b> = 16 harfli şifre<br>
+ 5) Mod "Deneme" iken ajan ilk e-postaları <b>sadece sana</b> gönderir (konu: [DENEME → firma]). Beğenince "Açık" yap.<br>
+ Her e-postanın altında "almak istemiyorsanız İPTAL yazın" satırı vardır; İPTAL yazanı ajan kendisi "Aramayın" listesine alır.</div></details>`:`<div class="mu">Yönetici ayarlar.</div>`}</div>`}
+{const _kh=kurulumHtml;kurulumHtml=function(){return _kh()+otonomHtml()};window.ajOzel.kurulum=kurulumHtml}
+function otKaydet(ek){const O=Object.assign({},ayar.otonom||{},ek||{});if(!ek){const n=(i,d)=>{const v=$(i)&&$(i).value;return v===""||v==null||!isFinite(+v)?d:+v};
+ Object.assign(O,{yaricap:Math.max(1,n("ot_r",10)),yaricapMax:Math.max(1,n("ot_rm",30)),gunlukAday:Math.max(0,n("ot_n",15)),taslakSayisi:Math.max(0,n("ot_m",12)),eposta:$("ot_e").value,gunlukEposta:Math.max(0,n("ot_en",20)),tarama:$("ot_t").checked})}
+ if(O.eposta==="acik"&&(!ayar.otonom||ayar.otonom.eposta!=="acik")&&!confirm("E-posta modu AÇIK olacak: ajan her gün firmalara kendisi e-posta gönderecek (günde en çok "+(O.gunlukEposta||20)+"). Deneme e-postalarını kontrol ettin mi?")){$("ot_e").value=(ayar.otonom||{}).eposta||"deneme";return}
+ ayar.otonom=O;saveAyar();renderAjan();tost("Otonom ajan ayarları kaydedildi")}
+Object.assign(A,{
+ otkay:()=>otKaydet(),
+ otkon:()=>getPos(p=>otKaydet({merkez:{lat:Math.round(p.lat*1e5)/1e5,lon:Math.round(p.lon*1e5)/1e5,ad:"Fabrika (GPS)"}}),()=>alert("Konum alınamadı. Konum iznini aç ya da Tara ekranında merkezi seçip 'Tara ekranındaki merkez'i kullan.")),
+ otmer:()=>{if(tara.c)otKaydet({merkez:{lat:tara.c.lat,lon:tara.c.lon,ad:tara.c.ad||"Tarama merkezi"}})},
+ otsek:()=>otKaydet({sektorler:[...tSek]})
+});
+
+/* --- düzeltmeler --- */
+// toplu e-posta bulma: listeden ayrılmadan, ilerleme tostla
+listeEpBul=function(ids){const l=ids.map(i=>data.find(v=>v.id===i)).filter(Boolean),w=l.filter(x=>x.web&&!x.eposta);
+ if(!w.length){alert(l.some(x=>x.eposta)?"Seçtiklerinin e-postası zaten var ya da web sitesi yok.":"Seçtiklerinin hiçbirinin web sitesi yok. E-posta sadece web sitesi olan firmalarda aranabilir.\n\nGece ajanı da her sabah web sitesi olan kayıtlarda e-postayı kendisi arıyor.");return}
+ const ob=new MutationObserver(()=>{const t=$("tstat").textContent;if(t)tost(t,6000)});ob.observe($("tstat"),{childList:true,characterData:true,subtree:true});
+ Promise.resolve(epBul(w.map(x=>({id:"L"+x.id,ad:x.firma,web:x.web,lead:x.id})))).finally(()=>setTimeout(()=>ob.disconnect(),7000))};
+
 __baslat();
+if(!SIPT){const _g=new URLSearchParams(location.search).get("git");if(_g&&_g!=="ajan")setTimeout(()=>go(_g),300);else if(!_g)go("akis")}
 /* eski adreste (pages.dev) yalnızca bu cihazda kayıt varsa: önce yedek, sonra yeni adres */
 if(window.__ESKI_ADRES){const T=window.__ESKI_ADRES;document.body.insertAdjacentHTML("afterbegin",`<div style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px"><div class="card" style="max-width:420px"><h3>📍 Programın adresi değişti</h3><p>Yeni ve tek adres:<br><b>xfranerx53.github.io/mag-pazar-analiz</b></p><p class="mu">Bu eski adreste bulutla eşitlenmemiş kayıtların var. Önce yedeği indir, yeni adreste ☁ Bulut / Araçlar → yedekten geri yükle ile aç.</p><div class="row"><button class="p" onclick="exportJson()">📥 Yedeği indir</button><button onclick="location.replace('${T}')">Yeni adrese git ›</button></div></div></div>`)}
 </script></body></html>
