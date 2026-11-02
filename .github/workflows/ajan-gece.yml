@@ -1,0 +1,36 @@
+# MAG Pazar — 🌙 Gece ajanı: her sabah Müdür raporunu hazırlar ve telefona bildirim gönderir.
+# Ücretsiz (herkese açık depoda GitHub Actions ücretsizdir). Ayrıntı: README.md → "Gece ajanı".
+name: Ajan sabah raporu
+
+on:
+  schedule:
+    - cron: "12 5 * * *"   # her gün 05:12 UTC = 08:12 Türkiye saati (GitHub birkaç dakika geciktirebilir)
+  workflow_dispatch:         # Actions sekmesinden "Run workflow" ile elle çalıştırma
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ajan-gece
+  cancel-in-progress: false
+
+jobs:
+  rapor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TZ: Europe/Istanbul
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Bildirim paketini kur
+        run: npm install --no-save --no-audit --no-fund web-push@3
+      - name: Ajanları çalıştır
+        run: node ajan-gece.mjs
+        env:
+          FB_EMAIL: ${{ secrets.FB_EMAIL }}
+          FB_PASSWORD: ${{ secrets.FB_PASSWORD }}
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
