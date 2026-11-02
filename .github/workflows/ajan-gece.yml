@@ -1,18 +1,18 @@
-# MAG Pazar — 🤖 Otonom ajanlar: günde 3 kez çalışır.
-#  08:12 tam tur: takip ayarı, otomatik müşteri taraması, e-posta avcısı, Müdür raporu, hazır mesajlar, e-posta gönderimi, haftalık strateji, bildirim
-#  13:12 ve 18:12: gelen e-posta cevaplarını okur (sıcak cevapta bildirim), kalan e-postaları gönderir
+# MAG Pazar — 🤖 Otonom ajanlar (v16)
+#  GitHub bu görevi HER SAAT uyandırır; ajanlar sadece programda seçtiğin gün ve saatlerde iş yapar
+#  (Ofis → ⏰ Saatler ve görevler). Diğer saatlerde 1 dakikadan kısa sürede "mesai dışı" deyip kapanır.
+#  Günün ilk mesai saatinde "sabah" görevleri, her mesai saatinde "her çalışmada" görevleri yapılır.
+#  Programdaki "▶ Şimdi çalıştır" saat ne olursa olsun çalıştırır.
 # Ücretsiz (herkese açık depoda GitHub Actions ücretsizdir). Ayrıntı: README.md → "Gece ajanı".
 name: Ajan sabah raporu
 
 on:
   schedule:
-    - cron: "12 5 * * *"    # 08:12 Türkiye
-    - cron: "12 10 * * *"   # 13:12 Türkiye
-    - cron: "12 15 * * *"   # 18:12 Türkiye
+    - cron: "17 * * * *"    # her saatin 17. dakikası (Türkiye saatiyle de :17)
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ajan-gece
@@ -26,6 +26,16 @@ jobs:
       TZ: Europe/Istanbul
     steps:
       - uses: actions/checkout@v4
+      # GitHub, 60 gün hiç değişiklik olmayan depoda zamanlayıcıyı kapatır. 50 günü geçince boş bir kayıt atıp açık tutar.
+      - name: Zamanlayıcıyı açık tut
+        if: github.event_name == 'schedule'
+        run: |
+          son=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - son )) -gt $(( 50 * 86400 )) ]; then
+            git config user.name "mag-ajan"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "ajan: zamanlayıcıyı açık tut" && git push || true
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 22
