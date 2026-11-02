@@ -2294,7 +2294,7 @@ let aiSon=0;
 const uyu=ms=>new Promise(r=>setTimeout(r,ms));
 async function aiModeller(force){
  const c=lsJ("mag_aimod",null);if(!force&&c&&c.k===aiKey().slice(-6)&&Date.now()-c.t<3*864e5&&arr(c.l).length)return c.l;
- const r=await fetch(AIB+"models?pageSize=200&key="+encodeURIComponent(aiKey()));const j=await r.json().catch(()=>({}));
+ const r=await fetch(AIB+"models?pageSize=200",{headers:{"x-goog-api-key":aiKey()}});const j=await r.json().catch(()=>({}));
  if(!r.ok)throw new Error(aiHata(j,r.status));
  const ver=n=>{const m=n.match(/gemini-(\d+(?:\.\d+)?)/);return m?+m[1]:0};
  const l=arr(j.models).filter(m=>arr(m.supportedGenerationMethods).includes("generateContent")).map(m=>m.name.replace(/^models\//,""))
@@ -2305,6 +2305,7 @@ async function aiModeller(force){
  ls.set("mag_aimod",JSON.stringify({k:aiKey().slice(-6),t:Date.now(),l}));return l}
 function aiHata(j,st){const m=(j&&j.error&&j.error.message)||"";
  if(st===400&&/API key/i.test(m))return"Anahtar geçersiz. aistudio.google.com/apikey adresindeki anahtarı eksiksiz kopyala.";
+ if(st===401)return"Google anahtarı kabul etmedi (401"+(/ACCESS_TOKEN_TYPE/.test(JSON.stringify(j))?", ACCESS_TOKEN_TYPE_UNSUPPORTED":"")+"). AI Studio'da yeni bir anahtar oluşturup tekrar dene.";
  if(st===403)return"Anahtarın bu işlem için izni yok ("+m.slice(0,120)+").";
  if(st===429)return"Ücretsiz kotada kısa süreli sınır doldu. 1 dakika sonra tekrar dene.";
  if(/location|region|country/i.test(m))return"Google bu bölgede ücretsiz katmanı açmıyor: "+m.slice(0,140);
@@ -2314,9 +2315,9 @@ async function aiSor(sys,mesajlar,o){o=o||{};if(!aiKey())throw new Error("Önce 
  const mods=await aiModeller();let son="";
  for(const m of mods.slice(0,4)){aiSon=Date.now();
   const body={systemInstruction:{parts:[{text:sys}]},contents:mesajlar.map(x=>({role:x.r==="ai"?"model":"user",parts:[{text:x.m}]})),generationConfig:{temperature:o.sicak??0.4,maxOutputTokens:o.max||4096}};
-  let r,j;try{r=await fetch(AIB+"models/"+m+":generateContent?key="+encodeURIComponent(aiKey()),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});j=await r.json().catch(()=>({}))}catch(e){son="Bağlantı hatası: "+e.message;continue}
+  let r,j;try{r=await fetch(AIB+"models/"+m+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":aiKey()},body:JSON.stringify(body)});j=await r.json().catch(()=>({}))}catch(e){son="Bağlantı hatası: "+e.message;continue}
   if(r.ok){const t=arr(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts).map(p=>p.text||"").join("").trim();if(t){ls.set("mag_aison",m);return t}son="Boş cevap geldi ("+((j.candidates&&j.candidates[0]&&j.candidates[0].finishReason)||"?")+").";continue}
-  son=aiHata(j,r.status);if(r.status===400&&/API key/i.test(son))break;if([429,404,500,503].includes(r.status))continue;break}
+  son=aiHata(j,r.status);if(r.status===400&&/API key/i.test(son))break;if([401,403,429,404,500,503].includes(r.status))continue;break}
  throw new Error(son||"Yapay zekâ cevap vermedi.")}
 
 /* --- anonimleştirme --- */
@@ -2427,8 +2428,8 @@ function ajanHesabi(){return Object.entries(users).find(([,u])=>/ajan/i.test((u.
 function kurulumHtml(){const ok=v=>v===true?"✅":v===false?"❌":"⚪",adm=isAdmin(),ah=ajanHesabi(),bulut=!!root;
  const adim=(n,d,bas,ic)=>`<div class="card kur ${d===true?"tamam":""}"><div class="kurh"><span class="kurn">${d===true?"✓":n}</span><b>${bas}</b><span style="margin-left:auto">${ok(d)}</span></div>${ic}</div>`;
  let h=`<div class="mu" style="margin:0 2px 8px">Sırayla git. Hepsi ücretsiz. Telefonda yapılabilir.</div>`;
- h+=adim(1,!!aiKey(),"🧠 Yapay zekâ anahtarı (Google Gemini)",`<div class="mu">1) <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> sayfasını aç, Google hesabınla gir.<br>2) <b>Create API key</b> → anahtarı kopyala (AIza… ile başlar).<br>3) Buraya yapıştır → <b>Kaydet ve dene</b>.</div>
-  <div class="row"><input id="kurAi" placeholder="AIza…" value="${esc(aiKey())}" style="flex:1" autocomplete="off"><button class="p" data-a="kurai">Kaydet ve dene</button></div><div class="mu" id="kurAiT">${esc(kur.test||(aiKey()?"Kayıtlı. Model: "+(ls.get("mag_aison")||"henüz denenmedi"):""))}</div>
+ h+=adim(1,!!aiKey(),"🧠 Yapay zekâ anahtarı (Google Gemini)",`<div class="mu">1) <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> sayfasını aç, Google hesabınla gir.<br>2) <b>Create API key</b> → anahtarı kopyala (<b>AQ.</b> ile başlar; eski anahtarlar AIza…).<br>3) Buraya yapıştır → <b>Kaydet ve dene</b>.</div>
+  <div class="row"><input id="kurAi" placeholder="AQ.…" value="${esc(aiKey())}" style="flex:1" autocomplete="off"><button class="p" data-a="kurai">Kaydet ve dene</button></div><div class="mu" id="kurAiT">${esc(kur.test||(aiKey()?"Kayıtlı. Model: "+(ls.get("mag_aison")||"henüz denenmedi"):""))}</div>
   <div class="mu">ℹ Ücretsiz katmanda Google gönderilen içeriği kendi ürünlerini geliştirmek için kullanabiliyor. Bu yüzden program firma adlarını kodlar (F12), telefon/e-posta/adres/kişi adı göndermez; tutarlar ve sektör gider.</div>`);
  h+=adim(2,bulut?kur.kural:null,"🔐 Bulut kuralını güncelle",bulut?`<div class="mu">Ajanların sabah raporu ve bildirim kaydı için kural güncellenmeli (bir kerelik).<br>1) ☁ (sağ üst) → <b>Kuralı kopyala</b><br>2) <a href="https://console.firebase.google.com/project/mag-pazar/database/mag-pazar-default-rtdb/rules" target="_blank" rel="noopener">Firebase → Realtime Database → Rules</a> → hepsini sil, yapıştır → <b>Publish</b><br>3) Buraya dön → <b>Kontrol et</b></div><div class="row"><button data-a="kurkural">☁ Kuralı kopyala</button><button data-a="kurkon">Kontrol et</button></div>`:`<div class="mu">Önce ☁ ile buluta giriş yap (sağ üst).</div>`);
  h+=adim(3,bulut?!!(ah&&ah[1].rol==="admin"):null,"🤖 Gece ajanının hesabı",`<div class="mu">Gece çalışan ajan buluttaki kayıtları okumak için kendi hesabını kullanır. Hesabı ajan ilk çalıştığında <b>kendisi açar</b> ("🤖 Ajan" adıyla, Onay bekliyor olarak düşer).<br>Sen sadece: Diğer → 🛡 Yönetim → "🤖 Ajan" → rolü <b>Yönetici</b> yap.</div>${ah?`<div class="mu">Bulundu: <b>${esc(ah[1].ad||ah[1].email)}</b> — rol: <b>${esc(ROLN[ah[1].rol]||ah[1].rol)}</b></div>`:`<div class="mu">Henüz yok (5. adımdaki ilk çalıştırmadan sonra görünür).</div>`}<div class="row">${adm?`<button data-a="ajgo" data-id="yonetim">🛡 Yönetim</button>`:""}</div>`);
@@ -2439,7 +2440,7 @@ function kurulumHtml(){const ok=v=>v===true?"✅":v===false?"❌":"⚪",adm=isAd
   <div class="mu">Son gece raporu: <b>${geceRapor&&geceRapor.t?fdt(geceRapor.t):"henüz yok"}</b>${geceRapor&&geceRapor.hata?" ("+esc(geceRapor.hata)+")":""}</div><div class="row"><button data-a="kurkon">↻ Yenile</button></div>`);
  h+=adim(6,kur.abone,"📱 Bu telefonda sabah bildirimi",`<div class="mu">Her sabah ~08:15'te rapor hazır olunca bildirim gelir; dokununca Ajanlar açılır. Önce programı "Ana ekrana ekle / Uygulamayı yükle" ile kurman önerilir. Her telefon için ayrı açılır.</div><div class="row"><button class="${kur.abone?"":"p"}" data-a="kurabone" ${!bulut||!ayar.vapidPub?"disabled":""}>${kur.abone?"↻ Yenile":"🔔 Bildirimi aç"}</button>${kur.abone?`<button data-a="kuriptal">Kapat</button>`:""}</div>${!bulut?`<div class="mu">Buluta giriş gerekli.</div>`:!ayar.vapidPub?`<div class="mu">Önce 4. adım.</div>`:""}`);
  return h}
-async function kurAiKaydet(){const v=$("kurAi").value.trim();if(v&&!/^AIza[0-9A-Za-z_-]{30,}$/.test(v)){alert("Anahtar AIza ile başlamalı. aistudio.google.com/apikey sayfasından kopyala.");return}
+async function kurAiKaydet(){const v=$("kurAi").value.trim();if(v&&!/^(AQ\.[0-9A-Za-z_.-]{20,}|AIza[0-9A-Za-z_-]{30,})$/.test(v)){alert("Bu bir Gemini anahtarına benzemiyor. Anahtar \"AQ.\" (yeni) ya da \"AIza\" (eski) ile başlar. aistudio.google.com/apikey sayfasında \"Copy\" ile eksiksiz kopyala.");return}
  if(isAdmin()){ayar.aiKey=v;saveAyar()}ls.set("mag_aikey",v);ls.del("mag_aimod");kur.test=v?"Deneniyor…":"";renderAjan();if(!v)return;
  try{const t=await aiSor("Kısa cevap ver.",[{r:"ben",m:"Sadece şunu yaz: Hazırım"}],{max:512});kur.test="✅ Çalışıyor — model: "+(ls.get("mag_aison")||"?")+" • cevap: "+t.slice(0,40)}catch(e){kur.test="❌ "+e.message}renderAjan()}
 async function kurVapid(){if(ayar.vapidPub&&!confirm("Yeni anahtar üretilirse GitHub'daki VAPID_PRIVATE de değişmeli ve herkes bildirimi yeniden açmalı. Devam?"))return;
