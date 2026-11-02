@@ -42,7 +42,7 @@ function blok(bas, son) {
   return html.slice(a, b);
 }
 const YARDIMCI = ["arr", "pad", "fmt", "today", "plus", "fd", "fdt", "ym", "tsDay", "daysSince", "PARA", "TL", "TL2", "NUM", "esc", "digits", "ulkeKod", "waNum",
-  "toDoc", "calc", "docTop", "docAra", "sipAktif", "ciro", "odenen", "bakiye", "lastBuy", "kalemOzet", "TUK_DEF", "tuk", "oner", "hamL", "TSEK", "sleepers", "reorderList", "EPRE", "epCikar", "hav", "ZINCIR", "zRe", "isChain", "isMobile", "isRival", "adayPuan", "normF", "tel10", "uid_", "bolgeler", "bolgeOf", "VERI_DEF"];
+  "toDoc", "calc", "docTop", "docAra", "sipAktif", "ciro", "odenen", "bakiye", "alimT", "lastBuy", "kalemOzet", "TUK_DEF", "tuk", "oner", "hamL", "TSEK", "sleepers", "reorderList", "EPRE", "epCikar", "hav", "ZINCIR", "zRe", "isChain", "isMobile", "isRival", "adayPuan", "normF", "tel10", "uid_", "bolgeler", "bolgeOf", "VERI_DEF"];
 const goruldu = new Set(), kodlar = [];
 for (const ad of YARDIMCI) { const p = parca(ad); if (!goruldu.has(p.i)) { goruldu.add(p.i); kodlar.push([p.i, p.kod]); } }
 kodlar.sort((a, b) => a[0] - b[0]);
@@ -108,7 +108,7 @@ ${kodlar.map(k => k[1]).join("\n")}
 ${CEKIRDEK}
 ${AI}
 ${V16}
-globalThis.__api={riskAnaliz,firsatAra,icerikPlani,ajStok,ajRisk,ajCalistir,ajRapor,ajMasada,AJAD,aiSor,AISYS,deanon,aiKey,epCikar,anon,aiKodla,ciro,bakiye,sipAktif,docTop,daysSince,today,plus,fmt,fd,arr,reorderList,sleepers,vadeDurum,aiMesajYaz,ajKey,hav,isChain,isRival,isMobile,adayPuan,normF,tel10,uid_,bolgeOf,VERI_DEF,TSEK,tuk,kodOf,selam,imza,kalemOzet,docAra,AJ,setR:r=>{tara.r=r}};`;
+globalThis.__api={SEVK_CFG,KOTU_AD,firmaEsle,riskAnaliz,firsatAra,icerikPlani,ajStok,ajRisk,ajCalistir,ajRapor,ajMasada,AJAD,aiSor,AISYS,deanon,aiKey,epCikar,anon,aiKodla,ciro,bakiye,sipAktif,docTop,daysSince,today,plus,fmt,fd,arr,reorderList,sleepers,vadeDurum,aiMesajYaz,ajKey,hav,isChain,isRival,isMobile,adayPuan,normF,tel10,uid_,bolgeOf,VERI_DEF,TSEK,tuk,kodOf,selam,imza,kalemOzet,docAra,AJ,setR:r=>{tara.r=r}};`;
 Object.assign(ctx, { bellek, __ayar: ayar, __data: data, __katalog: Array.isArray(katalog) ? katalog : Object.values(katalog || {}), __users: users || {} });
 vm.runInContext(kaynak, ctx, { filename: "ajan-cekirdek.js" });
 const X = ctx.__api;
@@ -133,7 +133,7 @@ const GOREV_VARS = { tarama: { acik: true, zaman: "sabah" }, epbul: { acik: true
   numuneEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, tekrarEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, caprazEp: { acik: false, zaman: "sabah", hedef: "hepsi" },
   uyuyanEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, tahsilatEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, fiyatEp: { acik: false, zaman: "sabah", hedef: "hepsi" },
   haftalik: { acik: true, zaman: "sabah" }, bildirim: { acik: true, zaman: "her" },
-  kuyruk: { acik: true, zaman: "her" }, hatirlat: { acik: true, zaman: "her" }, risk: { acik: true, zaman: "sabah" }, firsat: { acik: true, zaman: "sabah" }, icerik: { acik: true, zaman: "sabah" } };
+  sevkiyat: { acik: true, zaman: "sabah" }, kuyruk: { acik: true, zaman: "her" }, hatirlat: { acik: true, zaman: "her" }, risk: { acik: true, zaman: "sabah" }, firsat: { acik: true, zaman: "sabah" }, icerik: { acik: true, zaman: "sabah" } };
 const GV = {}; for (const k in GOREV_VARS) GV[k] = Object.assign({}, GOREV_VARS[k], (O.gorevler || {})[k] || {});
 if (O.tarama === false && !(O.gorevler || {}).tarama) GV.tarama.acik = false;
 const elle = env("GITHUB_EVENT_NAME") === "workflow_dispatch";
@@ -163,6 +163,54 @@ async function guncelle(x, alan) {
 const sonGor = x => X.arr(x.gorus).reduce((m, q) => Math.max(m, +q.t || 0), 0);
 const gorusEkle = (x, tip, not) => { const l = X.arr(x.gorus); l.push({ t: Date.now(), tip, not, kim: "🤖 Ajan" }); return l; };
 log((elle ? "Elle çalıştırma" : sabahTuru ? "Günün ilk turu" : "Gün içi tur") + " • görevler: " + Object.keys(GV).filter(k => calis(k)).join(", ")); RAN.clear();
+
+/* ---------- 🚚 0) Fabrika Sevkiyat programından sevkiyat, tahsilat, üretim (yalnızca OKUR; az veri: artımlı sorgu) ---------- */
+if (calis("sevkiyat")) {
+  const SK = String(GIZLI.sevkKul || "").trim(), SP = String(GIZLI.sevkSifre || "");
+  if (!SK || !SP) GSON.sevkiyat = { t: Date.now(), metin: "Bağlantı kurulmamış (Kurulum 9)" };
+  else try {
+    const C = X.SEVK_CFG, DBS = (env("SEVK_DB_URL") || C.db).replace(/\/$/, "");
+    const lg = await istek((env("SEVK_AUTH_URL") || AUTH) + "accounts:signInWithPassword?key=" + C.apiKey, { method: "POST", body: JSON.stringify({ email: C.ep(SK), password: SP, returnSecureToken: true }) });
+    if (!lg.ok) throw new Error("Fabrika Sevkiyat'a giriş olmadı (" + (((lg.j.error || {}).message) || lg.st) + ") — Kurulum 9'daki kullanıcı adı/şifreyi kontrol et");
+    const tk = lg.j.idToken;
+    const sorgu = async (yolu, q) => { const r = await istek(DBS + "/" + yolu + ".json?auth=" + encodeURIComponent(tk) + "&" + q); if (!r.ok) throw new Error(yolu + " okunamadı (" + r.st + (r.st === 401 ? ": izin yok — ajan kullanıcısına Muhasebe rolü + Sevkiyat izni ver" : "") + ")"); return r.j || {}; };
+    const Q = (alan, op, v) => `orderBy=${encodeURIComponent(JSON.stringify(alan))}&${op}=${encodeURIComponent(JSON.stringify(v))}`;
+    const S = (await okuG("ajan/sevkSenk")) || {}, ilk = Date.now() - 365 * 864e5;
+    const [aktif, arsiv, tah, ise] = await Promise.all([
+      sorgu("urunler", Q("durum", "equalTo", "sevk_edildi")),
+      sorgu("dosyalar", Q("onayTarihi", "startAt", (S.dosya || ilk) - 2 * 864e5)),
+      sorgu("tahsilatlar", Q("zaman", "startAt", S.dosya ? Date.now() - 30 * 864e5 : ilk)).catch(e => { log("tahsilat atlandı"); return null; }),
+      sorgu("isEmirleri", Q("eklenmeTarihi", "startAt", Date.now() - 120 * 864e5)).catch(e => { log("iş emirleri atlandı"); return null; })]);
+    const gun = ts => +ts ? X.fmt(new Date(+ts)) : "", yeniler = [], O2 = new Map();
+    const kayit = ad => { ad = String(ad || "").trim(); if (ad.length < 3 || X.KOTU_AD.test(ad) || yeniler.length > 300) return null; let x = X.firmaEsle(ad, data);
+      if (!x) { x = { id: X.uid_(), c: Date.now(), firma: ad, durum: "Müşteri", sektor: "Diğer", kaynak: "🚚 Fabrika Sevkiyat", sevkAd: [ad], mt: Date.now() }; data.push(x); yeniler.push(x); }
+      if (!O2.has(x.id)) O2.set(x.id, { x, sevk: [], tahsil: [], uretim: [] }); return O2.get(x.id); };
+    const sevkEkle = (id, u) => { const o = kayit(u.musteri); if (!o) return; const tar = gun(u.irsaliyeTarihi) || u.tarih || gun(u.onayTarihi); if (!tar) return;
+      o.sevk.push({ k: id, tar, kg: +u.kg || 0, adet: +u.paket || 0, urun: String(u.urunAd || u.urun || "").split("\n")[0].slice(0, 60), no: u.isEmriNo || "", tur: u.irsTur || "irsaliye" }); };
+    const tahEkle = (id, t) => { if (t.durum && t.durum !== "alindi") return; const tut = (+t.nakit || 0) + (+t.cek || 0); if (!tut) return; const o = kayit(t.cari); if (!o) return;
+      o.tahsil.push({ k: id, tar: gun(t.alinmaZaman || t.zaman), tutar: tut, nakit: +t.nakit || 0, cek: +t.cek || 0, makbuz: t.makbuzNo || "" }); };
+    let sonDosya = S.dosya || 0;
+    for (const [id, u] of Object.entries(aktif)) if (u) sevkEkle(id, u);
+    for (const [id, d] of Object.entries(arsiv)) { if (!d) continue; sonDosya = Math.max(sonDosya, +d.onayTarihi || 0); if (d.kaynak === "tahsilat") tahEkle(id, d); else if (d.kaynak === "talimat" || (!d.musteri && d.metin)) continue; else sevkEkle(id, d); }
+    if (tah) for (const [id, t] of Object.entries(tah)) if (t) tahEkle(id, t);
+    if (ise) for (const [, e] of Object.entries(ise)) if (e && e.asama !== "bitti" && !e.aktarildi) { const o = kayit(e.musteri); if (o) o.uretim.push({ no: e.no || "", tar: gun(e.eklenmeTarihi), asama: e.asama || "" }); }
+    let nS = 0, nT = 0, nG = 0;
+    const birlestir = (eski, yeni) => { const m = new Map(X.arr(eski).map(o => [o.k, o])), once = m.size; yeni.forEach(o => m.set(o.k, o)); return { l: [...m.values()].filter(o => o.tar).sort((a, b) => a.tar.localeCompare(b.tar)).slice(-80), n: m.size - once }; };
+    for (const o of O2.values()) {
+      const x = o.x, ch = {}, yeni = yeniler.includes(x);
+      if (o.sevk.length) { const b = birlestir(x.sevk, o.sevk); if (b.n || yeni) { ch.sevk = b.l; ch.sevkSon = b.l.length ? b.l[b.l.length - 1].tar : ""; nS += b.n; } }
+      if (o.tahsil.length) { const b = birlestir(x.tahsil, o.tahsil); if (b.n || yeni) { ch.tahsil = b.l; nT += b.n; } }
+      if (ise && JSON.stringify(X.arr(x.uretim)) !== JSON.stringify(o.uretim)) ch.uretim = o.uretim.length ? o.uretim.slice(0, 10) : null;
+      if (o.sevk.length && x.durum !== "Müşteri") { ch.durum = "Müşteri"; if (!x.mt) ch.mt = Date.now(); }
+      if (!Object.keys(ch).length && !yeni) continue;
+      try { if (yeni) { Object.assign(x, ch); x.u = Date.now(); await yaz("leads/" + x.id, g.tok, x); nG++; } else await guncelle(x, ch); } catch (e) { log("kayıt güncellenemedi"); }
+    }
+    if (ise) for (const x of data) if (X.arr(x.uretim).length && !O2.has(x.id)) await guncelle(x, { uretim: null }).catch(() => { });
+    await yaz("ajan/sevkSenk", g.tok, { dosya: sonDosya || Date.now(), t: Date.now() }).catch(() => { });
+    not_("🚚", `Fabrika Sevkiyat'tan ${nS} yeni sevkiyat ve ${nT} tahsilat işledi${nG ? `; orada olup listede olmayan ${nG} gerçek müşteriyi ekledi` : ""}`, "sevkiyat");
+    log("Sevkiyat köprüsü:", nS, "sevkiyat •", nT, "tahsilat •", nG, "yeni müşteri");
+  } catch (e) { GSON.sevkiyat = { t: Date.now(), metin: "⚠ " + e.message }; log("Sevkiyat köprüsü atlandı:", e.message.replace(/[^\w çğıöşüÇĞİÖŞÜ():—-]/g, "").slice(0, 120)); }
+}
 
 /* ---------- 🔄 1) Takibi kendisi ayarlar ---------- */
 if (calis("takip")) {
