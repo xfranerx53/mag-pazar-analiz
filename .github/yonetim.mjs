@@ -58,6 +58,15 @@ if (env("SA")) {
       if (islem === "kural-yayinla" && hedef && !ayni) { await admin.database().setRules(JSON.stringify(hedef, null, 2)); log("✅ Yeni kurallar YAYINLANDI"); }
       else if (islem === "kural-yayinla") log("ℹ Yayınlamaya gerek yok");
     } catch (e) { hata++; log("❌ Kurallara erişilemedi:", e.message, "— hizmet hesabına 'Firebase Realtime Database Admin' rolü verilmeli"); }
+    /* 🌐 web sitesi teklif formu kuralını GERÇEK veritabanında dene: geçerli talep kabul, eksik talep ret; test kaydı hemen silinir */
+    if (islem === "kural-yayinla" && env("KURAL_HTML")) try {
+      await new Promise(r => setTimeout(r, 4000));
+      const u = DB.replace(/\/$/, "") + "/mag_pazar/talep.json", P = o => fetch(u, { method: "POST", body: JSON.stringify({ kaynak: "site", t: { ".sv": "timestamp" }, ...o }) });
+      const iyi = await P({ tur: "teklif", firma: "TEST - otomatik silinir", tel: "0000000000", test: true }), kotu = await P({ firma: "x" });
+      if (iyi.ok) { const { name } = await iyi.json(); await admin.database().ref("mag_pazar/talep/" + name).remove(); }
+      if (iyi.ok && !kotu.ok) log("✅ Web sitesi formu kuralı çalışıyor (geçerli talep kabul edildi, eksik talep reddedildi; test kaydı silindi)");
+      else { hata++; log(`❌ Web sitesi formu testi: geçerli talep ${iyi.status}, eksik talep ${kotu.status}`); }
+    } catch (e) { log("⚠ Web formu testi yapılamadı:", e.message); }
   }
 }
 

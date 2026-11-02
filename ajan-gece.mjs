@@ -129,7 +129,7 @@ if (D.tarih !== BUGUN) D = { tarih: BUGUN, epN: 0, taramaR: D.taramaR || 0, sonG
 const sabahTuru = D.sabah !== BUGUN;
 /* ---------- 🎛 Görev seçimi: programdaki "Görevler" ekranı (ayar.otonom.gorevler) + elle çalıştırmada seçilenler (ajan/istek) ---------- */
 const GOREV_VARS = { tarama: { acik: true, zaman: "sabah" }, epbul: { acik: true, zaman: "sabah" }, takip: { acik: true, zaman: "sabah" }, rota: { acik: false, zaman: "sabah" },
-  gelen: { acik: true, zaman: "her" }, rapor: { acik: true, zaman: "sabah" }, taslak: { acik: true, zaman: "sabah" },
+  gelen: { acik: true, zaman: "her" }, talep: { acik: true, zaman: "her" }, rapor: { acik: true, zaman: "sabah" }, taslak: { acik: true, zaman: "sabah" },
   tanitim: { acik: true, zaman: "sabah", hedef: "hepsi" }, takipEp: { acik: true, zaman: "sabah", hedef: "hepsi" }, teklifEp: { acik: true, zaman: "sabah", hedef: "hepsi" },
   numuneEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, tekrarEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, caprazEp: { acik: false, zaman: "sabah", hedef: "hepsi" },
   uyuyanEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, tahsilatEp: { acik: false, zaman: "sabah", hedef: "hepsi" }, fiyatEp: { acik: false, zaman: "sabah", hedef: "hepsi" },
@@ -273,10 +273,36 @@ if (calis("sevkiyat")) {
         const karL = Object.values(kar).map(o => ({ ...o, kg: Math.round(o.kg), ciro: Math.round(o.ciro), maliyet: Math.round(o.maliyet), kar: Math.round(o.ciro - o.maliyet), marj: o.ciro ? Math.round((o.ciro - o.maliyet) / o.ciro * 100) : 0 })).sort((a, b) => a.marj - b.marj);
         // 6) zam sinyali: hammadde fiyatının 30 günlük değişimi
         const zam = (ayar.hammadde || []).map(h => { const g = X.arr(h.gecmis), eski = g.filter(q => X.daysSince(q[0]) >= 25).pop() || g[0]; return eski && +eski[1] ? { ad: h.ad, simdi: +h.fiyat, eski: +eski[1], degisim: Math.round((h.fiyat - eski[1]) / eski[1] * 1000) / 10 } : null; }).filter(z => z && Math.abs(z.degisim) >= 3);
-        const fab = { t: now, kuyruk, yuk, hiz: HIZ, gecGun, rota, stok: stok.slice(0, 20), denetim: den.slice(0, 20), karlilik: karL.slice(0, 40), zam, ozet: { acikIs: acik.length, asama: Object.fromEntries(ASM.map(a => [a, kuyruk[a].length])), bekleyenSevk: Object.keys(sevE || {}).length, bekleyenTahsilat: durak.filter(d => d.tur === "tahsilat").length, kritikStok: stok.length } };
+        // 7) ⚠️ fire / arıza (Fabrika Sevkiyat → FİRE / ARIZA kayıtları): makine/aşama başına kayıp, duruş, fire maliyeti
+        let fire = null;
+        try {
+          const UO = Object.values(await sorgu("uretimOlay", Q2("zaman", now - 30 * 864e5)).catch(() => ({})) || {}).filter(x => x && x.tur && +x.zaman);
+          if (UO.length) {
+            const h7 = now - 7 * 864e5, son7 = UO.filter(x => x.zaman >= h7), hamTL = Z.ham.length ? Z.ham.reduce((a, h) => a + (+h.tl || 0), 0) / Z.ham.length : ortM;
+            const top = (l, f) => l.reduce((a, x) => a + (+x[f] || 0), 0), ASN = { ekstruder: "Ekstruder", baski: "Baskı", kesim: "Kesim", depo: "Depo", diger: "Diğer" };
+            const uretim7 = isl.reduce((a, e) => { const d = e.log && e.log.depo; return a + (d && +d.zaman >= h7 ? (+d.kg || 0) : 0); }, 0);
+            const fk7 = top(son7.filter(x => x.tur === "fire"), "kg"), dk7 = top(son7.filter(x => x.tur === "ariza"), "dk");
+            const mk = {}; for (const x of son7) { const ad = x.makine || ASN[x.asama] || x.asama; const o = mk[ad] = mk[ad] || { ad, kg: 0, dk: 0, n: 0 }; o.kg += +x.kg || 0; o.dk += +x.dk || 0; o.n++; }
+            const sb = {}; for (const x of son7) { const k = String(x.sebep || "").split(/[,.;]/)[0].trim().toLocaleLowerCase("tr").slice(0, 40); if (k) sb[k] = (sb[k] || 0) + 1; }
+            const mkL = Object.values(mk).map(o => ({ ...o, kg: Math.round(o.kg * 10) / 10 })).sort((a, b) => (b.dk / 60 + b.kg / 20) - (a.dk / 60 + a.kg / 20));
+            const oran = uretim7 >= 200 ? Math.round(fk7 / (uretim7 + fk7) * 1000) / 10 : null; // üretim kaydı azsa oran yanıltır
+            const enCok = mkL.slice(0, 3).map(o => ({ ad: o.ad, deger: [o.kg ? o.kg + " kg fire" : "", o.dk ? Math.round(o.dk / 6) / 10 + " sa duruş" : ""].filter(Boolean).join(", ") }));
+            const sbL = Object.entries(sb).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([ad, n]) => ({ ad, n }));
+            let oneri = ""; const m1 = mkL[0];
+            const mSeb = ad => { const c = {}; son7.filter(x => (x.makine || ASN[x.asama] || x.asama) === ad && x.sebep).forEach(x => { const k = String(x.sebep).split(/[,.;]/)[0].trim().toLocaleLowerCase("tr").slice(0, 40); c[k] = (c[k] || 0) + 1; }); return (Object.entries(c).sort((a, b) => b[1] - a[1])[0] || [""])[0]; };
+            if (m1 && m1.dk >= 120) oneri = `${m1.ad} son 7 günde ${Math.round(m1.dk / 6) / 10} saat durdu${mSeb(m1.ad) ? " (neden: " + mSeb(m1.ad) + ")" : ""} — önleyici bakım planlayın.`;
+            else if (oran != null && oran >= 5) oneri = `Fire oranı %${oran}${sbL[0] ? "; en sık neden: " + sbL[0].ad : ""} — bu nedene odaklanın.`;
+            else if (m1 && m1.kg >= 50) oneri = `En çok fire ${m1.ad}'de (${m1.kg} kg) — ayar/başlangıç firesini kontrol edin.`;
+            fire = { fireKg: Math.round(fk7 * 10) / 10, durusSaat: Math.round(dk7 / 6) / 10, fireOran: oran, uretimKg: Math.round(uretim7), fireTL7: Math.round(fk7 * hamTL), fireTL30: Math.round(top(UO.filter(x => x.tur === "fire"), "kg") * hamTL), durusSaat30: Math.round(top(UO.filter(x => x.tur === "ariza"), "dk") / 6) / 10,
+              makine: mkL.slice(0, 10), sebep: sbL, enCok, oneri, kgTL: Math.round(hamTL * 100) / 100, kayit: son7.length };
+            const dun = UO.filter(x => x.tur === "ariza" && x.zaman >= now - 26 * 3600e3 && +x.dk >= 60); if (dun.length) SICAK.push(`🔧 Son 24 saatte ${dun.length} uzun arıza: ${dun.slice(0, 2).map(x => (x.makine || ASN[x.asama] || "") + " " + x.dk + " dk").join(", ")}`);
+            if (oran != null && oran >= 8) SICAK.push(`🗑 Fire oranı son 7 günde %${oran} (${fire.fireKg} kg ≈ ${Math.round(fire.fireTL7).toLocaleString("tr-TR")} ₺)`);
+          }
+        } catch (e) { log("fire analizi atlandı"); }
+        const fab = { t: now, fire, kuyruk, yuk, hiz: HIZ, gecGun, rota, stok: stok.slice(0, 20), denetim: den.slice(0, 20), karlilik: karL.slice(0, 40), zam, ozet: { acikIs: acik.length, asama: Object.fromEntries(ASM.map(a => [a, kuyruk[a].length])), bekleyenSevk: Object.keys(sevE || {}).length, bekleyenTahsilat: durak.filter(d => d.tur === "tahsilat").length, kritikStok: stok.length } };
         await yaz("ajan/fabrika", g.tok, fab);
         // personel tarafı (Fabrika Sevkiyat → 🤖 Yapay Zekâ ekranı) — yalnız iş bilgisi, fiyat/kârlılık yazılmaz
-        try { const r = await istek(DBS + "/ai.json?auth=" + encodeURIComponent(tk), { method: "PUT", body: JSON.stringify({ t: now, kuyruk, yuk, gecGun, rota, stok: stok.slice(0, 20) }) }); if (!r.ok) log("Fabrika'ya plan yazılamadı (" + r.st + ")"); } catch (e) { }
+        try { const r = await istek(DBS + "/ai.json?auth=" + encodeURIComponent(tk), { method: "PUT", body: JSON.stringify({ t: now, kuyruk, yuk, gecGun, rota, stok: stok.slice(0, 20), fire: fire ? { fireKg: fire.fireKg, durusSaat: fire.durusSaat, fireOran: fire.fireOran, enCok: fire.enCok, oneri: fire.oneri } : null }) }); if (!r.ok) log("Fabrika'ya plan yazılamadı (" + r.st + ")"); } catch (e) { }
         if (den.length) SICAK.push(`🛡 Fabrika denetim: son 24 saatte ${den.length} dikkat çeken işlem (silme/düzeltme/gece)`);
         const zarar = karL.filter(o => o.marj < 5); if (zarar.length) SICAK.push(`📉 ${zarar.length} müşteride kâr %5'in altında (${zarar.slice(0, 2).map(o => o.musteri).join(", ")})`);
         malMetin += `; fabrika: ${acik.length} açık iş, rota ${rotaL.length} durak, ${stok.length} stok uyarısı${den.length ? ", " + den.length + " denetim uyarısı" : ""}`;
@@ -413,8 +439,32 @@ if (gmailVar && calis("gelen")) {
         const since = new Date(Math.max(Date.now() - 4 * 864e5, (D.sonGelen || 0) - 864e5));
         for await (const m of cl.fetch({ since }, { envelope: true, source: true, uid: true })) gelen.push(m);
       } finally { lock.release(); }
+      const EPG = (await okuG("ajan/epGorulen")) || {}, epgYeni = {}; let yeniSor = 0;
+      const TOPLU = /no-?reply|noreply|mailer-daemon|postmaster|bildirim|notification|newsletter|bulten|bülten|kampanya|info@.*(google|facebook|linkedin|instagram|trendyol|hepsiburada|amazon|n11|getir|yemeksepeti)/i;
       for (const m of gelen) {
-        const kimden = m.envelope && m.envelope.from && m.envelope.from[0] && m.envelope.from[0].address; const x = kimin(kimden); if (!x) continue;
+        const kimden = m.envelope && m.envelope.from && m.envelope.from[0] && m.envelope.from[0].address; const x = kimin(kimden);
+        if (!x) { /* v17.6: listede olmayan biri yazdıysa: fiyat/sipariş isteği mi? → 📥 talep (müşteri kaydı + teklif/iş emri taslağı «talep» görevinde) */
+          if (!calis("talep") || !kimden || String(kimden).toLowerCase() === String(GU).toLowerCase() || TOPLU.test(kimden) || !X.aiKey() || yeniSor >= 10) continue;
+          const mid2 = (m.envelope.messageId || String(m.uid)).replace(/[.#$/[\]]/g, "_"); if (EPG[mid2]) continue;
+          const ml2 = await simpleParser(m.source).catch(() => null); if (!ml2) continue; epgYeni[mid2] = BUGUN;
+          const hd = k => String(ml2.headers && ml2.headers.get && ml2.headers.get(k) || "");
+          if (hd("list-unsubscribe") || /bulk|list|junk/i.test(hd("precedence")) || /auto-/i.test(hd("auto-submitted"))) continue;
+          const mt = String(ml2.text || "").split(/\n>|\nOn .+wrote:|\n.+tarihinde .+ yazdı:/)[0].trim().slice(0, 3000); if (mt.length < 15) continue;
+          yeniSor++;
+          try {
+            X.aiKodla();
+            const j = JSON.parse(String(await X.aiSor(`Poşet/ambalaj üreticisi ${FIRMA}'ın gelen kutusuna, müşteri listesinde OLMAYAN birinden e-posta geldi. Bu bir fiyat/teklif isteği mi, sipariş mi, yoksa başka bir şey mi (reklam, tedarikçi teklifi, iş başvurusu, fatura, banka, kargo vb.)? Yalnız bizden ürün almak isteyenler teklif/siparis sayılır.
+SADECE JSON: {"tur":"teklif"|"siparis"|"diger","firma":"yazanın firması ya da boş","ad":"yazanın adı ya da boş","tel":"mesajda telefon varsa ya da boş","kalem":[{"urun":"","mik":"sayı","birim":"kg|adet|koli|paket","olcu":"ölçü/mikron/baskı bilgisi"}],"ozet":"tek cümle"}`,
+              [{ r: "ben", m: JSON.stringify({ konu: ml2.subject || "", mesaj: mt }) }], { json: true, sicak: 0.1, max: 900 })).replace(/^```(?:json)?|```$/g, ""));
+            if (j.tur === "teklif" || j.tur === "siparis") {
+              await yaz("talep", g.tok, { kaynak: "eposta", tur: j.tur, firma: String(j.firma || "").slice(0, 120), ad: String(j.ad || (m.envelope.from[0].name || "")).slice(0, 80), tel: String(j.tel || "").slice(0, 30), ep: String(kimden).slice(0, 120),
+                kalem: X.arr(j.kalem).slice(0, 6).map(q => ({ urun: String(q.urun || "").slice(0, 80), mik: +String(q.mik || "").replace(",", ".") || 0, birim: String(q.birim || "").slice(0, 12), olcu: String(q.olcu || "").slice(0, 120) })),
+                not: mt.slice(0, 1500), ozet: String(j.ozet || "").slice(0, 200), konu: String(ml2.subject || "").slice(0, 150), mid: String(ml2.messageId || "").slice(0, 200), t: Date.now() }, "POST");
+              okunan++; sinif.istek = (sinif.istek || 0) + 1;
+            }
+          } catch (e) { log("yeni e-posta sınıflanamadı:", String(e.message).slice(0, 60)); }
+          continue;
+        }
         const mid = (m.envelope.messageId || String(m.uid)).replace(/[.#$/[\]]/g, "_");
         if (X.arr(x.epCevapIds).includes(mid)) continue;
         const ml = await simpleParser(m.source).catch(() => null); if (!ml) continue;
@@ -428,9 +478,13 @@ if (gmailVar && calis("gelen")) {
           try {
             X.aiKodla();
             const j = JSON.parse(String(await X.aiSor(`Poşet üreticisi ${FIRMA}'ın e-postasına bir işletmeden cevap geldi. Cevabı sınıfla ve gerekiyorsa kısa, kibar bir yanıt yaz.
-SADECE JSON: {"tur":"ilgileniyor"|"soru"|"iptal"|"olumsuz"|"otomatik","ozet":"tek cümle","cevap":"müşteriye yanıt metni (selam ve imza dahil değil; fiyat/teslim uydurma, bilmediğini 'bugün sizi arayacağız' diye geçiştir) ya da boş"}`,
+SADECE JSON: {"tur":"ilgileniyor"|"soru"|"iptal"|"olumsuz"|"otomatik","istek":"teklif (fiyat soruyor) | siparis (ürün istiyor) | boş","kalem":[{"urun":"","mik":"sayı","birim":"","olcu":""}],"ozet":"tek cümle","cevap":"müşteriye yanıt metni (selam ve imza dahil değil; fiyat/teslim uydurma, bilmediğini 'bugün sizi arayacağız' diye geçiştir) ya da boş"}`,
               [{ r: "ben", m: JSON.stringify({ firmaKodu: X.kodOf(x), sektor: x.sektor || "", gelenMesaj: X.anon(metin) }) }], { json: true, sicak: 0.3, max: 1500 })).replace(/^```(?:json)?|```$/g, ""));
             if (["ilgileniyor", "soru", "iptal", "olumsuz", "otomatik"].includes(j.tur)) tur = j.tur; ozet = X.deanon(j.ozet || ozet); cevap = X.deanon(j.cevap || "");
+            if ((j.istek === "teklif" || j.istek === "siparis") && calis("talep") && tur !== "iptal" && tur !== "olumsuz") { /* teklif/iş emri taslağını «talep» görevi hazırlar */
+              await yaz("talep", g.tok, { kaynak: "eposta", tur: j.istek, lead: x.id, firma: x.firma, ep: String(kimden).slice(0, 120), kalem: X.arr(j.kalem).slice(0, 6).map(q => ({ urun: String(q.urun || "").slice(0, 80), mik: +String(q.mik || "").replace(",", ".") || 0, birim: String(q.birim || "").slice(0, 12), olcu: String(q.olcu || "").slice(0, 120) })),
+                not: metin.slice(0, 1500), ozet: ozet.slice(0, 200), konu: String(ml.subject || "").slice(0, 150), mid: String(ml.messageId || "").slice(0, 200), t: Date.now() }, "POST").catch(() => { });
+              cevap = ""; }
           } catch (e) { log("cevap sınıflanamadı:", e.message); }
         }
         if (otomatik || tur === "otomatik") { x.epCevapIds = [...X.arr(x.epCevapIds), mid].slice(-10); await guncelle(x, { epCevapIds: x.epCevapIds }).catch(() => { }); continue; }
@@ -448,11 +502,87 @@ SADECE JSON: {"tur":"ilgileniyor"|"soru"|"iptal"|"olumsuz"|"otomatik","ozet":"te
         await guncelle(x, ch).catch(e => log("güncellenemedi:", e.message));
       }
       D.sonGelen = Date.now();
+      if (Object.keys(epgYeni).length) { const tut = Object.fromEntries(Object.entries({ ...EPG, ...epgYeni }).filter(([, d]) => X.daysSince(d) <= 10)); await yaz("ajan/epGorulen", g.tok, tut).catch(() => { }); }
     } catch (e) { log("Gmail gelen kutusu hatası:", e.message); if (/auth|credential|password|Invalid/i.test(e.message)) not_("⚠", "Gmail'e girilemedi: uygulama şifresini kontrol et (GMAIL_APP_PASSWORD)"); }
     finally { try { await cl.logout(); } catch (e) { } }
-    not_("📨", `${okunan} e-posta cevabı okudu (ilgilenen ${sinif.ilgileniyor || 0}, soru ${sinif.soru || 0}, iptal ${sinif.iptal || 0}, olumsuz ${sinif.olumsuz || 0})${taslak ? `; ${taslak} cevap taslağını Gmail'de Taslaklar'a hazırladı` : ""}`, "gelen");
+    not_("📨", `${okunan} e-posta okudu (ilgilenen ${sinif.ilgileniyor || 0}, soru ${sinif.soru || 0}, iptal ${sinif.iptal || 0}, olumsuz ${sinif.olumsuz || 0}${sinif.istek ? `, yeni fiyat/sipariş isteği ${sinif.istek}` : ""})${taslak ? `; ${taslak} cevap taslağını Gmail'de Taslaklar'a hazırladı` : ""}`, "gelen");
     log("Gelen kutusu:", okunan, "cevap •", taslak, "taslak");
   }
+}
+
+/* ---------- 📥 v17.6 TALEPLER: müşteri portalı / web sitesi formu / e-posta → müşteri kaydı + fabrikaya iş emri taslağı + teklif taslağı ----------
+   Hiçbir şey kendiliğinden müşteriye gitmez: teklif Gmail «Taslaklar»a konur, iş emri taslağı Fabrika Sevkiyat'ta «📥 Gelen siparişler»de onay bekler. */
+if (calis("talep")) {
+  /* 🌐 web sitesi ve müşteri portalı ürün listesini (fiyatsız; «vitrinde fiyat göster» açıksa fiyatlı) günde bir tazele */
+  if (D.vitrin !== BUGUN) try { const F2 = ayar.firma || {}, KV = ctx.__katalog || [];
+    await yaz("vitrin", g.tok, JSON.parse(JSON.stringify({ firma: { ad: F2.ad || "", tel: F2.tel || "", ep: F2.ep || "", web: F2.web || "" }, para: ayar.para || "TRY", urunler: KV.filter(u => u && u.ad).map(u => ({ id: u.id || "", ad: u.ad, birim: u.birim || "", tip: u.tip || "", ebat: u.ebat || "", ...(ayar.vitrinFiyat ? { fiyat: +u.fiyat || 0 } : {}) })), t: Date.now() })));
+    D.vitrin = BUGUN; } catch (e) { log("vitrin yazılamadı"); }
+  try {
+    const T = (await okuG("talep")) || {};
+    const yeni = Object.entries(T).filter(([, t]) => t && !t.ajan && !t.islendi && !t.test && Date.now() - (+t.t || 0) < 30 * 864e5).sort((a, b) => (a[1].t || 0) - (b[1].t || 0)).slice(0, 15);
+    if (yeni.length) {
+      const KAD = { portal: "Müşteri portalı", site: "Web sitesi", eposta: "E-posta" };
+      // Fabrika Sevkiyat girişi (iş emri taslağı için)
+      let fab = null; const SK = String(GIZLI.sevkKul || "").trim(), SP = String(GIZLI.sevkSifre || "");
+      if (SK && SP) try { const C = X.SEVK_CFG, DBS = (env("SEVK_DB_URL") || C.db).replace(/\/$/, "");
+        const lg = await istek((env("SEVK_AUTH_URL") || AUTH) + "accounts:signInWithPassword?key=" + C.apiKey, { method: "POST", body: JSON.stringify({ email: C.ep(SK), password: SP, returnSecureToken: true }) });
+        if (lg.ok) fab = { DBS, tk: lg.j.idToken }; } catch (e) { }
+      // teklif taslakları için Gmail (IMAP «Taslaklar»)
+      let cl = null, taslakKutu = null;
+      const gmailAc = async () => { if (cl !== null) return !!taslakKutu; cl = false; if (!gmailVar) return false;
+        try { const { ImapFlow } = await import("imapflow"); cl = new ImapFlow({ host: "imap.gmail.com", port: 993, secure: true, auth: { user: GU, pass: GP }, logger: false }); await cl.connect();
+          taslakKutu = ((await cl.list()).find(k => k.specialUse === "\\Drafts") || {}).path || null; } catch (e) { log("Gmail (taslak) açılamadı"); cl = false; } return !!taslakKutu; };
+      const KAT = (ctx.__katalog || []).filter(u => u && u.ad && +u.fiyat > 0).slice(0, 80).map(u => ({ ad: u.ad, birim: u.birim || "kg", fiyat: +u.fiyat, tip: u.tip || "", ebat: u.ebat || "" }));
+      const PB = ayar.para || "TRY", fiyatYaz = n => new Intl.NumberFormat("tr-TR", { style: "currency", currency: PB, maximumFractionDigits: 2 }).format(n);
+      const nE = s => String(s || "").toLowerCase().trim();
+      let nL = 0, nF = 0, nT = 0;
+      for (const [k, t] of yeni) {
+        const kay = t.kaynak || "portal", tur = kay === "portal" ? "siparis" : (t.tur === "siparis" ? "siparis" : "teklif");
+        const kal = X.arr(t.kalem).filter(q => q && (q.urun || q.mik)), ozet = String(t.ozet || kal.map(q => [q.urun, q.mik ? q.mik + " " + (q.birim || "") : ""].filter(Boolean).join(" ")).join(", ") || t.not || "").replace(/\s+/g, " ").slice(0, 140);
+        // 1) müşteri kaydı: varsa bul (lead / e-posta / telefon / firma adı), yoksa aç
+        let x = (t.lead && data.find(v => v.id === t.lead)) || (t.ep && data.find(v => nE(v.eposta) === nE(t.ep))) || (X.tel10(t.tel) && data.find(v => X.tel10(v.telefon) === X.tel10(t.tel))) || (t.firma && data.find(v => X.normF(v.firma) === X.normF(t.firma)));
+        if (!x) { const sahip = ayar.ownerUid || "";
+          x = { id: X.uid_(), c: Date.now(), u: Date.now(), firma: String(t.firma || t.ad || (t.ep ? String(t.ep).split("@")[0] : "") || "Web talebi").slice(0, 120), yetkili: t.ad || "", telefon: t.tel || "", eposta: t.ep || "",
+            durum: "İlgileniyor", izin: "Yok", oncelik: "Sıcak", kaynak: kay === "site" ? "🌐 Web sitesi teklif formu" : "📧 E-posta talebi (gece ajanı)", sonraki: BUGUN, not: "" };
+          if (sahip) { x.sahip = sahip; x.sahipAd = (users && users[sahip] && users[sahip].ad) || ""; }
+          try { await yaz("leads/" + x.id, g.tok, x); data.push(x); nL++; } catch (e) { log("talep müşterisi eklenemedi:", e.message); continue; } }
+        const ch = { ajan: { t: Date.now(), tur }, lead: x.id };
+        const gx = { gorus: gorusEkle(x, "Not", `📥 ${KAD[kay] || kay}: ${tur === "teklif" ? "fiyat/teklif isteği" : "sipariş"} — ${ozet}`), oncelik: "Sıcak", sonraki: BUGUN };
+        if (["Yeni", "İletişim kuruldu"].includes(x.durum)) gx.durum = "İlgileniyor"; if (!x.eposta && t.ep) gx.eposta = t.ep; if (!x.telefon && t.tel) gx.telefon = t.tel;
+        await guncelle(x, gx).catch(() => { });
+        // 2) sipariş → Fabrika Sevkiyat «📥 Gelen siparişler» (iş emri formunu yapay zekâ doldurur, personel Kaydet der). Fiyat GİTMEZ.
+        if (tur === "siparis" && fab) {
+          try { const r = await istek(fab.DBS + "/aiTaslak/" + encodeURIComponent(k) + ".json?auth=" + encodeURIComponent(fab.tk), { method: "PUT", body: JSON.stringify({ t: Date.now(), kaynak: kay, firma: x.firma,
+            kalem: kal.slice(0, 6).map(q => ({ urun: String(q.urun || "").slice(0, 80), mik: +q.mik || 0, birim: String(q.birim || "").slice(0, 12), olcu: String(q.olcu || "").slice(0, 120) })), not: String(t.not || "").slice(0, 600), durum: "yeni" }) });
+            if (r.ok) { ch.ajan.fab = true; nF++; } else log("iş emri taslağı yazılamadı (" + r.st + ")"); } catch (e) { }
+        }
+        // 3) teklif → Gmail Taslaklar'a fiyat teklifi (fiyatlar YALNIZ katalogdan; bilinmeyen ürün için bilgi istenir)
+        if (tur === "teklif" && t.ep && X.aiKey() && await gmailAc()) {
+          try {
+            X.aiKodla();
+            const j = JSON.parse(String(await X.aiSor(`Poşet/ambalaj üreticisi ${FIRMA} adına bir fiyat teklifi e-postası yaz. KURALLAR: Fiyatları YALNIZ verilen katalogdan al, ASLA fiyat uydurma. İstenen ürün katalogda net eşleşmiyorsa (ölçü/mikron/baskı farklı) o kalem için fiyat yazma; hangi bilgiler gerekirse (ölçü, mikron, renk, baskı, adet/kg) kibarca sor ve aynı gün dönüş yapacağımızı söyle. Katalog fiyatları birim başınadır ve KDV hariçtir. Miktar varsa ara toplamı hesapla. Teslim süresi, ödeme vadesi, indirim UYDURMA. Kısa, net, kibar Türkçe. Selam ve imza YAZMA.
+SADECE JSON: {"eslesen":[{"istek":"","katalog":"katalogdaki ad","birimFiyat":0,"birim":"","mik":0}],"govde":"e-posta gövdesi"}`,
+              [{ r: "ben", m: JSON.stringify({ katalog: KAT, istek: { kalemler: kal, mesaj: X.anon(String(t.not || "").slice(0, 1500)) } }) }], { json: true, sicak: 0.2, max: 1800 })).replace(/^```(?:json)?|```$/g, ""));
+            // güvenlik: model katalog dışı fiyat yazdıysa teklif taslağı oluşturma
+            const kotu = X.arr(j.eslesen).some(e => +e.birimFiyat > 0 && !KAT.some(u => u.ad === e.katalog && Math.abs(u.fiyat - +e.birimFiyat) < 0.011));
+            const govde0 = X.deanon(String(j.govde || "")).trim();
+            if (!kotu && govde0.length > 20) {
+              const govde = `Merhaba${t.ad ? " " + t.ad : x.yetkili ? " " + x.yetkili : ""},\n\n${govde0}\n\nSaygılarımızla,${altBilgi().replace(/\nBu e-postaları almak istemiyorsanız.*$/s, "")}`;
+              const konu = t.mid ? (/^re:/i.test(t.konu || "") ? t.konu : "Re: " + (t.konu || "Fiyat teklifi")) : `Fiyat teklifi — ${FIRMA}`;
+              const raw = [`From: ${enc(FIRMA)} <${GU}>`, `To: <${t.ep}>`, `Subject: ${enc(konu)}`, t.mid ? `In-Reply-To: ${t.mid}` : "", t.mid ? `References: ${t.mid}` : "", `Date: ${new Date().toUTCString()}`, "MIME-Version: 1.0", "Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: base64", "", Buffer.from(govde).toString("base64").replace(/.{76}/g, "$&\r\n")].filter((l, i) => l !== "" || i > 8).join("\r\n");
+              await cl.append(taslakKutu, raw, ["\\Draft"]); ch.ajan.teklif = true; nT++;
+              await guncelle(x, { gorus: gorusEkle(x, "E-posta", "📝 Teklif taslağı Gmail → Taslaklar'da hazır (kontrol edip gönder)") }).catch(() => { });
+            } else if (kotu) log("teklif taslağında katalog dışı fiyat çıktı, taslak yazılmadı");
+          } catch (e) { log("teklif taslağı yazılamadı:", String(e.message).slice(0, 60)); }
+        }
+        SICAK.push(`📥 ${x.firma}: ${KAD[kay] || kay} ${tur === "teklif" ? "teklif isteği" : "siparişi"} — ${ozet}${ch.ajan.teklif ? " (teklif taslağı Gmail'de hazır)" : ch.ajan.fab ? " (fabrikada iş emri taslağı hazır)" : ""}`.slice(0, 220));
+        await yaz("talep/" + k, g.tok, ch, "PATCH").catch(e => log("talep işaretlenemedi:", e.message));
+      }
+      if (cl) { try { await cl.logout(); } catch (e) { } }
+      not_("📥", `${yeni.length} gelen talebi işledi${nL ? `, ${nL} yeni müşteri kaydı açtı` : ""}${nF ? `, ${nF} siparişi fabrikaya iş emri taslağı olarak gönderdi` : ""}${nT ? `, ${nT} teklif taslağını Gmail → Taslaklar'a hazırladı` : ""}`, "talep");
+      log("Talepler:", yeni.length, "• yeni müşteri", nL, "• fabrika", nF, "• teklif", nT);
+    }
+  } catch (e) { GSON.talep = { t: Date.now(), metin: "⚠ " + e.message }; log("Talepler atlandı:", String(e.message).slice(0, 80)); }
 }
 
 /* ---------- 📋 5) Ajanlar + Müdür raporu (günün ilk turu) ---------- */
