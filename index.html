@@ -2,7 +2,11 @@
 <html lang="tr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Mag Ambalaj Pazar Analiz</title>
-<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg">
+<script>/* Tek resmi adres: github.io. Eski Cloudflare (pages.dev) adresinden açılırsa buraya yönlendirir. */
+(function(){var H="xfranerx53.github.io",P="/mag-pazar-analiz/";if(!/\.pages\.dev$/i.test(location.hostname))return;
+var T="https://"+H+P+location.search+location.hash,v=false;try{var l=localStorage.getItem("mpz:mag_leads"),c=localStorage.getItem("mpz:mag_synced");v=!!(l&&l.length>2&&c!=="1")}catch(e){}
+if(!v){location.replace(T);return}window.__ESKI_ADRES=T})();</script>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#1F3864">
 <style>
 :root{--bg:#f5f6f8;--card:#fff;--tx:#1b1f24;--mu:#667085;--br:#d9dde3;--pr:#1F3864;--on:#fff;--ac:#e8eef9;--rd:#b42318;--gr:#067647;--or:#b54708;color-scheme:light}
@@ -1680,7 +1684,7 @@ const gUsed=()=>Math.max(+ls.get("mag_g_"+gMon())||0,gCloud);
 const gLeft=()=>(+ayar.gLimit||900)-gUsed();
 function gUse(n){ls.set("mag_g_"+gMon(),String((+ls.get("mag_g_"+gMon())||0)+n));if(root)root.child("sayac/g"+gMon()).transaction(v=>(v||0)+n).then(r=>{gCloud=r.snapshot.val()||0}).catch(()=>{})}
 async function gSync(){if(root){try{gCloud=(await root.child("sayac/g"+gMon()).once("value")).val()||0}catch(e){}}}
-window.gm_authFailure=()=>{gAuthErr="Google anahtarı reddedildi. Anahtarı, izin verilen site adresini (mag-pazar-analiz.pages.dev) ve açık API'leri (Maps JavaScript API + Places API (New)) kontrol et.";$("tstat").textContent=gAuthErr};
+window.gm_authFailure=()=>{gAuthErr="Google anahtarı reddedildi. Anahtarı, izin verilen site adresini (xfranerx53.github.io/mag-pazar-analiz) ve açık API'leri (Maps JavaScript API + Places API (New)) kontrol et.";$("tstat").textContent=gAuthErr};
 async function gLoad(){
  if(gLib)return gLib;
  if(!(window.google&&google.maps&&google.maps.importLibrary))await new Promise((res,rej)=>{window.__gcb=res;const s=document.createElement("script");s.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(ayar.googleKey)+"&v=weekly&loading=async&language=tr&region=TR&callback=__gcb";s.onerror=()=>rej(new Error("Google Haritalar yüklenemedi (anahtar veya internet)."));document.head.appendChild(s)});
@@ -2271,4 +2275,7 @@ NAVOF.ajan="diger";
 {const _rt=renderToday;renderToday=function(){_rt();try{const k=ajOzetKart();if(k)$("today").insertAdjacentHTML("afterbegin",k)}catch(e){console.warn(e)}}}
 {const _r=render;render=function(){_r();if(tab==="ajan")try{renderAjan()}catch(e){console.warn(e)}}}
 try{renderToday()}catch(e){}
+
+/* eski adreste (pages.dev) yalnızca bu cihazda kayıt varsa: önce yedek, sonra yeni adres */
+if(window.__ESKI_ADRES){const T=window.__ESKI_ADRES;document.body.insertAdjacentHTML("afterbegin",`<div style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px"><div class="card" style="max-width:420px"><h3>📍 Programın adresi değişti</h3><p>Yeni ve tek adres:<br><b>xfranerx53.github.io/mag-pazar-analiz</b></p><p class="mu">Bu eski adreste bulutla eşitlenmemiş kayıtların var. Önce yedeği indir, yeni adreste ☁ Bulut / Araçlar → yedekten geri yükle ile aç.</p><div class="row"><button class="p" onclick="exportJson()">📥 Yedeği indir</button><button onclick="location.replace('${T}')">Yeni adrese git ›</button></div></div></div>`)}
 </script></body></html>

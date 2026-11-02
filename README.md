@@ -2,7 +2,7 @@
 
 > **Programın asıl amacı:** Seçilen konumun çevresinde (yarıçap / mesafe) potansiyel müşteri işletmeleri **otomatik taramak**, bilgilerini (ad, adres, telefon, web, uzaklık) vermek ve seçilenleri takip listesine almak. Ana ekran: **🔍 Çevrede Tara**. Teklif / sipariş / tahsilat gibi bölümler bulunan müşterilerin takibi için arkada durur.
 
-**Site:** https://mag-pazar-analiz.pages.dev (Cloudflare Pages; GitHub `xfranerx53/mag-pazar-analiz` → `main` dalına her yüklemede otomatik yayınlanır)
+**Site (tek resmi adres):** https://xfranerx53.github.io/mag-pazar-analiz/ (GitHub Pages; `xfranerx53/mag-pazar-analiz` → `main` dalına her yüklemede otomatik yayınlanır). Eski Cloudflare adresi (mag-pazar-analiz.pages.dev) Türkiye'de açılmadığı için kullanılmıyor; açılırsa kendiliğinden buraya yönlendirir.
 **Yapı:** Tek dosya `index.html` + `sw.js` (çevrimdışı önbellek) + `manifest.webmanifest` + `icon.svg`. Derleme yok.
 **Bulut:** Firebase projesi `mag-pazar` — Realtime Database (europe-west1), giriş: E-posta/Şifre. Ayarlar `index.html` içine gömülü.
 **Tarama kaynakları:** OpenStreetMap Overpass API (ücretsiz, anahtarsız; overpass-api.de, yedek overpass.kumi.systems) + isteğe bağlı Google Maps JavaScript API / Places (anahtar ⚙ Ayarlar'da, aylık sorgu sınırı ile). Adres → konum: Nominatim (OSM).
@@ -116,6 +116,8 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
   - *Kurallar* (Ajanlar ekranının altında, yönetici kaydeder → `ayar.ajan`): asgari kâr %10, vade 30 gün, vade farkı aylık %4, teklif takibi 3 gün, günlük 10 aday, hammadde hatırlatma 15 gün.
   - sw.js önbellek sürümü mag-v16.
 
+- **v11.1 (02.11.2026) — tek adres:** Program yalnızca https://xfranerx53.github.io/mag-pazar-analiz/ adresine bağlı. Uygulama bilgisi (manifest) bu adrese sabitlendi (id / start_url / scope), Android için PNG simgeler eklendi (192, 512, maskable) → Chrome'dan "Uygulamayı yükle / Ana ekrana ekle" bu adresle kurulur. pages.dev'den açılırsa github.io'ya yönlendirir; o cihazda bulutla eşitlenmemiş kayıt varsa önce yedek indirmeyi önerir. sw.js önbellek mag-v17.
+
 ## Kâr modeli — ücretsiz ajan yol haritası
 Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullanılırsa, ileride kendi altyapımızla değiştirilebilecek şekilde bağlanır (Geoapify → mag-veri örneğinde olduğu gibi).
 1. ✅ **Ajan Merkezi (v11)** — kural tabanlı ajanlar, program içinde.
@@ -129,7 +131,7 @@ Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullan�
 1. console.cloud.google.com → yeni proje (veya mevcut `mag-pazar` Firebase projesi).
 2. Faturalandırma hesabı bağla (kart ister; aylık ücretsiz kota aşılmadıkça ücret çıkmaz). Places "Enterprise" alanları (telefon, web, puan) için ayda yaklaşık 1.000 sorgu ücretsiz; her sorgu en çok 20 işletme getirir.
 3. APIs & Services → Library: **Maps JavaScript API** ve **Places API (New)** → Enable.
-4. Credentials → Create credentials → API key → Application restrictions: **Websites** → `https://mag-pazar-analiz.pages.dev/*` ; API restrictions: yukarıdaki iki API.
+4. Credentials → Create credentials → API key → Application restrictions: **Websites** → `https://xfranerx53.github.io/mag-pazar-analiz/*` ; API restrictions: yukarıdaki iki API.
 5. Anahtarı sitede ⚙ Ayarlar → "Google API anahtarı" alanına yapıştır, "Aylık Google sorgu sınırı" 900 kalsın.
 6. Güvenlik için Google Cloud → Billing → Budgets & alerts'ten 1 ₺ / 1 $'lık bütçe uyarısı kur.
 
