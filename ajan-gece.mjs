@@ -108,7 +108,7 @@ ${kodlar.map(k => k[1]).join("\n")}
 ${CEKIRDEK}
 ${AI}
 ${V16}
-globalThis.__api={SEVK_CFG,KOTU_AD,firmaEsle,riskAnaliz,firsatAra,icerikPlani,ajStok,ajRisk,ajCalistir,ajRapor,ajMasada,AJAD,aiSor,AISYS,deanon,aiKey,epCikar,anon,aiKodla,ciro,bakiye,sipAktif,docTop,daysSince,today,plus,fmt,fd,arr,reorderList,sleepers,vadeDurum,aiMesajYaz,ajKey,hav,isChain,isRival,isMobile,adayPuan,normF,tel10,uid_,bolgeOf,VERI_DEF,TSEK,tuk,kodOf,selam,imza,kalemOzet,docAra,AJ,setR:r=>{tara.r=r}};`;
+globalThis.__api={malOzet,SEVK_CFG,KOTU_AD,firmaEsle,riskAnaliz,firsatAra,icerikPlani,ajStok,ajRisk,ajCalistir,ajRapor,ajMasada,AJAD,aiSor,AISYS,deanon,aiKey,epCikar,anon,aiKodla,ciro,bakiye,sipAktif,docTop,daysSince,today,plus,fmt,fd,arr,reorderList,sleepers,vadeDurum,aiMesajYaz,ajKey,hav,isChain,isRival,isMobile,adayPuan,normF,tel10,uid_,bolgeOf,VERI_DEF,TSEK,tuk,kodOf,selam,imza,kalemOzet,docAra,AJ,setR:r=>{tara.r=r}};`;
 Object.assign(ctx, { bellek, __ayar: ayar, __data: data, __katalog: Array.isArray(katalog) ? katalog : Object.values(katalog || {}), __users: users || {} });
 vm.runInContext(kaynak, ctx, { filename: "ajan-cekirdek.js" });
 const X = ctx.__api;
@@ -207,7 +207,26 @@ if (calis("sevkiyat")) {
     }
     if (ise) for (const x of data) if (X.arr(x.uretim).length && !O2.has(x.id)) await guncelle(x, { uretim: null }).catch(() => { });
     await yaz("ajan/sevkSenk", g.tok, { dosya: sonDosya || Date.now(), t: Date.now() }).catch(() => { });
-    not_("🚚", `Fabrika Sevkiyat'tan ${nS} yeni sevkiyat ve ${nT} tahsilat işledi${nG ? `; orada olup listede olmayan ${nG} gerçek müşteriyi ekledi` : ""}`, "sevkiyat");
+    /* 🧮 maliyet: Fabrika programındaki ADET & MALİYET → hammadde fiyatları + ürün maliyetleri (tek kaynak orası) */
+    let malMetin = "";
+    try {
+      const M = await sorgu("maliyet", "print=pretty"), Z = X.malOzet(M), KAT = ctx.__katalog, nf = s => String(s || "").toLocaleLowerCase("tr").replace(/[^a-z0-9çğıöşü]/g, "");
+      let hD = 0, uD = 0, uY = 0;
+      const HL = Array.isArray(ayar.hammadde) ? ayar.hammadde : [];
+      for (const h of Z.ham) { let m = HL.find(x => nf(x.ad) === nf(h.ad)); if (!m) { m = { ad: h.ad, fiyat: 0, gecmis: [] }; HL.push(m); }
+        const g2 = X.arr(m.gecmis), son = g2[g2.length - 1]; m.kaynak = "🧮 Fabrika maliyet";
+        if (Math.abs((+m.fiyat || 0) - h.tl) > Math.max(0.01, h.tl * 0.002) || !son || X.daysSince(son[0]) >= 7) { if (Math.abs((+m.fiyat || 0) - h.tl) > 0.01) hD++; m.fiyat = h.tl; m.gecmis = [...g2.filter(q => q[0] !== BUGUN), [BUGUN, h.tl]].slice(-24); } }
+      ayar.hammadde = HL; if (Z.ham.length) await yaz("ayar/hammadde", g.tok, HL);
+      for (const u of Z.urun) { if (!(u.mal > 0) || u.uyar.length) continue; /* eksik kartla yanlış maliyet yazma */ let k = KAT.find(x => x.malId === u.id) || KAT.find(x => nf(x.ad) === nf(u.ad));
+        const adetli = k ? /adet|paket|koli|top/i.test(k.birim || "") && u.adetMal > 0 : false, mal = Math.round((adetli ? u.adetMal : u.mal) * 10000) / 10000;
+        if (!k) { k = { id: X.uid_(), ad: u.ad, tip: u.grup, birim: "kg", fiyat: Math.round(u.fF * 100) / 100, maliyet: Math.round(u.mal * 100) / 100, malId: u.id, kaynak: "🧮 Fabrika maliyet" }; KAT.push(k); uY++; continue; }
+        if (Math.abs((+k.maliyet || 0) - mal) > 0.0001) { k.maliyet = mal; uD++; } k.malId = u.id; k.malT = BUGUN; }
+      if (Z.urun.length) await yaz("katalog", g.tok, KAT);
+      await yaz("ajan/maliyetDurum", g.tok, { t: Date.now(), urunN: Z.urun.length, hamN: Z.ham.length, eksik: Z.eksik.slice(0, 40), giderKaynak: Z.giderKaynak || "" });
+      malMetin = `; maliyet: ${Z.ham.length} hammadde${hD ? ` (${hD} fiyat değişti)` : ""}, ${Z.urun.length} ürün${uD ? ` (${uD} maliyet güncellendi)` : ""}${uY ? `, ${uY} yeni ürün kataloğa eklendi` : ""}${Z.eksik.length ? `, ${Z.eksik.length} eksik var` : ""}`;
+      log("Maliyet:", Z.ham.length, "hammadde •", Z.urun.length, "ürün •", Z.eksik.length, "eksik");
+    } catch (e) { malMetin = /401|izin/.test(e.message) ? "; maliyet bölümüne okuma izni yok (Fabrika Sevkiyat kuralını yayınla)" : "; maliyet okunamadı"; await yaz("ajan/maliyetDurum", g.tok, { t: Date.now(), hata: malMetin.slice(2) }).catch(() => { }); }
+    not_("🚚", `Fabrika Sevkiyat'tan ${nS} yeni sevkiyat ve ${nT} tahsilat işledi${nG ? `; orada olup listede olmayan ${nG} gerçek müşteriyi ekledi` : ""}${malMetin}`, "sevkiyat");
     log("Sevkiyat köprüsü:", nS, "sevkiyat •", nT, "tahsilat •", nG, "yeni müşteri");
   } catch (e) { GSON.sevkiyat = { t: Date.now(), metin: "⚠ " + e.message }; log("Sevkiyat köprüsü atlandı:", e.message.replace(/[^\w çğıöşüÇĞİÖŞÜ():—-]/g, "").slice(0, 120)); }
 }

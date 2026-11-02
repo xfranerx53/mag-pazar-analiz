@@ -3202,6 +3202,26 @@ function firmaEsle(ad,L){const n=normF(ad);if(n.length<3)return null;L=L||data;
  return L.find(x=>normF(x.firma)===n||normF(x.unvan||"")===n||arr(x.sevkAd).some(a=>normF(a)===n))||L.find(x=>{const a=normF(x.firma);return a.length>=6&&n.length>=6&&(n.startsWith(a)||a.startsWith(n))})}
 function sevkOzet(x){const s=arr(x.sevk);if(!s.length)return"";const g=s.filter(o=>o.tar&&daysSince(o.tar)<=90),kg=g.reduce((a,o)=>a+(+o.kg||0),0);
  return`son sevk ${fd(s[s.length-1].tar)} • son 90 günde ${g.length} sevkiyat${kg?", "+NUM(Math.round(kg))+" kg":""}`}
+/* --- 🧮 Fabrika programındaki ADET & MALİYET hesabının aynısı (maliyet.js v129) — tek doğru kaynak orası --- */
+function malOzet(M){M=M||{};const A=Object.assign({kurTur:"efektif",kdv:20,kdvYuk:10,elektrik:10,genel:20,giderKaynak:"sabit",giderAy:""},M.ayar||{}),K=M.kur||{},H=M.hammadde||{},R=M.recete||{},G=M.gider||{},U=M.urun||{};
+ const GK=["elektrik","dogalgaz","personel","kira","nakliye","bakim","diger"];
+ const kur=pb=>{if(!pb||pb==="TRY")return 1;const k=K[pb]||{};return +(A.kurTur==="doviz"?(k.doviz||k.efektif):(k.efektif||k.doviz))||0};
+ const hTL=h=>h?(+h.fiyat||0)*kur(h.pb)/(h.kdvDahil?(1+A.kdv/100):1):0;
+ const rec=rid=>{const r=R[rid];if(!r)return{tl:0,yog:.93,top:0,eksik:true};let tl=0,inv=0,top=0,eks=false;Object.keys(r.b||{}).forEach(hid=>{const o=+r.b[hid]||0,h=H[hid];if(!h||o<=0){if(o>0)eks=true;return}top+=o;tl+=o/100*hTL(h);inv+=o/100/(+h.yog||.93)});return{tl,yog:inv>0?(top/100)/inv:.93,top,eksik:eks}};
+ const gAy=a=>{const g=G[a];if(!g)return null;const top=GK.reduce((s,k)=>s+(+((g.k||{})[k])||0),0),kg=+g.kgElle||+g.kgOto||0;return{top,kg,tlKg:kg>0?top/kg:0}};
+ const urun=Object.entries(U).map(([id,u])=>{const r=rec(u.recete),uy=[];if(!R[u.recete])uy.push("reçete seçilmemiş");else if(Math.abs(r.top-100)>.01)uy.push("reçete toplamı %"+Math.round(r.top));if(r.eksik&&R[u.recete])uy.push("reçetedeki hammadde silinmiş");
+  const ek=(+u.boya||0)+(+u.baski||0)+(+u.ekDiger||0),fire=(r.tl+ek)*(+u.fire||0)/100,gm=A.giderKaynak==="aylik"?gAy(A.giderAy):null;
+  const gider=gm&&gm.tlKg>0?gm.tlKg:(u.elektrik!=null?+u.elektrik:+A.elektrik)+(u.genel!=null?+u.genel:+A.genel);
+  let gram=0,adetKg=0,pkKg=0;if(u.tur==="adet"){gram=((+u.en||0)+(+u.koruk||0))*(+u.boy||0)*(+u.kat||2)*(+u.mikron||0)*r.yog/10000*(1+(+u.duz||0)/100);adetKg=gram>0?1000/gram:0;pkKg=(+u.paketAdet||0)*gram/1000;if(!(gram>0))uy.push("ölçü eksik")}else pkKg=+u.paketKg||0;
+  const pk=(+u.koli||0)+(+u.masura||0)+(+u.bicak||0)+(+u.pDiger||0),paket=pkKg>0?pk/pkKg:0,mal=r.tl+ek+fire+gider+paket;
+  return{id,ad:u.ad||"",grup:u.grup||"",tur:u.tur||"adet",mal,adetMal:adetKg>0?mal/adetKg:0,gram,fF:mal*(1+(+u.marjF||0)/100),uyar:uy}}).filter(o=>o.ad);
+ const eksik=[];if(Object.keys(H).length&&!kur("USD")&&Object.values(H).some(h=>h.pb&&h.pb!=="TRY"))eksik.push("Döviz kuru girilmemiş");
+ Object.values(H).forEach(h=>{if(!(+h.fiyat>0))eksik.push(`${h.ad||"Bir hammadde"}: fiyat yok`)});
+ if(!Object.keys(U).length)eksik.push("Hiç ürün kartı yok");urun.filter(o=>o.uyar.length).forEach(o=>eksik.push(`${o.ad}: ${o.uyar.join(", ")}`));
+ const d=new Date(),gecen=fmt(new Date(d.getFullYear(),d.getMonth()-1,15)).slice(0,7);if(!G[gecen])eksik.push(`${gecen} ayının giderleri girilmemiş`);
+ if(A.giderKaynak==="aylik"&&!gAy(A.giderAy))eksik.push("Seçili gider ayı ("+(A.giderAy||"-")+") boş; sabit değer kullanılıyor");
+ return{ham:Object.values(H).filter(h=>h.ad&&+h.fiyat>0).map(h=>({ad:h.ad,tl:Math.round(hTL(h)*100)/100})),urun,eksik,giderKaynak:A.giderKaynak}}
+
 /* --- 🎪 FIRSAT AVCISI: Google'da yeni açılış, ihale, fuar, etkinlik --- */
 const firsatIlce=()=>arr(ayar.otonom&&ayar.otonom.firsatIlceler).filter(Boolean);
 const firsatBolge=()=>(firsatIlce().length?firsatIlce().join(", "):(ayar.otonom&&ayar.otonom.firsatBolge)||"Silivri, Büyükçekmece, Çatalca, Beylikdüzü, Esenyurt, Arnavutköy (İstanbul) ve Tekirdağ (Çorlu, Çerkezköy, Marmaraereğlisi)");
@@ -3283,7 +3303,7 @@ bolgeHtml=()=>"";
 /* --- buluttan ofis verisi (günlük, fırsat, içerik, hatırlatma, bekleyen e-postalar) --- */
 let OF={gunluk:[],firsat:null,icerik:null,takvim:{},kuyruk:{},t:0};
 async function ofisYukle(zorla){if(!root||!isAdmin()||cloudState!=="on")return;if(!zorla&&Date.now()-OF.t<60000)return;OF.t=Date.now();
- try{const[g,f,i,t,k]=await Promise.all([root.child("ajan/gunluk").orderByKey().limitToLast(4).once("value"),root.child("ajan/firsat").once("value"),root.child("ajan/icerik").once("value"),root.child("ajan/takvim").once("value"),root.child("ajan/kuyruk").once("value")]);
+ try{const[g,f,i,t,k]=await Promise.all([root.child("ajan/gunluk").orderByKey().limitToLast(4).once("value"),root.child("ajan/firsat").once("value"),root.child("ajan/icerik").once("value"),root.child("ajan/takvim").once("value"),root.child("ajan/kuyruk").once("value"),root.child("ajan/maliyetDurum").once("value")]).then(r=>{OF.maliyet=r[5].val();return r});
   OF.gunluk=Object.entries(g.val()||{}).flatMap(([d,o])=>arr(o&&o.isler).map(q=>({...q,d}))).sort((a,b)=>(a.t||0)-(b.t||0));
   OF.firsat=f.val();OF.icerik=i.val();OF.takvim=t.val()||{};OF.kuyruk=k.val()||{}}catch(e){}
  if(tab==="ajan")renderAjan();else if(tab==="akis")renderAkis()}
@@ -3607,6 +3627,7 @@ OFIS.splice(2,0,{k:"sevkiyat",ik:"🚚",ad:"Sevkiyat Köprüsü",is:"Fabrika pro
 AJLER.push({k:"sevkiyat",ik:"🚚",ad:"Sevkiyat Köprüsü",ac:"Fabrika Sevkiyat programından gelen gerçek sevkiyat, tahsilat ve üretim bilgisi."});
 function sevkKurHtml(){if(!isAdmin())return"";const v=gorevSon.sevkiyat;
  return`<div class="card"><h3>9. 🚚 Fabrika Sevkiyat programına bağlan</h3><div class="mu" style="line-height:1.5">Ajan her sabah Fabrika Sevkiyat programındaki <b>teslim edilen sevkiyatları, tahsilatları ve üretimdeki iş emirlerini</b> okuyup buradaki müşterilere işler. Oraya hiçbir şey yazmaz.<br>
+ Aynı hesapla <b>🧮 ADET & MALİYET</b> bölümündeki hammadde fiyatlarını ve ürün maliyetlerini de okur; Mag Pazar'daki hammadde fiyatları ve ürün maliyetleri oradan kendiliğinden güncellenir (bunun için Fabrika Sevkiyat'ın Firebase kuralına bir kez okuma izni eklenir).<br>
  <b>Bir kerelik:</b> Fabrika Sevkiyat → 🛡️ Yönetici paneli → Kullanıcılar → <b>＋ Yeni kullanıcı hesabı aç</b>: Ad <b>🤖 Ajan</b>, kullanıcı adı <b>magajan</b>, bir şifre, rol <b>Muhasebe</b>. Sonra o kullanıcının <b>🔔 Kişiye özel izinler</b>inden <b>Sevkiyat</b> iznini aç (teslim edilenleri görebilsin). Aynı kullanıcı adı ve şifreyi aşağıya yaz.</div>
  <div class="g3"><div><label>Kullanıcı adı</label><input id="svK" value="${esc(gizB.sevkKul||"")}" placeholder="magajan" autocomplete="off"></div><div><label>Şifre</label><div class="row"><input id="svP" type="password" value="${esc(gizB.sevkSifre||"")}" autocomplete="new-password" style="flex:1"><button type="button" onclick="$('svP').type=$('svP').type==='password'?'text':'password'">👁</button></div></div></div>
  <div class="row"><button class="p" data-a="svkay">💾 Kaydet ve şimdi eşitle</button></div>
@@ -3634,6 +3655,13 @@ function sevkSayfa(){const S=[],T=[],U=[];data.forEach(x=>{arr(x.sevk).forEach(o
  <div class="card"><h3>🚚 Son sevkiyatlar</h3>${S.slice(0,25).map(z=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--br);padding:3px 0"><span><b>${esc(z.x.firma)}</b><div class="mu">${esc(z.o.urun||"")}${z.o.no?" • "+esc(z.o.no):""}</div></span><span class="mu" style="text-align:right">${fd(z.o.tar)}<br>${z.o.kg?NUM(z.o.kg)+" kg":""}</span></div>`).join("")||'<div class="mu">Henüz yok.</div>'}</div>
  <div class="card"><h3>💰 Son tahsilatlar</h3>${T.slice(0,15).map(z=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--br);padding:3px 0"><span>${esc(z.x.firma)}</span><span class="mu">${fd(z.o.tar)} • <b>${TL(z.o.tutar)}</b></span></div>`).join("")||'<div class="mu">Henüz yok.</div>'}</div>
  ${U.length?`<div class="card"><h3>🏭 Üretimdeki iş emirleri</h3>${U.map(z=>`<div class="mu">• ${esc(z.x.firma)} — ${esc(z.o.no)} (${esc(z.o.asama||"")}) ${fd(z.o.tar)}</div>`).join("")}</div>`:""}`}
+function malKart(){const m=OF.maliyet;if(!m)return"";if(m.hata)return`<div class="card warn-c"><b>🧮 Maliyet:</b> ${esc(m.hata)}</div>`;
+ return`<div class="card"><h3>🧮 Maliyet bağlantısı</h3><div class="mu">${saatTxt(m.t)} • ${m.hamN||0} hammadde fiyatı ve ${m.urunN||0} ürün maliyeti Fabrika Sevkiyat → ADET & MALİYET'ten alındı${m.giderKaynak==="aylik"?" (aylık gerçek giderle)":""}.</div>
+ ${arr(m.eksik).length?`<div style="margin-top:6px"><b>Tamamlanması gerekenler (${m.eksik.length}):</b>${m.eksik.slice(0,15).map(e=>`<div class="mu">• ${esc(e)}</div>`).join("")}<div class="mu">Bunları Fabrika Sevkiyat'ta tamamlayınca ajan ertesi sabah kendisi alır.</div></div>`:'<div class="mu">✅ Eksik yok.</div>'}</div>`}
+{const _ss=sevkSayfa;sevkSayfa=function(){return _ss()+malKart()};window.ajOzel.sevkiyat=sevkSayfa}
+{const _ac=ajCalistir;ajCalistir=function(){const l=_ac(),m=OF&&OF.maliyet;if(!m)return l;const kap=ajKapali();
+ const ek=(m.hata?[m.hata]:arr(m.eksik)).slice(0,5).map(e=>({ag:"fiyat",sev:"bilgi",bas:"Maliyet tablosu: "+e,det:"Fabrika Sevkiyat → 🧮 ADET & MALİYET'te tamamlayınca ajan ertesi sabah kendisi alır; Fiyat Bekçisi gerçek maliyetle çalışır.",etki:0,act:[{a:"svgit",lb:"🚚 Ayrıntı"}]})).filter(o=>!kap[ajKey(o)]);return l.concat(ek)}}
+A.svgit=()=>{ajFiltre="sevkiyat";go("ajan")};
 A.svesit=async()=>{const m=await sunucudaYap(["sevkiyat"]);tost(m?"↻ Ajan eşitliyor (2-4 dk)":"GitHub bağlantısı yok (Kurulum 8)",5000)};
 window.ajOzel.sevkiyat=sevkSayfa;
 
