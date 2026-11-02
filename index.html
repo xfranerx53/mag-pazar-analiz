@@ -1,5 +1,25 @@
 <!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
+<script>/* Otomatik hata kaydı (Mag Pazar v17.2) — Uygulamada çıkan hataları ve kullanıcıya gösterilen hata mesajlarını sessizce kaydeder (v131).
+   Telefonda biriktirir (localStorage, en çok 40), giriş yapılmışsa 20 sn'de bir Firebase `mag_pazar/hata/` altına gönderir.
+   Amaç: kullanıcı anlatmadan Claude'un hatayı görüp çözebilmesi. Yalnız yönetici okur (rules.json). Şifre/fotoğraf yazılmaz. */
+(function(){
+  var K="mag_hata",V="v17.2";
+  function oku(){try{return JSON.parse(localStorage.getItem(K))||[]}catch(e){return[]}}
+  function cihaz(){var u=navigator.userAgent||"";return(/Android/.test(u)?"Android":/iPhone|iPad/.test(u)?"iOS":/Windows/.test(u)?"Windows":/Mac/.test(u)?"Mac":"diger")+" "+(/Edg\//.test(u)?"Edge":/Chrome\//.test(u)?"Chrome":/Safari\//.test(u)?"Safari":/Firefox\//.test(u)?"Firefox":"")+(matchMedia&&matchMedia("(display-mode: standalone)").matches?" (uygulama)":"")}
+  function ekle(tur,m,s){try{m=String(m==null?"":m).replace(/\s+/g," ").trim().slice(0,400);if(!m)return;var l=oku(),son=l[l.length-1];
+    if(son&&son.m===m&&Date.now()-son.t<120000){son.n=(son.n||1)+1}else l.push({t:Date.now(),tur:tur,m:m,s:String(s||"").slice(0,800),v:V,ekran:(typeof tab!=="undefined"?tab:"")+(typeof ajFiltre!=="undefined"?"/"+ajFiltre:""),cihaz:cihaz()});
+    localStorage.setItem(K,JSON.stringify(l.slice(-40)))}catch(e){}}
+  window.hataKaydet=ekle;
+  window.addEventListener("error",function(e){if(!e.message)return;ekle("hata",e.message+(e.filename?" @"+String(e.filename).split("/").pop().split("?")[0]+":"+e.lineno+":"+e.colno:""),e.error&&e.error.stack)});
+  window.addEventListener("unhandledrejection",function(e){var r=e.reason||{};ekle("hata",(r.code?r.code+" ":"")+(r.message||String(r)),r.stack)});
+  var A=window.alert;window.alert=function(m){ekle("uyari",m);return A.apply(this,arguments)};
+  function sar(){/* kullanıcıya gösterilen hata metinleri (app.js errText) */
+    if(typeof window.cloudErr==="function"&&!window.cloudErr.__s){var o=window.cloudErr;window.cloudErr=function(m){if(m)ekle("mesaj",m);return o.apply(this,arguments)};window.cloudErr.__s=1}}
+  function gonder(){try{sar();if(!window.firebase||!firebase.apps.length)return;var u=firebase.auth().currentUser;if(!u)return;var l=oku();if(!l.length)return;
+    localStorage.setItem(K,"[]");l.forEach(function(o){o.u=u.uid;firebase.database().ref("mag_pazar/hata").push(o).catch(function(){})})}catch(e){}}
+  window.addEventListener("load",function(){sar();setTimeout(gonder,8000)});setInterval(gonder,20000);
+})();</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Mag Ambalaj Pazar Analiz</title>
 <script>/* Tek resmi adres: github.io. Eski Cloudflare (pages.dev) adresinden açılırsa buraya yönlendirir. */
@@ -1334,6 +1354,7 @@ function rulesText(O){
   vitrin:{".read":true,".write":ADM},
   musteri:{"$t":{".read":true,".write":APP}},
   ajan:{".read":ADM,".write":ADM,abone:{"$u":{".read":"auth != null && auth.uid === $u",".write":"auth != null && auth.uid === $u"}}},
+  hata:{".read":ADM,".write":ADM,".indexOn":["t"],"$k":{".write":"auth != null && !data.exists()",".validate":"newData.hasChildren(['t','m']) && newData.child('m').isString() && newData.child('m').val().length <= 400 && newData.child('u').val() === auth.uid"}},
   talep:{".read":APP,"$k":{".write":`${APP} || (!data.exists() && newData.child('token').isString() && root.child('mag_pazar/musteri/'+newData.child('token').val()).exists())`}}}}},null,2);
 }
 function cloudUi(){

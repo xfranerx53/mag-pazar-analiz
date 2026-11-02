@@ -23,6 +23,24 @@ if (env("SA")) {
     if (islem === "saglik") for (const k of ust) { try { const n = Object.keys(await sig(kok + k)).length; log(`   • ${k}: ${n} kayıt`); } catch (e) { log(`   • ${k}: okunamadı`); } }
   } catch (e) { hata++; log("❌ Veritabanı okunamadı:", e.message, "— hizmet hesabının 'Firebase Realtime Database Admin' rolü var mı?"); }
 
+  /* 🩺 teşhis: tüm veriyi (fotoğraf ve gizli anahtarlar HARİÇ) ./teshis/ klasörüne yazar; iş akışı bunu ÖZEL depoya (mag-yonetim) gönderir.
+     Herkese açık kayda (log) yalnız sayılar yazılır. 30 günden eski hata kayıtları silinir. */
+  if (islem === "teshis") {
+    const kok = env("KOK"), HARIC = new Set(env("HARIC").split(",").map(x => x.trim()).filter(Boolean));
+    const temizle = v => { if (typeof v === "string") return /^data:/.test(v) ? "[dosya]" : v.length > 4000 ? v.slice(0, 4000) + "…[kesildi]" : v; if (Array.isArray(v)) return v.map(temizle); if (v && typeof v === "object") { const o = {}; for (const k in v) o[k] = HARIC.has(k) ? "[gizli/hariç]" : temizle(v[k]); return o; } return v; };
+    const ust = Object.keys(await sig(kok || "")), cikti = {}, say = {};
+    for (const k of ust) { if (HARIC.has(k)) { cikti[k] = "[hariç]"; continue; } try { const v = (await admin.database().ref((kok ? kok + "/" : "") + k).once("value")).val(); cikti[k] = temizle(v); say[k] = v && typeof v === "object" ? Object.keys(v).length : 1; } catch (e) { cikti[k] = "[okunamadı: " + e.message + "]"; } }
+    const hy = (kok ? kok + "/" : "") + "hata", H = cikti.hata && typeof cikti.hata === "object" ? cikti.hata : {};
+    let silinen = 0; for (const [id, h] of Object.entries(H)) if (h && h.t && Date.now() - h.t > 30 * 864e5) { await admin.database().ref(hy + "/" + id).remove().catch(() => { }); delete H[id]; silinen++; }
+    fs.mkdirSync("teshis", { recursive: true });
+    fs.writeFileSync("teshis/veri.json", JSON.stringify(sirala(cikti), null, 1));
+    const hl = Object.values(H).filter(Boolean).sort((a, b) => b.t - a.t);
+    const md = [`# Teşhis — ${sa.project_id} — ${new Date().toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })}`, "", "## Kayıt sayıları", ...Object.entries(say).map(([k, n]) => `- ${k}: ${n}`), "",
+      `## Son hatalar (${hl.length}, 30 günden eskiler silindi: ${silinen})`, ...hl.slice(0, 80).map(h => `- ${new Date(h.t).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })} • ${h.tur || ""}${h.n > 1 ? " ×" + h.n : ""} • ${h.v || ""} • ${h.ekran || ""} • ${h.cihaz || ""} • u:${h.u || ""}\n  ${h.m}${h.s ? "\n  ```\n  " + String(h.s).split("\n").slice(0, 4).join("\n  ") + "\n  ```" : ""}`)];
+    fs.writeFileSync("teshis/OZET.md", md.join("\n") + "\n");
+    log(`🩺 Teşhis hazır: ${Object.keys(say).length} bölüm, ${hl.length} hata kaydı (${silinen} eski silindi). İçerik yalnız özel depoya gider.`);
+  }
+
   if (/^kural/.test(islem) || islem === "saglik") {
     let hedef = null;
     if (env("KURAL_DOSYA")) hedef = JSON.parse(fs.readFileSync(env("KURAL_DOSYA"), "utf8"));

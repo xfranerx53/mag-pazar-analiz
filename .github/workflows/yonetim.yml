@@ -1,15 +1,18 @@
-# Claude'un yönetim işleri (sağlık kontrolü, Firebase kural kontrolü/yayını). Anahtar: secret MAG_FIREBASE_SA.
-# Elle: Actions → "Yönetim" → Run workflow. Claude ayrıca .github/yonetim-istek.txt dosyasını değiştirerek tetikler.
+# Claude'un yönetim işleri: sağlık, teşhis (özel depoya), Firebase kural kontrolü/yayını.
+# Herkese açık kayda yalnız sayılar yazılır. Teşhis verisi yalnız ÖZEL depo xfranerx53/mag-yonetim'e gider (secret YONETIM_TOKEN).
+# Elle: Actions → "Yönetim" → Run workflow. Claude ayrıca .github/yonetim-istek.txt dosyasını değiştirerek tetikler. Her sabah 06:41 teşhis.
 name: Yönetim
 on:
   workflow_dispatch:
     inputs:
       islem:
-        description: "saglik | kural-kontrol | kural-yayinla"
+        description: "saglik | teshis | kural-kontrol | kural-yayinla"
         default: saglik
   push:
     branches: [main]
     paths: [".github/yonetim-istek.txt"]
+  schedule:
+    - cron: "41 3 * * *"
 permissions:
   contents: read
 concurrency:
@@ -17,20 +20,34 @@ concurrency:
 jobs:
   calis:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: npm install --no-save --no-audit --no-fund firebase-admin@12
-      - name: Çalıştır
+      - name: İşlemi belirle
         run: |
           ISLEM="${{ github.event.inputs.islem }}"
+          if [ "${{ github.event_name }}" = "schedule" ]; then ISLEM=teshis; fi
           if [ -z "$ISLEM" ]; then ISLEM=$(head -1 .github/yonetim-istek.txt | tr -d '\r '); fi
-          ISLEM="$ISLEM" node .github/yonetim.mjs
+          echo "ISLEM=$ISLEM" >> "$GITHUB_ENV"
+      - name: Çalıştır
+        run: node .github/yonetim.mjs
         env:
           SA: ${{ secrets.MAG_FIREBASE_SA }}
           DB_URL: https://mag-pazar-default-rtdb.europe-west1.firebasedatabase.app
-          KOK: mag_pazar
+          KOK: "mag_pazar"
           KURAL_HTML: index.html
+          HARIC: "gizli,medya,yedek,abone"
+      - name: Teşhisi özel depoya yaz
+        if: env.ISLEM == 'teshis'
+        env:
+          TOKEN: ${{ secrets.YONETIM_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then echo "YONETIM_TOKEN yok — teşhis özel depoya yazılamadı"; exit 1; fi
+          git clone -q --depth 1 "https://x-access-token:$TOKEN@github.com/xfranerx53/mag-yonetim.git" yon
+          mkdir -p "yon/mag-pazar" && cp teshis/* "yon/mag-pazar/"
+          cd yon && git config user.name "mag-ajan" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && (git commit -q -m "teşhis mag-pazar $(TZ=Europe/Istanbul date +%F_%H%M)" && git push -q && echo "✅ Teşhis özel depoya yazıldı") || echo "Değişiklik yok"
