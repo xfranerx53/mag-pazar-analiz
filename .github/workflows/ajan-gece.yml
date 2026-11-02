@@ -1,11 +1,15 @@
-# MAG Pazar — 🌙 Gece ajanı: her sabah Müdür raporunu hazırlar ve telefona bildirim gönderir.
+# MAG Pazar — 🤖 Otonom ajanlar: günde 3 kez çalışır.
+#  08:12 tam tur: takip ayarı, otomatik müşteri taraması, e-posta avcısı, Müdür raporu, hazır mesajlar, e-posta gönderimi, haftalık strateji, bildirim
+#  13:12 ve 18:12: gelen e-posta cevaplarını okur (sıcak cevapta bildirim), kalan e-postaları gönderir
 # Ücretsiz (herkese açık depoda GitHub Actions ücretsizdir). Ayrıntı: README.md → "Gece ajanı".
 name: Ajan sabah raporu
 
 on:
   schedule:
-    - cron: "12 5 * * *"   # her gün 05:12 UTC = 08:12 Türkiye saati (GitHub birkaç dakika geciktirebilir)
-  workflow_dispatch:         # Actions sekmesinden "Run workflow" ile elle çalıştırma
+    - cron: "12 5 * * *"    # 08:12 Türkiye
+    - cron: "12 10 * * *"   # 13:12 Türkiye
+    - cron: "12 15 * * *"   # 18:12 Türkiye
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,7 +21,7 @@ concurrency:
 jobs:
   rapor:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     env:
       TZ: Europe/Istanbul
     steps:
@@ -25,8 +29,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Bildirim paketini kur
-        run: npm install --no-save --no-audit --no-fund web-push@3
+      - name: Paketleri kur (bildirim + Gmail)
+        run: npm install --no-save --no-audit --no-fund web-push@3 nodemailer imapflow mailparser
       - name: Ajanları çalıştır
         run: node ajan-gece.mjs
         env:
@@ -34,3 +38,5 @@ jobs:
           FB_PASSWORD: ${{ secrets.FB_PASSWORD }}
           VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
           GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
