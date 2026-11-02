@@ -653,7 +653,7 @@ if (calis("risk")) {
   else {
     const lim = Math.max(0, Math.min(10, +O.riskGunluk || 4)); let n = 0, riskli = 0, rHata = "";
     const ozel = ISTEK && Array.isArray(ISTEK.riskIds) ? new Set(ISTEK.riskIds) : null; // programdan "bu firmayı araştır"
-    const aday = ozel ? data.filter(x => ozel.has(x.id)).slice(0, 10) : data.filter(x => !x.aramayin && ["Teklif verildi", "İlgileniyor", "Müşteri"].includes(x.durum) && (!x.risk || Date.now() - (x.risk.t || 0) > 90 * 864e5))
+    const aday = ozel ? data.filter(x => ozel.has(x.id)).slice(0, 10) : data.filter(x => !x.aramayin && ["Teklif verildi", "İlgileniyor", "Müşteri"].includes(x.durum) && (!x.risk || x.risk.v !== 2 || Date.now() - (x.risk.t || 0) > 90 * 864e5))
       .sort((a, b) => (a.risk ? 1 : 0) - (b.risk ? 1 : 0) || X.bakiye(b) - X.bakiye(a)).slice(0, lim);
     for (const x of aday) {
       if (dakika() > 12) { rHata = rHata || "süre bitti, kalanı sonraki turda"; break; }
