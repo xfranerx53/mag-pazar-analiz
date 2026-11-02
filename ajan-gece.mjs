@@ -236,7 +236,7 @@ const GU = env("GMAIL_USER") || String(GIZLI.gmailUser || "").trim(), GP = (env(
 const gmailVar = !!(GU && GP) && O.eposta !== "kapali";
 const F = ayar.firma || {}, FIRMA = F.ad || "MAG AMBALAJ";
 const enc = s => "=?UTF-8?B?" + Buffer.from(String(s)).toString("base64") + "?=";
-const altBilgi = () => `\n\n—\n${FIRMA}${F.adr ? "\n" + F.adr : ""}${F.tel ? "\nTel: " + F.tel : ""}${F.web ? " • " + F.web : ""}\nBu e-postaları almak istemiyorsanız "İPTAL" yazarak yanıtlamanız yeterli.`;
+const altBilgi = () => `\n\n—\n${FIRMA}${F.adr ? "\n" + F.adr : ""}${F.tel ? "\nTel: " + F.tel : ""}${F.web ? " • " + F.web : ""}\nE-posta: ${F.ep || GU}\nBu e-postaları almak istemiyorsanız "İPTAL" yazarak yanıtlamanız yeterli.`;
 const epMap = new Map(); for (const x of data) if (x.eposta) epMap.set(String(x.eposta).toLowerCase().trim(), x);
 const GENEL = /^(gmail|googlemail|hotmail|outlook|live|yahoo|yandex|icloud|msn|mynet|windowslive)\./i;
 const kimin = adr => { adr = String(adr || "").toLowerCase(); if (epMap.has(adr)) return epMap.get(adr); const d = adr.split("@")[1] || ""; if (!d || GENEL.test(d)) return null; for (const [e, x] of epMap) if (e.endsWith("@" + d)) return x; return null; };

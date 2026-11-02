@@ -98,6 +98,9 @@ dialog.sheet[open]{display:flex}
 .ajg{background:linear-gradient(135deg,var(--ac),var(--card))}.ajgh{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:6px}.ajgs{display:flex;gap:8px;font-size:14px;line-height:1.4;margin:4px 0}.ajgs span:first-child{flex:0 0 auto}
 #tost{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom));background:#222;color:#fff;padding:10px 16px;border-radius:12px;z-index:50;max-width:90vw;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.3)}
 .tam{display:block;width:100%;margin:8px 0}.musk h3{margin-bottom:4px}@media(max-width:560px){#stats{display:none}}
+#kapi{position:fixed;inset:0;z-index:9000;background:var(--bg);overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px 30px}#kapi[hidden]{display:none!important}
+.kapik{width:100%;max-width:420px;background:var(--card);border:1px solid var(--br);border-radius:18px;padding:24px 20px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.08)}.kapik img{border-radius:16px}.kapik h2{margin:10px 0 2px;color:var(--pr)}#kapiD{margin:14px 0}#kapiF{text-align:left}#kapiF .warn{word-break:break-word}#kapiF .row{justify-content:flex-start}
+body.kapali .bnav,body.kapali header{visibility:hidden}
 .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.menu-grid button{padding:20px 10px;font-size:15px;line-height:1.6}
 .selbar{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));z-index:15;background:var(--pr);color:var(--on);padding:9px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
 .selbar button{padding:6px 12px;font-size:14px}
@@ -2855,7 +2858,7 @@ let gizOkundu=0;{const _ay=akisYukle;akisYukle=async function(f){await _ay(f);if
 /* --- Kurulum: Gmail ve GitHub bağlantıları programdan --- */
 function baglantiHtml(){if(!isAdmin())return"";
  return `<div class="card kur ${gizB.gmailUser&&gizB.gmailPass?"tamam":""}"><div class="kurh"><span class="kurn">${gizB.gmailUser&&gizB.gmailPass?"✓":"7b"}</span><b>📧 Gmail bağlantısı (e-posta göndermek ve cevapları okumak)</b><span style="margin-left:auto">${gizB.gmailUser&&gizB.gmailPass?"✅":"⚪"}</span></div>
- <div class="mu">1) Ayrı bir Gmail aç (ör. magambalaj.satis@gmail.com) — ana hesabın etkilenmez.<br>2) O hesapta <a href="https://myaccount.google.com/signinoptions/twosv" target="_blank" rel="noopener">2 Adımlı Doğrulama</a>'yı aç.<br>3) <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Uygulama şifreleri</a> → ad: <b>MAG Ajan</b> → <b>Oluştur</b> → çıkan 16 harfli şifreyi kopyala.<br>4) İkisini buraya yaz → <b>Kaydet</b>. (Yalnızca yöneticiler görebilir; ajan buradan okur.)</div>
+ <div class="mu">1) Şirketin genel e-postası: <b>magambalajas@gmail.com</b> (ajan bununla gönderir; kendi hesabın xfranerxx@gmail.com etkilenmez).<br>2) Bu hesapta <a href="https://myaccount.google.com/signinoptions/twosv" target="_blank" rel="noopener">2 Adımlı Doğrulama</a>'yı aç.<br>3) <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Uygulama şifreleri</a> → ad: <b>MAG Ajan</b> → <b>Oluştur</b> → çıkan 16 harfli şifreyi kopyala.<br>4) İkisini buraya yaz → <b>Kaydet</b>. (Yalnızca yöneticiler görebilir; ajan buradan okur.)</div>
  <div class="g2"><div><label>Gmail adresi</label><input id="gmU" type="email" placeholder="magambalaj.satis@gmail.com" value="${esc(gizB.gmailUser||"")}" autocomplete="off"></div><div><label>Uygulama şifresi (16 harf)</label><input id="gmP" type="password" placeholder="${gizB.gmailPass?"•••• kayıtlı — değiştirmek için yaz":"abcd efgh ijkl mnop"}" autocomplete="new-password"></div></div>
  <div class="row"><button class="p" data-a="gmkay">Kaydet</button>${gizB.gmailUser&&gizB.gmailPass?`<span class="mu">✅ ${esc(gizB.gmailUser)} bağlı. "Deneme" modunda ilk e-postalar bu adrese gelir.</span>`:""}</div></div>
  <div class="card kur ${gizB.ghToken?"tamam":""}"><div class="kurh"><span class="kurn">${gizB.ghToken?"✓":"8"}</span><b>▶ Ajanları uygulamadan çalıştırma (bir kerelik GitHub bağlantısı)</b><span style="margin-left:auto">${gizB.ghToken?"✅":"⚪"}</span></div>
@@ -2881,6 +2884,40 @@ Object.assign(A,{
 });
 /* bildirim gizli anahtarı da buluta (yalnızca yönetici) — GitHub'a elle eklemek gerekmez */
 {const _v=kurVapid;kurVapid=async function(){await _v();if(kur.ozel&&root&&isAdmin()){try{await gizliKaydet({vapidPriv:kur.ozel});kur.ozel=null;tost("Bildirim anahtarı kaydedildi");renderAjan()}catch(e){}}}}
+
+/* ================= v14.3 — 🔐 GİRİŞ ZORUNLU =================
+   Kullanıcı adı/şifre (ya da Google) ile giriş yapmadan ve yönetici onayı olmadan program açılmaz.
+   Müşterilerin sipariş linki (?siparis=…) bundan muaftır. */
+document.body.insertAdjacentHTML("beforeend",`<div id="kapi"><div class="kapik"><img src="icon-192.png" alt="" width="72" height="72"><h2>MAG AMBALAJ</h2><div class="mu">Pazar Analiz • Ajanlar</div><p id="kapiD">Bağlanılıyor…</p><div id="kapiF"></div><div id="kapiB" class="row" style="justify-content:center"></div></div></div>`);
+let kapiHazir=false,kapiHata=false;
+if(SIPT)$("kapi").hidden=true;
+const kapiYuva=(()=>{const c=$("cIn");return c?{p:c.parentNode,n:c.nextSibling}:null})();
+function kapiForm(goster){const c=$("cIn"),e=$("cerr");if(!c)return;
+ if(goster){if(c.parentNode!==$("kapiF")){$("kapiF").appendChild(c);if(e)$("kapiF").appendChild(e)}c.hidden=false}
+ else if(kapiYuva&&c.parentNode===$("kapiF")){kapiYuva.p.insertBefore(c,kapiYuva.n);if(e)kapiYuva.p.insertBefore(e,c.nextSibling)}}
+function kapiGuncelle(){const k=$("kapi");if(!k)return;
+ if(typeof SIPT!=="undefined"&&SIPT){k.hidden=true;return}
+ const fb=window.firebase&&firebase.apps&&firebase.apps.length,u=fb?firebase.auth().currentUser:null;
+ if(u&&cloudState==="on"){if(!k.hidden){k.hidden=true;kapiForm(false);document.body.classList.remove("kapali");render()}return}
+ k.hidden=false;document.body.classList.add("kapali");let d="",b="";
+ if(!fb){d=kapiHata?"İnternete bağlanılamadı. Program giriş gerektirdiği için önce internete bağlan.":"Bağlanılıyor…";if(kapiHata)b=`<button class="p" onclick="location.reload()">↻ Tekrar dene</button>`;kapiForm(false)}
+ else if(!kapiHazir){d="Bağlanılıyor…";kapiForm(false)}
+ else if(!u){d="Devam etmek için giriş yap.";kapiForm(true)}
+ else if(cloudState==="pending"){d=`Giriş yapıldı (<b>${esc(u.email)}</b>).<br>Hesabın <b>yönetici onayı bekliyor</b>. Yönetici, Diğer → 🛡 Yönetim'den rol verince program kendiliğinden açılır.`;b=`<button onclick="firebase.auth().signOut()">Çıkış yap</button>`;kapiForm(false)}
+ else if(cloudState==="norules"){d=`Giriş yapıldı ama bulut kuralları yayınlanmamış ya da erişim izni yok.<br>Yöneticiysen kuralı Firebase'e yapıştır.`;b=`<button class="p" onclick="openCloud()">☁ Kuralı göster</button><button onclick="firebase.auth().signOut()">Çıkış yap</button>`;kapiForm(false)}
+ else{d="Kayıtlar yükleniyor…";kapiForm(false)}
+ $("kapiD").innerHTML=d;$("kapiB").innerHTML=b}
+{const _ic=initCloud;initCloud=async function(){await _ic();if(window.firebase&&firebase.apps&&firebase.apps.length){firebase.auth().onAuthStateChanged(()=>{kapiHazir=true;setTimeout(kapiGuncelle,0)})}else{kapiHata=true}kapiGuncelle()}}
+{const _cu=cloudUi;cloudUi=function(){_cu();try{kapiGuncelle()}catch(e){}}}
+{const _r=render;render=function(){_r();try{if(!$("kapi").hidden||cloudState!=="on")kapiGuncelle()}catch(e){}}}
+// giriş penceresi kapıdayken (çıkışta) eski "yalnızca bu cihazda" çalışma yok
+{const _oc=openCloud;openCloud=function(){if(!$("kapi").hidden&&$("cIn")&&$("cIn").parentNode===$("kapiF"))return;return _oc()}}
+
+/* --- şirketin genel e-postası --- */
+const FIRMA_EP="magambalajas@gmail.com";
+if(ayar.firma&&!ayar.firma.ep)ayar.firma.ep=FIRMA_EP;
+{let epTamam=false;const _r=render;render=function(){_r();if(!epTamam&&cloudState==="on"&&isAdmin()&&ayar.firma){epTamam=true;if(!ayar.firma.ep){ayar.firma.ep=FIRMA_EP;saveAyar()}}}}
+{const _b=baglantiHtml;baglantiHtml=function(){const h=_b();return gizB.gmailUser?h:h.replace('placeholder="magambalaj.satis@gmail.com" value=""',`placeholder="${FIRMA_EP}" value="${FIRMA_EP}"`)}}
 
 __baslat();
 if(!SIPT){const _g=new URLSearchParams(location.search).get("git");if(_g&&_g!=="ajan")setTimeout(()=>go(_g),300);else if(!_g)go("akis")}
