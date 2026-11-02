@@ -3123,11 +3123,11 @@ function riskHesap(x,web,hata){const P=[],R=AJ(),notlar=s=>s.filter(Boolean);
 /* --- 🔎 OTOMATİK WEB TARAMASI: Google Haberler + Bing + DuckDuckGo (yapay zekâ kotası bitse de çalışır) --- */
 const TARAYICI=typeof window!=="undefined";
 const PROX2=[u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),u=>"https://api.codetabs.com/v1/proxy/?quest="+encodeURIComponent(u),u=>"https://api.allorigins.win/get?url="+encodeURIComponent(u),u=>"https://corsproxy.io/?url="+encodeURIComponent(u)];
-async function sirayla(fl,n){const out=new Array(fl.length);let i=0;await Promise.all(Array.from({length:Math.min(n||3,fl.length)},async()=>{while(i<fl.length){const k=i++;try{out[k]=await fl[k]()}catch(e){out[k]=null}}}));return out}
-async function webGetir(u,ok){if(TARAYICI){let son="";
-  for(const f of PROX2){const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);
+async function sirayla(fl,n,bitis){const out=new Array(fl.length);let i=0;await Promise.all(Array.from({length:Math.min(n||3,fl.length)},async()=>{while(i<fl.length){const k=i++;if(bitis&&Date.now()>bitis){out[k]=null;continue}try{out[k]=await fl[k]()}catch(e){out[k]=null}}}));return out}
+async function webGetir(u,ok){if(TARAYICI){let son="";const iy=+(ls.get("mag_prox")||0),sira=[PROX2[iy]||PROX2[0],...PROX2.filter((_,i)=>i!==iy)];
+  for(const f of sira){const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);
    try{const r=await fetch(f(u),{signal:c.signal});if(!r.ok){son="yanıt "+r.status;continue}let x=await r.text();if(/allorigins\.win\/get/.test(f(u))){try{x=JSON.parse(x).contents||""}catch(e){x=""}}
-    if(x&&x.length>30&&(!ok||ok(x)))return x;son="geçersiz içerik"}catch(e){son=e.name==="AbortError"?"zaman aşımı":e.message}finally{clearTimeout(t)}}
+    if(x&&x.length>30&&(!ok||ok(x))){ls.set("mag_prox",String(PROX2.indexOf(f)));return x}son="geçersiz içerik"}catch(e){son=e.name==="AbortError"?"zaman aşımı":e.message}finally{clearTimeout(t)}}
   throw new Error(son||"açılamadı")}
  const c=new AbortController(),t=setTimeout(()=>c.abort(),15000);
  try{const r=await fetch(u,{signal:c.signal,headers:{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36","Accept-Language":"tr-TR,tr;q=0.9"}});if(!r.ok)throw new Error("yanıt "+r.status);return await r.text()}finally{clearTimeout(t)}}
@@ -3151,7 +3151,7 @@ async function webKanit(x){const ad=x.unvan||x.firma,yer=x.il||"";
   if(l==null)return{k:c.k,ad:c.ad,durum:"bakilamadi",n:0,bulgular:[]};
   if(c.site)return{k:c.k,ad:c.ad,durum:l.length?"temiz":"bulundu",n:1,bulgular:l.length?[]:[{baslik:"Web sitesi açılmadı (geçici olabilir)",link:x.web}]};
   const es=l.filter(h=>adGeciyor(x,h)),kotu=es.filter(h=>c.rx.test(h.baslik+" "+h.ozet));
-  return{k:c.k,ad:c.ad,durum:kotu.length?"bulundu":"temiz",n:l.length,ilgili:es,bulgular:kotu.slice(0,3).map(h=>({baslik:h.baslik.slice(0,140),link:h.link,ozet:h.ozet.slice(0,160)}))}}),3);
+  return{k:c.k,ad:c.ad,durum:kotu.length?"bulundu":"temiz",n:l.length,ilgili:es,bulgular:kotu.slice(0,3).map(h=>({baslik:h.baslik.slice(0,140),link:h.link,ozet:h.ozet.slice(0,160)}))}}),3,TARAYICI?Date.now()+45000:0);
  const hepsi=[];sonuc.forEach(c=>arr(c.ilgili).slice(0,6).forEach(h=>hepsi.push({kontrol:c.ad,baslik:h.baslik.slice(0,160),ozet:h.ozet.slice(0,200),tarih:h.tarih||"",link:h.link})));
  sonuc.forEach(c=>delete c.ilgili);return{kontroller:sonuc,hepsi}}
 function kuralDeger(x,kanit){const ol=[];kanit.kontroller.forEach(c=>{if(c.durum!=="bulundu"||c.k==="site")return;c.bulgular.forEach(b=>{const t=b.baslik+" "+b.ozet,w=(t.match(/konkordato|iflas|icra|haciz/i)||[])[0];
@@ -3197,7 +3197,7 @@ function ajStok(){const out=[];hamL().forEach((h,i)=>{if(h.stok===""||h.stok==nu
 /* --- 🎪 FIRSAT AVCISI: Google'da yeni açılış, ihale, fuar, etkinlik --- */
 const firsatBolge=()=>((ayar.otonom&&ayar.otonom.firsatBolge)||"Silivri, Büyükçekmece, Çatalca, Beylikdüzü, Esenyurt, Arnavutköy (İstanbul) ve Tekirdağ (Çorlu, Çerkezköy, Marmaraereğlisi)");
 /* Fırsat = poşete ihtiyacı doğacak somut durum: kamu poşet/çöp torbası ihalesi, bölgede yeni açılan işletme, ambalaj/gıda fuarı. Gerisi atılır. */
-const F_NEG=/tutuk|dava|sanık|cezaevi|hapis|duruşma|mahkeme|cinayet|öldür|cenaze|kaza|yaralı|gözaltı|soruşturma|operasyon|deprem|seçim|parti|miting|dernek|lise|okul|üniversite|kayıt|futbol|maç|spor kulüb|yangın|hastalık|vefat|polis|jandarma|uyuşturucu/i;
+const F_NEG=/mezar|faili meçhul|dosyası|tutuk|dava|sanık|cezaevi|hapis|duruşma|mahkeme|cinayet|öldür|cenaze|kaza|yaralı|gözaltı|soruşturma|operasyon|deprem|seçim|parti|miting|dernek|lise|okul|üniversite|kayıt|futbol|maç|spor kulüb|yangın|hastalık|vefat|polis|jandarma|uyuşturucu/i;
 function firsatTur(h){const t=h.baslik+" "+h.ozet;if(F_NEG.test(h.baslik))return null;
  if(/ihale|alımı|satın alma|doğrudan temin/i.test(t)&&/poşet|torba|ambalaj|naylon|çöp kova|çöp torb/i.test(t))return"ihale";
  if(/fuar/i.test(t)&&/ambalaj|gıda|perakende|plastik|horeca|ev ve mutfak|food|pack/i.test(t))return"fuar";
@@ -3208,7 +3208,9 @@ async function firsatAra(){const b=firsatBolge();
  const isler=[...il.slice(0,3).map(t=>()=>haberAra(`${t} yeni market açıldı when:90d`)),...il.slice(0,2).map(t=>()=>haberAra(`${t} açılış restoran OR fırın OR market OR AVM when:90d`)),
   ()=>haberAra("poşet alımı ihalesi when:60d"),()=>haberAra("çöp torbası alımı ihalesi when:60d"),()=>webAra(`site:ilan.gov.tr poşet alımı`),()=>webAra(`site:ilan.gov.tr "çöp torbası" alımı`),
   ()=>haberAra("ambalaj fuarı İstanbul when:120d"),()=>haberAra("gıda perakende fuarı İstanbul when:120d")];
- const sn=await sirayla(isler,3),ulasti=sn.filter(v=>v!=null).length,ham=sn.flat().filter(Boolean),gor=new Set(),hab=[];
+ const bitis=TARAYICI?Date.now()+45000:0;
+ if(TARAYICI){const ilk=await isler[0]();if(ilk==null)throw Object.assign(new Error("Haber kaynaklarına bu cihazdan ulaşılamadı."),{ulasilamadi:1});isler[0]=async()=>ilk}
+ const sn=await sirayla(isler,3,bitis),ulasti=sn.filter(v=>v!=null).length,ham=sn.flat().filter(Boolean),gor=new Set(),hab=[];
  ham.forEach(h=>{const tur=firsatTur(h);if(!tur)return;const k=nrm(h.baslik).slice(0,60);if(gor.has(k))return;gor.add(k);const t=Date.parse(h.tarih);if(t&&Date.now()-t>150*864e5)return;
   hab.push({tur,baslik:h.baslik.slice(0,160),ozet:h.ozet.slice(0,180),tarih:t?fmt(new Date(t)):"",kaynak:h.kaynak||"",link:h.link})});
  let l=hab.slice(0,25),yontem="Haberler + ilan.gov.tr (süzülmüş)",hata="";
@@ -3538,10 +3540,10 @@ const FT={acilis:"🏪",ihale:"🏛",fuar:"🎪",etkinlik:"🎉",haber:"📰"};
 let fMesgul=false,iMesgul=false;
 function ajanBekle(){let n=0;const t=setInterval(()=>{n++;OF.t=0;ofisYukle(true);if(n>=14)clearInterval(t)},25000)}
 async function sunucudaYap(gorevler,ek){if(!gizB.ghToken||!root)return false;try{await root.child("ajan/istek").set(Object.assign({t:Date.now(),gorevler,kim:me.ad||""},ek||{}));ajanlariCalistir();ajanBekle();return true}catch(e){return false}}
-async function firsatCalistir(){if(fMesgul)return;fMesgul=true;ajFiltre="firsat";go("ajan");aiBas=Date.now();aiAdim="Google'da fırsat aranıyor";
+async function firsatCalistir(){if(fMesgul)return;fMesgul=true;ajFiltre="firsat";go("ajan");aiBas=Date.now();aiAdim="Haberler ve ihaleler taranıyor";
  try{const r=await firsatAra();OF.firsat=r;await root.child("ajan/firsat").set(r).catch(()=>{});tost(r.l.length?`🎪 ${r.l.length} fırsat bulundu`:"Bu sefer işine yarar fırsat çıkmadı",4000)}
  catch(e){if(await sunucudaYap(["firsat"]))tost("🌐 Bu cihazdan haber sitelerine ulaşılamadı; aramayı sunucudaki ajan yapıyor. 2-4 dakika içinde sonuç burada görünür.",8000);else alert("Fırsat araması yapılamadı: "+e.message)}fMesgul=false;aiAdim="";renderAjan()}
-function firsatSayfa(){const f0=OF.firsat,f=f0?{...f0,l:arr(f0.l).filter(o=>["ihale","acilis","fuar"].includes(o.tur))}:null;
+function firsatSayfa(){const f0=OF.firsat,f=f0?{...f0,l:arr(f0.l).filter(o=>["ihale","acilis","fuar"].includes(o.tur)&&firsatTur({baslik:o.baslik||"",ozet:o.ozet||o.neden||""}))}:null;
  return`<div class="card"><div class="mu">Bölge: ${esc(firsatBolge())}</div><div class="row"><button class="p" data-a="fara" ${fMesgul?"disabled":""}>🔎 ${fMesgul?"Aranıyor…":"Şimdi ara"}</button><button data-a="fbol">📍 Bölgeyi değiştir</button></div>${fMesgul?'<div class="aiSure mu"></div>':""}<div class="mu">Gece ajanı haftada bir kendisi arar. Bulunan yeni işletmeyi tek dokunuşla müşteri listesine ekleyebilirsin.</div></div>
  ${f&&!arr(f.l).length?`<div class="empty">${saatTxt(f.t)} araması: ${f.tarandi||arr(f0.l).length} haber/ilan tarandı, işine yarayacak fırsat çıkmadı. Boş haber göstermiyorum; gece ajanı haftada bir yeniden bakar.</div>`:""}${f&&arr(f.l).length?`<div class="mu" style="margin:4px">${saatTxt(f.t)} araması${f.yontem?" • "+esc(f.yontem):""}${f.not?" • yapay zekâ: "+esc(f.not):""}</div>`+arr(f.l).map((o,i)=>`<div class="card"><h3>${FT[o.tur]||"📌"} ${esc(o.baslik||"")}</h3><div class="mu">${[o.firma,o.yer,o.tarih,o.kaynak].filter(Boolean).map(esc).join(" • ")}</div><div>${esc(o.neden||o.ozet||"")}</div>${o.oneri?`<div><b>Ne yapmalı:</b> ${esc(o.oneri)}</div>`:""}
   <div class="row">${o.tur!=="fuar"?`<button data-a="fekle" data-i="${i}">+ Müşteri listesine ekle</button>`:""}${/^https?:/.test(o.link||"")?`<a class="btn" target="_blank" rel="noopener" href="${esc(o.link)}">📰 Haberi aç</a>`:""}</div></div>`).join("")+(arr(f.kaynaklar).length?`<div class="mu">Kaynaklar: ${arr(f.kaynaklar).map(k=>`<a target="_blank" rel="noopener" href="${esc(k.uri)}">${esc(k.title)}</a>`).join(" • ")}</div>`:""):`<div class="empty">Henüz arama yapılmadı.</div>`}`}
