@@ -2863,8 +2863,8 @@ let gizOkundu=0;{const _ay=akisYukle;akisYukle=async function(f){await _ay(f);if
 function baglantiHtml(){if(!isAdmin())return"";
  return `<div class="card kur ${gizB.gmailUser&&gizB.gmailPass?"tamam":""}"><div class="kurh"><span class="kurn">${gizB.gmailUser&&gizB.gmailPass?"✓":"7b"}</span><b>📧 Gmail bağlantısı (e-posta göndermek ve cevapları okumak)</b><span style="margin-left:auto">${gizB.gmailUser&&gizB.gmailPass?"✅":"⚪"}</span></div>
  <div class="mu">1) Şirketin genel e-postası: <b>magambalajas@gmail.com</b> (ajan bununla gönderir; kendi hesabın xfranerxx@gmail.com etkilenmez).<br>2) Bu hesapta <a href="https://myaccount.google.com/signinoptions/twosv" target="_blank" rel="noopener">2 Adımlı Doğrulama</a>'yı aç.<br>3) <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Uygulama şifreleri</a> → ad: <b>MAG Ajan</b> → <b>Oluştur</b> → çıkan 16 harfli şifreyi kopyala.<br>4) İkisini buraya yaz → <b>Kaydet</b>. (Yalnızca yöneticiler görebilir; ajan buradan okur.)</div>
- <div class="g2"><div><label>Gmail adresi</label><input id="gmU" type="email" placeholder="magambalaj.satis@gmail.com" value="${esc(gizB.gmailUser||"")}" autocomplete="off"></div><div><label>Uygulama şifresi (16 harf)</label><input id="gmP" type="password" placeholder="${gizB.gmailPass?"•••• kayıtlı — değiştirmek için yaz":"abcd efgh ijkl mnop"}" autocomplete="new-password"></div></div>
- <div class="row"><button class="p" data-a="gmkay">Kaydet</button>${gizB.gmailUser&&gizB.gmailPass?`<span class="mu">✅ ${esc(gizB.gmailUser)} bağlı. "Deneme" modunda ilk e-postalar bu adrese gelir.</span>`:""}</div></div>
+ <div class="g2"><div><label>Gmail adresi</label><input id="gmU" type="email" placeholder="magambalaj.satis@gmail.com" value="${esc(gizB.gmailUser||"")}" autocomplete="off"></div><div><label>Uygulama şifresi (16 harf)</label><div class="row" style="margin:0;flex-wrap:nowrap"><input id="gmP" type="password" value="${esc(gizB.gmailPass||"")}" placeholder="abcd efgh ijkl mnop" autocomplete="off" data-lpignore="true"><button type="button" title="Göster/gizle" onclick="$('gmP').type=$('gmP').type==='password'?'text':'password'">👁</button></div></div></div>
+ <div class="row"><button class="p" data-a="gmkay">Kaydet</button>${gizB.gmailUser&&gizB.gmailPass?`<span class="ok">✅ Kayıtlı: ${esc(gizB.gmailUser)} + şifre (${String(gizB.gmailPass).length} harf)${gizB.gmailT?" • "+fdt(gizB.gmailT):""}</span>`:`<span class="mu">Henüz kayıtlı değil.</span>`}</div></div>
  <div class="card kur ${gizB.ghToken?"tamam":""}"><div class="kurh"><span class="kurn">${gizB.ghToken?"✓":"8"}</span><b>▶ Ajanları uygulamadan çalıştırma (bir kerelik GitHub bağlantısı)</b><span style="margin-left:auto">${gizB.ghToken?"✅":"⚪"}</span></div>
  <div class="mu">Bunu yapınca "▶ Ajanları şimdi çalıştır" düğmesi çalışır; GitHub'a hiç girmezsin.<br>
  1) <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → Yeni anahtar (Fine-grained token)</a> sayfasını aç.<br>
@@ -2872,7 +2872,7 @@ function baglantiHtml(){if(!isAdmin())return"";
  3) <b>Repository access</b> → <b>Only select repositories</b> → <b>${esc(GH.r)}</b>.<br>
  4) <b>Permissions</b> → <b>Repository permissions</b> → <b>Actions</b> → <b>Read and write</b>.<br>
  5) En altta <b>Generate token</b> → çıkan anahtarı (github_pat_… ile başlar) kopyala → buraya yapıştır → <b>Kaydet ve dene</b>.</div>
- <div class="row"><input id="ghT" type="password" placeholder="${gizB.ghToken?"•••• kayıtlı — değiştirmek için yapıştır":"github_pat_…"}" style="flex:1" autocomplete="new-password"><button class="p" data-a="ghkay">Kaydet ve dene</button></div>
+ <div class="row"><input id="ghT" type="password" value="${esc(gizB.ghToken||"")}" placeholder="github_pat_…" style="flex:1" autocomplete="off" data-lpignore="true"><button type="button" title="Göster/gizle" onclick="$('ghT').type=$('ghT').type==='password'?'text':'password'">👁</button><button class="p" data-a="ghkay">Kaydet ve dene</button></div>
  ${calismaHtml()}</div>`}
 {const _kh=kurulumHtml;kurulumHtml=function(){return _kh()+baglantiHtml()};window.ajOzel.kurulum=kurulumHtml}
 {const _k=kurKontrol;kurKontrol=async function(){await gizliYukle();await _k()}}
@@ -2880,10 +2880,10 @@ Object.assign(A,{
  ajcal:()=>ajanlariCalistir(),
  gmkay:async()=>{const u=$("gmU").value.trim(),p=$("gmP").value.replace(/\s+/g,"");if(!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(u)){alert("Gmail adresini doğru yaz.");return}
   if(p&&!/^[a-z]{16}$/i.test(p)&&!confirm("Uygulama şifresi genelde 16 harftir (boşluksuz). Yine de kaydedilsin mi?"))return;
-  const o={gmailUser:u};if(p)o.gmailPass=p;else if(!gizB.gmailPass){alert("Uygulama şifresini de yaz.");return}
+  const o={gmailUser:u};if(p)o.gmailPass=p;else if(!gizB.gmailPass){alert("Uygulama şifresini de yaz.");return}o.gmailT=Date.now();
   if(await gizliKaydet(o)){renderAjan();alert("✅ Gmail bağlantısı kaydedildi: "+u)}},
  ghkay:async()=>{const b=document.querySelector('[data-a="ghkay"]');if(b){b.disabled=true;b.textContent="Deneniyor…"}
-  try{const v=$("ghT").value.replace(/\s+/g,"");if(v){if(!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(v)){alert("Bu bir GitHub anahtarına benzemiyor (github_pat_ ile başlamalı). Anahtarı GitHub'daki kopyala düğmesiyle eksiksiz kopyala.");return}if(!await gizliKaydet({ghToken:v}))return}
+  try{const v=$("ghT").value.replace(/\s+/g,"");if(v){if(!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(v)){alert("Bu bir GitHub anahtarına benzemiyor (github_pat_ ile başlamalı). Anahtarı GitHub'daki kopyala düğmesiyle eksiksiz kopyala.");return}if(v!==gizB.ghToken&&!await gizliKaydet({ghToken:v,ghT:Date.now()}))return}
   if(!gizB.ghToken){alert("Önce anahtarı yapıştır.");return}
   await ghDene();renderAjan();alert("✅ GitHub bağlantısı çalışıyor. Artık \"▶ Ajanları şimdi çalıştır\" düğmesini kullanabilirsin.")}
   catch(e){alert("❌ "+(e.message||e)+(/Failed to fetch|NetworkError/i.test(String(e.message))?" — internet bağlantısını kontrol et.":""))}

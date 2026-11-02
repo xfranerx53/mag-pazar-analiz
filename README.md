@@ -183,6 +183,8 @@ Herkese açık ücretsiz OpenStreetMap sunucuları (Overpass) yoğunlukta ve mob
   - 🤖 Ajana ver / Ajandan al (Müşteriler → toplu işlem) → `ajanSec`; kartta 🤖 etiketi; sıralama "🤖 Ajana verdiklerim önce".
   - E-posta kuralları: firmaya günde en çok 1 e-posta, öncelik sırası teklif > ödeme > sipariş zamanı > numune > fiyat > ürün önerisi > geri kazanım > takip > tanıtım; tür başına tekrar aralığı (ödeme 7, sipariş 20, diğerleri 30-60 gün); deneme konusu türü de gösterir.
 
+- **v15.1 (02.11.2026):** Kurulum 7b/8: kayıtlı Gmail uygulama şifresi ve GitHub anahtarı sayfa yenilense de kutuda (gizli noktalarla) görünür, 👁 ile gösterilir; "✅ Kayıtlı: adres + şifre (16 harf) • tarih" satırı. Yalnızca yöneticiler görür.
+
 ## Kâr modeli — ücretsiz ajan yol haritası
 Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullanılırsa, ileride kendi altyapımızla değiştirilebilecek şekilde bağlanır (Geoapify → mag-veri örneğinde olduğu gibi).
 1. ✅ **Ajan Merkezi (v11)** — kural tabanlı ajanlar, program içinde.
