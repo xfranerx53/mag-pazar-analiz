@@ -1,0 +1,36 @@
+# Claude'un yönetim işleri (sağlık kontrolü, Firebase kural kontrolü/yayını). Anahtar: secret MAG_FIREBASE_SA.
+# Elle: Actions → "Yönetim" → Run workflow. Claude ayrıca .github/yonetim-istek.txt dosyasını değiştirerek tetikler.
+name: Yönetim
+on:
+  workflow_dispatch:
+    inputs:
+      islem:
+        description: "saglik | kural-kontrol | kural-yayinla"
+        default: saglik
+  push:
+    branches: [main]
+    paths: [".github/yonetim-istek.txt"]
+permissions:
+  contents: read
+concurrency:
+  group: yonetim
+jobs:
+  calis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --no-audit --no-fund firebase-admin@12
+      - name: Çalıştır
+        run: |
+          ISLEM="${{ github.event.inputs.islem }}"
+          if [ -z "$ISLEM" ]; then ISLEM=$(head -1 .github/yonetim-istek.txt | tr -d '\r '); fi
+          ISLEM="$ISLEM" node .github/yonetim.mjs
+        env:
+          SA: ${{ secrets.MAG_FIREBASE_SA }}
+          DB_URL: https://mag-pazar-default-rtdb.europe-west1.firebasedatabase.app
+          KOK: mag_pazar
+          KURAL_HTML: index.html
