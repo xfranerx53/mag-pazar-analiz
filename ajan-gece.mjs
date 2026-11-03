@@ -680,9 +680,10 @@ if (gmailVar && EPT.length) {
           sonSiparis: s0 && ["tekrar", "capraz", "uyuyan", "fiyat"].includes(h.tur) ? { tarih: X.fd(s0.tar), urunler: X.anon(X.kalemOzet(s0, true)) } : null,
           ajanBulgusu: h.f ? X.anon(h.f.bas + " — " + h.f.det) : null,
           firmamiz: `${FIRMA}: Silivri'de kendi fabrikasında atlet, rulo (manav), kasap/dürüm, HDPE/LDPE, el geçme/kulplu, baskılı ve baskısız poşet üreticisi; aracısız fabrika fiyatı, hızlı teslim` };
-        const j = JSON.parse(String(await X.aiSor(`Bir poşet üreticisi adına işletmeye gönderilecek e-postayı yaz. Amaç "amac" alanında. Türkçe, kısa (50-110 kelime), samimi ama profesyonel; tek net soru/teklif ile bitir.
+        const j = await (async (...q) => { /* cevap yarım gelirse (düşünen model token'ı bitirir) bir kez daha, daha geniş sınırla dene */
+          for (let d = 0; d < 2; d++) { try { return JSON.parse(String(await X.aiSor(q[0], q[1], d ? { ...q[2], max: 4000, sicak: 0.5 } : q[2])).replace(/^```(?:json)?|```$/g, "").trim()); } catch (e) { if (d || !/JSON|Unterminated|Unexpected/i.test(e.message)) throw e; } } })(`Bir poşet üreticisi adına işletmeye gönderilecek e-postayı yaz. Amaç "amac" alanında. Türkçe, kısa (50-110 kelime), samimi ama profesyonel; tek net soru/teklif ile bitir.
 Firma adı yerine {FIRMA} yaz (program doldurur). "Merhaba," ile başla; imza ve altbilgi YAZMA. Verilen tutar/tarih/fiyatları aynen kullan; verilmeyen fiyat, indirim, tarih UYDURMA.
-SADECE JSON: {"konu":"en fazla 60 karakter, spam kelimesi yok","govde":"..."}`, [{ r: "ben", m: JSON.stringify(bilgi) }], { json: true, sicak: 0.7, max: 1500, toplu: true })).replace(/^```(?:json)?|```$/g, ""));
+SADECE JSON: {"konu":"en fazla 60 karakter, spam kelimesi yok","govde":"..."}`, [{ r: "ben", m: JSON.stringify(bilgi) }], { json: true, sicak: 0.7, max: 1500, toplu: true });
         const doldur = s => X.deanon(String(s || "")).replace(/\{FIRMA\}/g, x.firma).trim();
         let konu = doldur(j.konu).slice(0, 90), govde = doldur(j.govde);
         if (!konu || !govde) throw new Error("boş e-posta");
