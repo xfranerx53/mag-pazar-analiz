@@ -111,4 +111,40 @@ if (env("CF_TOKEN")) {
     }
   } catch (e) { hata++; log("❌ Cloudflare:", e.message); }
 }
+/* ---------------- 🎯 KOMUT: Claude'un sahibin talimatını doğrudan uygulaması ----------------
+   Talimat ÖZEL depo mag-yonetim/komut/<PROJE_AD>.json'dadır: {aciklama, islemler:[{tur:"yaz"|"birlestir"|"sil", yol, deger}]}
+   Önce eski değerler komut/yedek/'e yedeklenir (geri alınabilir), sonra tek seferde uygulanır, Fabrika'da denetim kaydına düşülür.
+   Herkese açık log'a YALNIZ sayılar yazılır (açıklama, isim, değer yazılmaz). Değerdeki "{SUNUCU_ZAMANI}" sunucu saatine çevrilir. */
+if (islem === "komut") {
+  const T = env("YONETIM_TOKEN"), PRJ = env("PROJE_AD"), KOKK = env("KOK");
+  if (!T || !env("SA") || !PRJ) { log("❌ YONETIM_TOKEN / Firebase anahtarı / PROJE_AD yok"); process.exit(1); }
+  const API = "https://api.github.com/repos/xfranerx53/mag-yonetim/contents/komut/", HH = { Authorization: "Bearer " + T, "User-Agent": "mag-yonetim", Accept: "application/vnd.github+json" };
+  const r = await fetch(API + PRJ + ".json", { headers: HH });
+  if (r.status === 404) log("ℹ Bekleyen komut yok");
+  else if (!r.ok) { log("❌ Komut dosyası okunamadı:", r.status); process.exit(1); }
+  else {
+    const meta = await r.json(), K = JSON.parse(Buffer.from(meta.content, "base64").toString("utf8")), D = admin.database();
+    const SZ = v => v === "{SUNUCU_ZAMANI}" ? admin.database.ServerValue.TIMESTAMP : v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).map(([a, b]) => [a, SZ(b)])) : Array.isArray(v) ? v.map(SZ) : v;
+    const up = {}, yedek = { t: Date.now(), proje: PRJ, aciklama: K.aciklama || "", once: {} };
+    for (const x of K.islemler || []) {
+      const p = String(x.yol || "").replace(/^\/+|\/+$/g, "");
+      if (!p || /[.#$\[\]]/.test(p) || p.split("/").some(s => !s)) { log("❌ Geçersiz yol, komut uygulanmadı"); process.exit(1); }
+      if (KOKK && p !== KOKK && !p.startsWith(KOKK + "/")) { log("❌ Yol programın kök düğümü dışında, komut uygulanmadı"); process.exit(1); }
+      yedek.once[p] = (await D.ref(p).once("value")).val();
+      if (x.tur === "sil") up[p] = null;
+      else if (x.tur === "birlestir") for (const [a, b] of Object.entries(x.deger || {})) up[p + "/" + a] = SZ(b);
+      else if (x.tur === "yaz") up[p] = SZ(x.deger);
+      else { log("❌ Bilinmeyen işlem türü, komut uygulanmadı"); process.exit(1); }
+    }
+    const ts = new Date().toISOString().replace(/[:.]/g, "-"), b64 = o => Buffer.from(JSON.stringify(o, null, 1)).toString("base64");
+    const yr = await fetch(API + "yedek/" + PRJ + "-" + ts + ".json", { method: "PUT", headers: HH, body: JSON.stringify({ message: "komut yedeği " + PRJ, content: b64(yedek) }) });
+    if (!yr.ok) { log("❌ Yedek alınamadı, komut UYGULANMADI:", yr.status); process.exit(1); }
+    if (Object.keys(up).length) await D.ref().update(up);
+    if (PRJ === "fabrika") await D.ref("denetim").push({ tur: "claude", baslik: String(K.aciklama || "Claude talimatı").slice(0, 120), detay: Object.keys(up).length + " değişiklik (sahibin talimatıyla)", yol: "", id: "", kim: "🤖 Claude (sahibin talimatı)", uid: "claude", zaman: admin.database.ServerValue.TIMESTAMP }).catch(() => { });
+    await fetch(API + PRJ + ".json", { method: "DELETE", headers: HH, body: JSON.stringify({ message: "komut uygulandı " + PRJ, sha: meta.sha }) });
+    await fetch(API + "sonuc-" + PRJ + ".json", { method: "GET", headers: HH }).then(x => x.ok ? x.json() : null).then(o => fetch(API + "sonuc-" + PRJ + ".json", { method: "PUT", headers: HH, body: JSON.stringify({ message: "komut sonucu", content: b64({ t: Date.now(), degisiklik: Object.keys(up).length, yedek: "yedek/" + PRJ + "-" + ts + ".json" }), ...(o && o.sha ? { sha: o.sha } : {}) }) }));
+    log(`✅ Komut uygulandı: ${Object.keys(up).length} değişiklik • eski hali yedeklendi`);
+  }
+}
+
 process.exit(hata ? 1 : 0);
