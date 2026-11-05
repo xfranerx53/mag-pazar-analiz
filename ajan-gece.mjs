@@ -14,9 +14,9 @@ const log = (...a) => console.log("•", ...a);
 // Son çalışmanın sonucu buluta yazılır (ajan/sonCalisma) → program GitHub'a girmeden gösterir
 let DURUM_URL = null;
 const sonYaz = o => { if (!DURUM_URL) return; try { execFileSync(process.execPath, ["-e", `fetch(${JSON.stringify(DURUM_URL)},{method:"PUT",headers:{"Content-Type":"application/json"},body:${JSON.stringify(JSON.stringify(o))}}).catch(()=>{})`], { timeout: 20000 }); } catch (e) { } };
-const dur = (m, kod = 1) => { console.log("\n❌ " + m); sonYaz({ t: Date.now(), ok: false, mesaj: m, elle: process.env.GITHUB_EVENT_NAME === "workflow_dispatch" }); process.exit(kod); };
+const dur = (m, kod = 1) => { console.log("\n❌ " + m); sonYaz({ t: Date.now(), ok: false, mesaj: m, elle: process.env.GITHUB_EVENT_NAME === "workflow_dispatch" && process.env.ZAMANLI !== "1" }); process.exit(kod); };
 let OZET = "";
-const bitir = () => { console.log("\n✅ Tamam."); sonYaz({ t: Date.now(), ok: true, ozet: OZET, elle: process.env.GITHUB_EVENT_NAME === "workflow_dispatch" }); process.exit(0); };
+const bitir = () => { console.log("\n✅ Tamam."); sonYaz({ t: Date.now(), ok: true, ozet: OZET, elle: process.env.GITHUB_EVENT_NAME === "workflow_dispatch" && process.env.ZAMANLI !== "1" }); process.exit(0); };
 process.on("uncaughtException", e => dur("Beklenmeyen hata: " + (e && e.message || e)));
 process.on("unhandledRejection", e => dur("Beklenmeyen hata: " + (e && e.message || e)));
 
@@ -781,18 +781,20 @@ if (calis("haftalik")) {
 }
 
 /* ---------- 🛡 Risk analisti (Google araması, ücretsiz katman) ---------- */
-if (calis("risk")) {
+// Sabah turunda süre biterse (D.riskKalan) aynı gün sonraki mesai turunda kalanına devam eder
+if (calis("risk") || (!SECILI && GV.risk.acik && D.riskKalan === BUGUN && RAN.add("risk"))) {
   if (!X.aiKey()) GSON.risk = { t: Date.now(), metin: "Yapay zekâ anahtarı yok (Kurulum 1)" };
   else {
-    const lim = Math.max(0, Math.min(10, +O.riskGunluk || 4)); let n = 0, riskli = 0, rHata = "";
+    const lim = Math.max(0, Math.min(10, +O.riskGunluk || 4)); let n = 0, riskli = 0, rHata = "", sureBitti = false;
     const ozel = ISTEK && Array.isArray(ISTEK.riskIds) ? new Set(ISTEK.riskIds) : null; // programdan "bu firmayı araştır"
     const aday = ozel ? data.filter(x => ozel.has(x.id)).slice(0, 10) : data.filter(x => !x.aramayin && ["Teklif verildi", "İlgileniyor", "Müşteri"].includes(x.durum) && (!x.risk || x.risk.v !== 2 || Date.now() - (x.risk.t || 0) > 90 * 864e5))
       .sort((a, b) => (a.risk ? 1 : 0) - (b.risk ? 1 : 0) || X.bakiye(b) - X.bakiye(a)).slice(0, lim);
     for (const x of aday) {
-      if (dakika() > 12) { rHata = rHata || "süre bitti, kalanı sonraki turda"; break; }
+      if (dakika() > 12) { rHata = rHata || "süre bitti, kalanı sonraki turda"; sureBitti = true; break; }
       try { const r = await X.riskAnaliz(x); await guncelle(x, { risk: r }); n++; if (r.seviye === "risk") { riskli++; SICAK.push("🛡 " + x.firma + ": " + r.karar); } }
       catch (e) { log("Risk analizi atlandı"); rHata = e.message; if (/429|kota|sınır/i.test(e.message)) break; }
     }
+    if (sureBitti) D.riskKalan = BUGUN; else delete D.riskKalan;
     if (!n && rHata) GSON.risk = { t: Date.now(), metin: "⚠ Araştırma yapılamadı: " + String(rHata).slice(0, 140) };
     if (n) not_("🛡", `${n} firmanın ödeme güvenini araştırdı${riskli ? `, ${riskli} tanesi riskli çıktı` : ", hepsi makul"}`, "risk");
     log("Risk analizi:", n, "firma", riskli ? "• riskli " + riskli : "");
