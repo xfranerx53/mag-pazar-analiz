@@ -50,6 +50,7 @@ kodlar.sort((a, b) => a[0] - b[0]);
 const CEKIRDEK = blok("/* ================= v11 — 🤖 AJAN MERKEZİ", "/* --- ekran --- */");
 let AI = blok("/* ================= v12 — 🧠 YAPAY ZEKÂ BEYNİ", "/* --- 💬 Müdürle konuş --- */") + "\n" + blok("/* --- ✨ firmaya özel mesaj --- */", "let aiYaziyor");
 const V16 = blok("/* ================= v16 ÇEKİRDEK", "/* --- v16 ekran --- */");
+const TF = blok("/* ================= v18 TARAMA FİLTRESİ", "/* --- v18 ekran --- */"); // sahibin tarama talimatı (programdaki önizlemeyle aynı kod)
 if (env("AI_BASE_URL")) AI = AI.replace("https://generativelanguage.googleapis.com/v1beta/", env("AI_BASE_URL"));
 
 /* ---------- Firebase (REST) ---------- */
@@ -109,7 +110,8 @@ ${kodlar.map(k => k[1]).join("\n")}
 ${CEKIRDEK}
 ${AI}
 ${V16}
-globalThis.__api={malOzet,SEVK_CFG,KOTU_AD,firmaEsle,riskAnaliz,firsatAra,icerikPlani,ajStok,ajRisk,ajCalistir,ajRapor,ajMasada,AJAD,aiSor,AISYS,deanon,aiKey,epCikar,anon,aiKodla,ciro,bakiye,sipAktif,docTop,daysSince,today,plus,fmt,fd,arr,reorderList,sleepers,vadeDurum,aiMesajYaz,ajKey,hav,isChain,isRival,isMobile,adayPuan,normF,tel10,uid_,bolgeOf,VERI_DEF,TSEK,tuk,kodOf,selam,imza,kalemOzet,docAra,AJ,setR:r=>{tara.r=r}};`;
+${TF}
+globalThis.__api={tfAyar,tfMerkezler,tfTara,tfImza,malOzet,SEVK_CFG,KOTU_AD,firmaEsle,riskAnaliz,firsatAra,icerikPlani,ajStok,ajRisk,ajCalistir,ajRapor,ajMasada,AJAD,aiSor,AISYS,deanon,aiKey,epCikar,anon,aiKodla,ciro,bakiye,sipAktif,docTop,daysSince,today,plus,fmt,fd,arr,reorderList,sleepers,vadeDurum,aiMesajYaz,ajKey,hav,isChain,isRival,isMobile,adayPuan,normF,tel10,uid_,bolgeOf,VERI_DEF,TSEK,tuk,kodOf,selam,imza,kalemOzet,docAra,AJ,setR:r=>{tara.r=r}};`;
 Object.assign(ctx, { bellek, __ayar: ayar, __data: data, __katalog: Array.isArray(katalog) ? katalog : Object.values(katalog || {}), __users: users || {} });
 vm.runInContext(kaynak, ctx, { filename: "ajan-cekirdek.js" });
 const X = ctx.__api;
@@ -125,7 +127,7 @@ const O = Object.assign({ tarama: true, yaricap: 10, yaricapMax: 30, gunlukAday:
 const okuG = async p => { try { return await oku(p, g.tok); } catch (e) { return null; } };
 let D = (await okuG("ajan/durum")) || {};
 const ilkCalisma = D.tarih !== BUGUN || env("TAM") === "1" || env("GITHUB_EVENT_NAME") === "workflow_dispatch";
-if (D.tarih !== BUGUN) D = { tarih: BUGUN, epN: 0, taramaR: D.taramaR || 0, sonGelen: D.sonGelen || 0 };
+if (D.tarih !== BUGUN) D = { tarih: BUGUN, epN: 0, taramaEk: D.taramaEk || 0, taramaImza: D.taramaImza || "", sonGelen: D.sonGelen || 0 };
 const sabahTuru = D.sabah !== BUGUN;
 /* ---------- 🎛 Görev seçimi: programdaki "Görevler" ekranı (ayar.otonom.gorevler) + elle çalıştırmada seçilenler (ajan/istek) ---------- */
 const GOREV_VARS = { tarama: { acik: true, zaman: "sabah" }, epbul: { acik: true, zaman: "sabah" }, takip: { acik: true, zaman: "sabah" }, rota: { acik: false, zaman: "sabah" },
@@ -340,54 +342,35 @@ if (calis("takip")) {
   log("Takip ayarı:", n, "kayıt");
 }
 
-/* ---------- 🎯 2) Yeni müşteri adaylarını kendisi bulur (kendi verimizden) ---------- */
+/* ---------- 🎯 2) Yeni müşteri adaylarını kendisi bulur — sahibin 🎯 Tarama talimatına göre (bölge, km, sektör, kelime, şartlar) ---------- */
 if (calis("tarama")) {
-  const M = O.merkez;
-  if (!M || !isFinite(+M.lat) || !isFinite(+M.lon)) { log("Otomatik tarama atlandı: fabrika konumu seçilmemiş (Kurulum → Otonom ajanlar)"); not_("⚠", "Otomatik tarama için fabrika konumu seçilmemiş (Ajanlar → 🛠 Kurulum → 7. adım)"); }
+  const F = X.tfAyar(O), imza = X.tfImza(O, F);
+  delete D.taramaR; // eski alan (v18 öncesi)
+  if (D.taramaImza !== imza) { D.taramaEk = 0; D.taramaImza = imza; } // talimat değişti → genişleme baştan
+  const ek = Math.max(0, +D.taramaEk || 0), ms = X.tfMerkezler(O, F, ek);
+  if (!ms.length) { log("Otomatik tarama atlandı: tarama bölgesi yok"); not_("⚠", "Otomatik tarama için fabrika konumu ya da bölge seçilmemiş (Ajanlar → 🎯 Tarama talimatı)"); }
   else try {
-    const base = String(ayar.veriUrl || X.VERI_DEF).trim().replace(/\/?$/, "/");
-    const jget = async u => { const r = await fetch(u); if (!r.ok) { const e = new Error(u.split("/").pop() + " " + r.status); e.st = r.status; throw e; } return r; };
-    const idx = await (await jget(base + "dunya.json")).json(), B = idx.blok || 48;
-    const Rmax = Math.max(1, +O.yaricapMax || 30), R = Math.min(Rmax, Math.max(+O.yaricap || 10, +D.taramaR || 0));
-    X.setR(R);
-    const c = { lat: +M.lat, lon: +M.lon }, a10 = v => Math.floor(v * 10);
-    const dLa = R / 111, dLo = R / (111 * Math.max(.05, Math.cos(c.lat * Math.PI / 180)));
-    const la0 = a10(c.lat - dLa), la1 = a10(c.lat + dLa), lo0 = a10(c.lon - dLo), lo1 = a10(c.lon + dLo), bl = [];
-    for (let i = Math.floor(la0 / B); i <= Math.floor(la1 / B); i++) for (let j = Math.floor(lo0 / B); j <= Math.floor(lo1 / B); j++) bl.push(i + "_" + j);
-    const keys = [];
-    for (const b of bl) { let d = { t: {} }; try { d = await (await jget(base + "w/i/" + b + ".json")).json(); } catch (e) { if (e.st !== 404) throw e; }
-      for (const k of Object.keys(d.t || {})) { const [s, ij] = k.split("/"), [i, j] = ij.split("_").map(Number), S = +s; if (i * S <= la1 && i * S + S - 1 >= la0 && j * S <= lo1 && j * S + S - 1 >= lo0) keys.push(k); } }
-    const sekVars = X.TSEK.filter(t => X.tuk(t.k) >= 20).map(t => t.k);
-    const secs = new Set((Array.isArray(O.sektorler) && O.sektorler.length) ? O.sektorler : sekVars);
-    const aday = [];
-    for (const k of keys) {
-      const buf = Buffer.from(await (await jget(base + "w/t/" + k + ".json.gz")).arrayBuffer());
-      const rows = JSON.parse((buf[0] === 0x1f && buf[1] === 0x8b ? zlib.gunzipSync(buf) : buf).toString("utf8"));
-      for (const [ad, sk, lat, lon, tel, web, adres, il, oid, ep] of rows) {
-        if (!ad || !secs.has(sk)) continue; const km = X.hav(c.lat, c.lon, lat, lon); if (km > R) continue;
-        aday.push({ id: "o" + (oid || lat + "," + lon), ad, sek: sk, lat, lon, tel: tel || "", web: web || "", ep: ep || "", adres: adres || "", il: il || "", km });
-      }
-    }
+    const tfYukle = async u => { const r = await fetch(u); if (!r.ok) { const e = new Error(u.split("/").pop() + " " + r.status); e.status = r.status; throw e; }
+      const buf = Buffer.from(await r.arrayBuffer()); return JSON.parse((buf[0] === 0x1f && buf[1] === 0x8b ? zlib.gunzipSync(buf) : buf).toString("utf8")); };
     const gorulen = (await okuG("ajan/gorulen")) || {};
-    const telV = new Set(data.map(x => X.tel10(x.telefon)).filter(Boolean));
-    const ayni = p => data.some(x => X.normF(x.firma) === X.normF(p.ad) && (!x.konum || X.hav(x.konum.lat, x.konum.lon, p.lat, p.lon) < 0.3));
-    const temiz = aday.filter(p => !gorulen[p.id.replace(/[.#$/[\]]/g, "_")] && !X.isChain(p) && !X.isRival(p) && !(X.tel10(p.tel) && telV.has(X.tel10(p.tel))) && !ayni(p))
-      .map(p => ({ p, s: X.adayPuan(p) + (p.tel ? 0 : -25) })).sort((a, b) => b.s - a.s);
-    const N = Math.max(0, +O.gunlukAday || 15), sec = temiz.slice(0, N);
+    const T = await X.tfTara(O, F, tfYukle, { ek, gorulen });
     const owner = ayar.ownerUid, sekAd = k => (X.TSEK.find(t => t.k === k) || {}).ad || "Diğer";
     const yeniG = {};
-    for (const { p, s: sc } of sec) {
+    for (const { p, s: sc } of T.sec) {
       const bo = X.bolgeOf(p.lat, p.lon), sahip = (bo && bo.uid) || owner || "", sahipAd = (bo && bo.uad) || (users && users[sahip] && users[sahip].ad) || "";
       const L = { id: X.uid_(), c: Date.now(), u: Date.now(), aday: Math.max(0, Math.min(100, sc)), firma: p.ad, yetkili: "", sektor: sekAd(p.sek), il: p.il, adres: p.adres, telefon: p.tel, eposta: p.ep, web: p.web,
-        durum: "Yeni", izin: "Yok", oncelik: sc >= 70 ? "Sıcak" : sc >= 50 ? "Ilık" : "", kaynak: "🤖 Gece ajanı (otomatik tarama)", konum: { lat: p.lat, lon: p.lon }, mesafe: Math.round(p.km * 100) / 100, sonraki: "", not: "" };
+        durum: "Yeni", izin: "Yok", oncelik: sc >= 70 ? "Sıcak" : sc >= 50 ? "Ilık" : "", kaynak: "🤖 Gece ajanı (otomatik tarama)", konum: { lat: p.lat, lon: p.lon }, mesafe: Math.round(p.km * 100) / 100, sonraki: "", not: p.bolge ? "Tarama bölgesi: " + p.bolge : "" };
       if (sahip) { L.sahip = sahip; L.sahipAd = sahipAd; }
       try { await yaz("leads/" + L.id, g.tok, L); data.push(L); yeniG[p.id.replace(/[.#$/[\]]/g, "_")] = BUGUN; } catch (e) { log("aday eklenemedi:", e.message); }
     }
     if (Object.keys(yeniG).length) await yaz("ajan/gorulen", g.tok, yeniG, "PATCH").catch(() => { });
-    if (temiz.length - sec.length < N && R < Rmax) D.taramaR = Math.min(Rmax, R + 5);
-    const n = Object.keys(yeniG).length;
-    not_("🎯", n ? `${R} km içinde ${aday.length} işletmeye baktı, ${n} yeni müşteri adayı buldu ve listeye ekledi (en iyiler: ${sec.slice(0, 3).map(o => o.p.ad).join(", ")})` : `${R} km içinde yeni aday kalmadı${D.taramaR > R ? "; yarın " + D.taramaR + " km'ye genişleyecek" : ""}`, "tarama");
-    log("Otomatik tarama:", R, "km •", aday.length, "işletme •", n, "yeni aday eklendi");
+    // yarına yetecek aday kalmadıysa (ve izin varsa) alanı 5 km büyüt
+    const sonraki = X.tfMerkezler(O, F, ek + 5), buyur = sonraki.some((c, i) => c.km > ms[i].km);
+    if (T.gecen.length - T.sec.length < F.gunlukAday && F.genislet && buyur) D.taramaEk = ek + 5;
+    const n = Object.keys(yeniG).length, yer = ms.map(c => (ms.length > 1 || F.bolgeler.length ? c.ad + " " : "") + Math.round(c.km) + " km").join(", ");
+    not_("🎯", n ? `${yer} içinde ${T.toplam} işletmeye baktı (seçtiğin sektörler), ${n} yeni müşteri adayı buldu ve listeye ekledi (en iyiler: ${T.sec.slice(0, 3).map(o => o.p.ad).join(", ")})`
+      : `${yer} içinde talimatına uyan yeni aday kalmadı${D.taramaEk > ek ? "; yarın alan 5 km büyüyecek" : F.genislet ? "" : " (otomatik genişletme kapalı)"}`, "tarama");
+    log("Otomatik tarama:", ms.length, "bölge •", T.bakilan, "işletme •", T.toplam, "sektöre uyan •", T.gecen.length, "şarta uyan •", n, "yeni aday eklendi");
   } catch (e) { log("Otomatik tarama hatası:", e.message); not_("⚠", "Otomatik tarama bu gece yapılamadı: " + e.message); }
 }
 

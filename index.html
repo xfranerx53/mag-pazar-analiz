@@ -4,7 +4,7 @@
    Telefonda biriktirir (localStorage, en çok 40), giriş yapılmışsa 20 sn'de bir Firebase `mag_pazar/hata/` altına gönderir.
    Amaç: kullanıcı anlatmadan Claude'un hatayı görüp çözebilmesi. Yalnız yönetici okur (rules.json). Şifre/fotoğraf yazılmaz. */
 (function(){
-  var K="mag_hata",V="v17.6";
+  var K="mag_hata",V="v17.7";
   function oku(){try{return JSON.parse(localStorage.getItem(K))||[]}catch(e){return[]}}
   function cihaz(){var u=navigator.userAgent||"";return(/Android/.test(u)?"Android":/iPhone|iPad/.test(u)?"iOS":/Windows/.test(u)?"Windows":/Mac/.test(u)?"Mac":"diger")+" "+(/Edg\//.test(u)?"Edge":/Chrome\//.test(u)?"Chrome":/Safari\//.test(u)?"Safari":/Firefox\//.test(u)?"Firefox":"")+(matchMedia&&matchMedia("(display-mode: standalone)").matches?" (uygulama)":"")}
   function ekle(tur,m,s){try{m=String(m==null?"":m).replace(/\s+/g," ").trim().slice(0,400);if(!m)return;var l=oku(),son=l[l.length-1];
@@ -3796,6 +3796,150 @@ AJLER.forEach(a=>{if(a.k==="mudur"){a.ad="Müdür raporu"}});
 A.tkbit=async id=>{try{await root.child("ajan/takvim/"+id+"/bitti").set(Date.now());if(OF.takvim[id])OF.takvim[id].bitti=Date.now()}catch(e){}renderAkis()};
 // 30 günden eski bitmiş hatırlatmaları temizle
 setTimeout(()=>{if(!root||!isAdmin())return;Object.entries(OF.takvim||{}).forEach(([id,h])=>{if(h&&h.bitti&&Date.now()-h.bitti>30*864e5)root.child("ajan/takvim/"+id).remove().catch(()=>{})})},20000);
+
+/* ================= v18 TARAMA FİLTRESİ — ajanın yeni müşteri taramasını sahibin talimatı yönetir. Ajan (ajan-gece.mjs) bu bloğu AYNEN kullanır: önizleme = ajanın yapacağı. ================= */
+const TF_VARS={bolgeler:[],haricBolgeler:[],genislet:true,kmMax:30,haricKelime:[],sadeceKelime:[],telefon:"farketmez",web:false,eposta:false,zincir:false,belirsizAd:true,minPuan:0,siralama:"puan",sektorBasina:0};
+const TF_SIRA={puan:"En yüksek aday puanı",yakin:"En yakın olan",tuketim:"En çok poşet kullanan sektör"};
+const TF_TEL={farketmez:"Fark etmez",zorunlu:"Telefonu olsun",cep:"Cep telefonu olsun"};
+const TF_BELIRSIZ=new Set(["fabrika","market","bakkal","depo","atolye","sirket","firma","isyeri","dukkan","magaza","restoran","lokanta","bufe","firin","kasap","manav","otopark","insaat","santiye","sanayi","tesis","uretim","imalat","fabrikasi","toptan","toptanci","ofis","buro","merkez","sube","market1","tekel","kafe","cafe","otel","eczane","avm"]);
+const tfN=s=>String(s||"").replace(/[İIı]/g,"i").toLowerCase().normalize("NFD").replace(/[^\p{L}\p{N}]/gu,"");
+const tfKelimeler=v=>(Array.isArray(v)?v:String(v||"").split(/[,;\n]/)).map(s=>String(s).trim()).filter(Boolean);
+function tfAyar(O){O=O||{};const F=Object.assign({},TF_VARS,O.filtre||{});
+ F.sektorler=Array.isArray(O.sektorler)&&O.sektorler.length?O.sektorler.slice():TSEK.filter(s=>s.k!=="ozel"&&tuk(s.k)>=20).map(s=>s.k);
+ F.gunlukAday=Math.max(0,Math.min(200,+(O.gunlukAday??15)||0));F.haricKelime=tfKelimeler(F.haricKelime);F.sadeceKelime=tfKelimeler(F.sadeceKelime);
+ F.bolgeler=(Array.isArray(F.bolgeler)?F.bolgeler:[]).filter(b=>b&&isFinite(+b.lat)&&isFinite(+b.lon)&&+b.km>0);
+ F.haricBolgeler=(Array.isArray(F.haricBolgeler)?F.haricBolgeler:[]).filter(b=>b&&isFinite(+b.lat)&&isFinite(+b.lon)&&+b.km>0);return F}
+// tarama merkezleri: sahibin seçtiği bölgeler; seçmediyse fabrika konumu. ek = otomatik genişleme (km)
+function tfMerkezler(O,F,ek){ek=Math.max(0,+ek||0);O=O||{};
+ if(F.bolgeler.length){const mx=Math.max(1,+F.kmMax||30);return F.bolgeler.map(b=>({ad:b.ad||"Bölge",lat:+b.lat,lon:+b.lon,km:Math.max(+b.km,Math.min(mx,+b.km+(F.genislet?ek:0)))}))}
+ const M=O.merkez;if(!M||!isFinite(+M.lat)||!isFinite(+M.lon))return[];
+ const R0=Math.max(1,+O.yaricap||10),Rm=Math.max(R0,+O.yaricapMax||+F.kmMax||30);return[{ad:M.ad||"Fabrika",lat:+M.lat,lon:+M.lon,km:Math.min(Rm,R0+(F.genislet?ek:0))}]}
+const tfImza=(O,F)=>JSON.stringify([F.bolgeler.map(b=>[b.lat,b.lon,b.km]),(O||{}).merkez&&[O.merkez.lat,O.merkez.lon],(O||{}).yaricap,F.sektorler.slice().sort()]);
+// bir işletme neden elendi? (boş = geçti)
+function tfEle(p,F){const a=tfN(p.ad);
+ if(!p.ad||a.length<3)return"adı yok/çok kısa";
+ if(isRival(p))return"rakip (ambalajcı)";
+ if(!F.zincir&&isChain(p))return"zincir mağaza";
+ if(F.belirsizAd&&TF_BELIRSIZ.has(a))return"adı belirsiz";
+ if(F.haricKelime.some(k=>{const n=tfN(k);return n&&a.includes(n)}))return"yasak kelime";
+ if(F.sadeceKelime.length&&!F.sadeceKelime.some(k=>{const n=tfN(k);return n&&a.includes(n)}))return"istenen kelime yok";
+ if(F.telefon==="zorunlu"&&!p.tel)return"telefonu yok";
+ if(F.telefon==="cep"&&!(p.tel&&isMobile(p.tel)))return"cep telefonu yok";
+ if(F.web&&!p.web)return"web sitesi yok";
+ if(F.eposta&&!p.ep)return"e-postası yok";
+ if(F.haricBolgeler.some(b=>hav(+b.lat,+b.lon,p.lat,p.lon)<=+b.km))return"hariç bölgede";
+ return""}
+// yukle(url) → JSON (sıkıştırılmışı açar). o: {ek, gorulen, mevcut (true: listedekileri ele)}
+async function tfTara(O,F,yukle,o){o=o||{};const ms=tfMerkezler(O,F,o.ek);
+ if(!ms.length)throw new Error("Tarama bölgesi yok: fabrika konumunu ya da en az bir bölge seç");
+ if(!F.sektorler.length)throw new Error("Hiç sektör seçilmemiş");
+ const base=String(ayar.veriUrl||VERI_DEF).trim().replace(/\/?$/,"/"),idx=await yukle(base+"dunya.json"),B=idx.blok||48,a10_=v=>Math.floor(v*10);
+ const kut=[],blk=new Set(),keys=new Set();
+ for(const c of ms){const dLa=c.km/111,dLo=c.km/(111*Math.max(.05,Math.cos(c.lat*Math.PI/180))),q={la0:a10_(c.lat-dLa),la1:a10_(c.lat+dLa),lo0:a10_(c.lon-dLo),lo1:a10_(c.lon+dLo)};kut.push(q);
+  for(let i=Math.floor(q.la0/B);i<=Math.floor(q.la1/B);i++)for(let j=Math.floor(q.lo0/B);j<=Math.floor(q.lo1/B);j++)blk.add(i+"_"+j)}
+ for(const b of blk){let d={t:{}};try{d=await yukle(base+"w/i/"+b+".json")}catch(e){if(e.status!==404)throw e}
+  for(const k of Object.keys(d.t||{})){const[s,ij]=k.split("/"),[i,j]=ij.split("_").map(Number),S=+s;if(kut.some(q=>i*S<=q.la1&&i*S+S-1>=q.la0&&j*S<=q.lo1&&j*S+S-1>=q.lo0))keys.add(k)}}
+ const secs=new Set(F.sektorler),gor=o.gorulen||{},hepsi=new Map(),ele={};let sekDisi=0;
+ for(const k of keys){const rows=await yukle(base+"w/t/"+k+".json.gz");
+  for(const [ad,sk,lat,lon,tel,web,adres,il,oid,ep] of rows){let km=1e9,bo=null;for(const c of ms){const d=hav(c.lat,c.lon,lat,lon);if(d<=c.km&&d<km){km=d;bo=c.ad}}
+   if(!bo)continue;const id="o"+(oid||lat+","+lon);if(hepsi.has(id))continue;
+   if(!secs.has(sk)){sekDisi++;hepsi.set(id,null);continue}
+   hepsi.set(id,{id,ad,sek:sk,lat,lon,tel:tel||"",web:web||"",ep:ep||"",adres:adres||"",il:il||"",km,bolge:bo})}}
+ const telV=new Set(o.mevcut===false?[]:data.map(x=>tel10(x.telefon)).filter(Boolean));
+ const ayni=p=>o.mevcut!==false&&data.some(x=>normF(x.firma)===normF(p.ad)&&(!x.konum||hav(x.konum.lat,x.konum.lon,p.lat,p.lon)<0.3));
+ const r0=tara.r;tara.r=Math.max(...ms.map(c=>c.km));const gecen=[];let toplam=0;
+ try{for(const p of hepsi.values()){if(!p)continue;toplam++;
+  let n=tfEle(p,F);if(!n&&gor[p.id.replace(/[.#$/[\]]/g,"_")])n="daha önce eklendi";if(!n&&((tel10(p.tel)&&telV.has(tel10(p.tel)))||ayni(p)))n="zaten listende";
+  const s=n?0:adayPuan(p)+(p.tel?0:-25);if(!n&&s<(+F.minPuan||0))n="puanı düşük";
+  if(n){ele[n]=(ele[n]||0)+1;continue}gecen.push({p,s})}}finally{tara.r=r0}
+ const srt={yakin:(a,b)=>a.p.km-b.p.km,tuketim:(a,b)=>tuk(b.p.sek)-tuk(a.p.sek)||b.s-a.s,puan:(a,b)=>b.s-a.s}[F.siralama]||((a,b)=>b.s-a.s);gecen.sort(srt);
+ const N=F.gunlukAday,cap=Math.max(0,+F.sektorBasina||0),say={},sec=[];
+ for(const x of gecen){if(sec.length>=N)break;if(cap&&(say[x.p.sek]||0)>=cap)continue;say[x.p.sek]=(say[x.p.sek]||0)+1;sec.push(x)}
+ return{merkezler:ms,bakilan:hepsi.size,sekDisi,toplam,ele,gecen,sec}}
+/* --- v18 ekran --- */
+AJLER.splice(1,0,{k:"talimat",ik:"🎯",ad:"Tarama talimatı",ac:"Ajan yeni müşteriyi nerede, kaç km'de, hangi sektörde, hangi şartlarla arasın — sen söylersin, ajan her sabah buna göre tarar."});
+let tfT=null,tfOn=null,tfAiNot="",tfMesgul=false;
+function tfTaslakAl(){const O=ayar.otonom||{},F=tfAyar(O);return{filtre:F,yaricap:+O.yaricap||10,yaricapMax:+O.yaricapMax||30,merkez:O.merkez||null,talimat:(O.filtre||{}).talimat||""}}
+function tfOku(){if(!tfT||!$("tf_N"))return;const F=tfT.filtre,v=i=>$(i)?$(i).value:"",n=(i,d)=>{const x=v(i);return x===""||!isFinite(+x)?d:+x},c=i=>!!($(i)&&$(i).checked);
+ F.gunlukAday=Math.max(0,Math.min(200,n("tf_N",15)));F.minPuan=Math.max(0,Math.min(100,n("tf_mp",0)));F.sektorBasina=Math.max(0,n("tf_sb",0));F.siralama=v("tf_sr")||"puan";F.telefon=v("tf_tel")||"farketmez";
+ F.web=c("tf_web");F.eposta=c("tf_ep");F.zincir=c("tf_zn");F.belirsizAd=c("tf_bel");F.genislet=c("tf_gen");F.kmMax=Math.max(1,n("tf_km",30));
+ F.haricKelime=tfKelimeler(v("tf_hk"));F.sadeceKelime=tfKelimeler(v("tf_sk"));tfT.yaricap=Math.max(1,n("tf_r0",tfT.yaricap));tfT.talimat=v("tf_yaz");
+ document.querySelectorAll("[data-tfb]").forEach(e=>{const [t,i]=e.dataset.tfb.split(":"),l=t==="h"?F.haricBolgeler:F.bolgeler;if(l[+i])l[+i].km=Math.max(1,+e.value||l[+i].km)});
+ const s=[...document.querySelectorAll("[data-tfs]")].filter(e=>e.checked).map(e=>e.dataset.tfs);if(document.querySelector("[data-tfs]"))F.sektorler=s}
+function tfBolgeSatir(l,t){return l.length?l.map((b,i)=>`<div class="row" style="align-items:center;gap:6px"><span style="flex:1">📍 ${esc(b.ad)}</span><input data-tfb="${t}:${i}" type="number" min="1" value="${+b.km}" style="width:80px"> km<button data-a="tfbsil" data-id="${t}" data-i="${i}">✕</button></div>`).join(""):""}
+function talimatHtml(){if(!tfT)tfT=tfTaslakAl();const F=tfT.filtre,adm=isAdmin(),dis=adm?"":"disabled",son=(typeof gorevSon!=="undefined"&&gorevSon&&gorevSon.tarama)||null;
+ const ilceSec=`<select id="tf_ilce"><option value="">— ilçe seç —</option>${(typeof ILCELER!=="undefined"?ILCELER:[]).map(([a,il])=>`<option value="${esc(a)}">${esc(a)} (${esc(il)})</option>`).join("")}</select>`;
+ const gr={};TSEK.filter(s=>s.k!=="ozel").forEach(s=>(gr[s.gr]=gr[s.gr]||[]).push(s));const secS=new Set(F.sektorler);
+ let h=`<div class="card"><h3>✍ Yapay zekâya söyle</h3><div class="mu">Ne istediğini düz Türkçe yaz; yapay zekâ aşağıdaki filtreleri doldurur, sen kontrol edip <b>Kaydet</b>'e basarsın. Örnek: <i>"Çorlu ve Çerkezköy'de 15 km, sadece fabrika, toptancı ve dürüm/çiğköfte; market ve kuaför istemiyorum; telefonu olmayan gelmesin; günde 20 aday, her sektörden en fazla 5."</i></div>
+ <textarea id="tf_yaz" rows="3" style="width:100%" ${dis} placeholder="Ajan nerede, neyi arasın?">${esc(tfT.talimat||"")}</textarea>
+ <div class="row"><button class="p" data-a="tfai" ${dis}>${tfMesgul?"⏳ Düşünüyor…":"✨ Filtreye çevir"}</button></div>${tfAiNot?`<div class="mu" style="margin-top:6px">🧠 ${esc(tfAiNot)}</div>`:""}</div>`;
+ h+=`<div class="card"><h3>📍 Nerede arasın?</h3>${F.bolgeler.length?`<div class="mu">Seçtiğin bölgelerin çevresinde tarar (bölge başına km):</div>${tfBolgeSatir(F.bolgeler,"b")}`:`<div class="mu">Bölge seçilmedi → <b>fabrika çevresi</b> taranır${tfT.merkez?` (📍 ${esc(tfT.merkez.ad||"Fabrika")})`:" (fabrika konumu seçilmemiş: Kurulum 7. adım)"}.</div><label>Fabrika çevresi başlangıç (km)</label><input id="tf_r0" type="number" min="1" value="${tfT.yaricap}" ${dis}>`}
+ <div class="row" style="margin-top:6px">${ilceSec}<input id="tf_bkm" type="number" min="1" value="10" style="width:80px" title="km"><button data-a="tfbek" data-id="b" ${dis}>+ Bölge ekle</button></div>
+ <div class="row"><input id="tf_byer" placeholder="ya da yer adı yaz (ör. Hadımköy, Kıraç)" style="flex:1"><button data-a="tfbara" data-id="b" ${dis}>🔍 Bul ve ekle</button>${tfT.merkez?`<button data-a="tfbfab" ${dis}>🏭 Fabrikayı ekle</button>`:""}</div>
+ <label class="gvsw" style="margin-top:8px"><input type="checkbox" id="tf_gen" ${F.genislet?"checked":""} ${dis}><span>Aday kalmayınca alanı her gün 5 km büyüt</span></label><label>En fazla büyüyeceği mesafe (km)</label><input id="tf_km" type="number" min="1" value="${+F.kmMax||30}" ${dis}>
+ <details style="margin-top:8px" ${F.haricBolgeler.length?"open":""}><summary><b>🚫 Taranmayacak bölgeler</b> (${F.haricBolgeler.length})</summary>${tfBolgeSatir(F.haricBolgeler,"h")}
+ <div class="row"><input id="tf_hyer" placeholder="yer adı (ör. Esenyurt)" style="flex:1"><input id="tf_hkm" type="number" min="1" value="3" style="width:70px"><button data-a="tfbara" data-id="h" ${dis}>+ Hariç tut</button></div></details></div>`;
+ h+=`<div class="card"><h3>🏷 Hangi sektörler?</h3><div class="mu">İşaretli olanlar taranır, işaretsizler asla gelmez. Seçili: <b>${F.sektorler.length}</b></div>`+Object.entries(gr).map(([g,l])=>`<details ${l.some(s=>secS.has(s.k))?"open":""}><summary><b>${esc(g)}</b> (${l.filter(s=>secS.has(s.k)).length}/${l.length}) <button data-a="tfgr" data-id="${esc(g)}" data-i="1" ${dis}>tümü</button><button data-a="tfgr" data-id="${esc(g)}" data-i="0" ${dis}>hiçbiri</button></summary><div style="display:flex;flex-wrap:wrap;gap:4px 14px">${l.map(s=>`<label class="gvsw" style="min-width:160px;font-size:14px"><input type="checkbox" data-tfs="${s.k}" ${secS.has(s.k)?"checked":""} ${dis}><span>${esc(s.ad)}</span></label>`).join("")}</div></details>`).join("")+
+ `<label>Her sektörden günde en fazla (0 = sınırsız)</label><input id="tf_sb" type="number" min="0" value="${+F.sektorBasina||0}" ${dis}></div>`;
+ h+=`<div class="card"><h3>🔤 Ad filtresi</h3><label>Adında bunlar geçenleri GETİRME (virgülle ayır)</label><input id="tf_hk" value="${esc(F.haricKelime.join(", "))}" placeholder="ör. kuaför, oto, cami" ${dis}>
+ <label>SADECE adında bunlardan biri geçenleri getir (boş = hepsi)</label><input id="tf_sk" value="${esc(F.sadeceKelime.join(", "))}" placeholder="ör. gıda, et, tekstil" ${dis}>
+ <label class="gvsw"><input type="checkbox" id="tf_bel" ${F.belirsizAd?"checked":""} ${dis}><span>Adı belirsiz olanları getirme (haritada adı sadece "fabrika", "market", "depo" yazanlar)</span></label></div>`;
+ h+=`<div class="card"><h3>✅ Şartlar ve sıra</h3><div class="g3"><div><label>Telefon</label><select id="tf_tel" ${dis}>${Object.entries(TF_TEL).map(([k,a])=>`<option value="${k}" ${F.telefon===k?"selected":""}>${a}</option>`).join("")}</select></div>
+ <div><label>Önce hangisi?</label><select id="tf_sr" ${dis}>${Object.entries(TF_SIRA).map(([k,a])=>`<option value="${k}" ${F.siralama===k?"selected":""}>${a}</option>`).join("")}</select></div>
+ <div><label>Her gün yeni aday</label><input id="tf_N" type="number" min="0" max="200" value="${F.gunlukAday}" ${dis}></div><div><label>En düşük aday puanı (0-100)</label><input id="tf_mp" type="number" min="0" max="100" value="${+F.minPuan||0}" ${dis}></div></div>
+ <label class="gvsw"><input type="checkbox" id="tf_web" ${F.web?"checked":""} ${dis}><span>Web sitesi olanlar</span></label><label class="gvsw"><input type="checkbox" id="tf_ep" ${F.eposta?"checked":""} ${dis}><span>E-postası bilinenler</span></label><label class="gvsw"><input type="checkbox" id="tf_zn" ${F.zincir?"checked":""} ${dis}><span>Zincir marketleri de getir</span></label>
+ <div class="mu">Rakip ambalajcılar ve listende zaten olan firmalar her zaman elenir.</div></div>`;
+ h+=`<div class="card"><div class="row">${adm?`<button class="p" data-a="tfkay">💾 Kaydet</button>`:""}<button data-a="tfoniz">🔍 Önizle (ajan ne bulur?)</button>${adm?`<button data-a="tfsifir">↩ Varsayılana dön</button>`:""}</div>${adm?"":`<div class="mu">Yalnız yönetici değiştirebilir.</div>`}
+ ${son?`<div class="mu" style="margin-top:6px">Son tarama: ${fdt(son.t)} — ${esc(son.metin)}</div>`:""}<div id="tf_oniz">${tfOn||""}</div></div>`;
+ return h}
+window.ajOzel.talimat=talimatHtml;
+const tfYeniden=()=>{if(ajFiltre==="talimat")renderAjan()};
+async function tfYerBul(ad){const z=(typeof ILCELER!=="undefined"?ILCELER:[]).find(i=>tfN(i[0])===tfN(ad)||tfN(i[0]+i[1])===tfN(ad));if(z)return{ad:z[0],lat:z[2],lon:z[3]};
+ try{const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=tr&accept-language=tr&q="+encodeURIComponent(ad));const j=await r.json();if(j[0])return{ad:String(ad).trim(),lat:Math.round(+j[0].lat*1e4)/1e4,lon:Math.round(+j[0].lon*1e4)/1e4}}catch(e){}return null}
+function tfOnizHtml(r,F){const sAd=k=>(TSEK.find(t=>t.k===k)||{}).ad||k,el=Object.entries(r.ele).sort((a,b)=>b[1]-a[1]);
+ return `<h4 style="margin-top:10px">🔍 Önizleme</h4><div class="mu">${r.merkezler.map(c=>`📍 ${esc(c.ad)} ${Math.round(c.km)} km`).join(" • ")}<br>
+ Bu alanda <b>${NUM(r.bakilan)}</b> işletme var; <b>${NUM(r.sekDisi)}</b> tanesi seçmediğin sektörde. Seçtiğin sektörlerden <b>${NUM(r.toplam)}</b> işletmenin <b>${NUM(r.gecen.length)}</b> tanesi şartlarına uyuyor → ajan her gün en iyi <b>${F.gunlukAday}</b> tanesini ekler${r.gecen.length?` (yaklaşık ${Math.max(1,Math.ceil(r.gecen.length/Math.max(1,F.gunlukAday)))} gün yeter)`:""}.</div>
+ ${el.length?`<div class="mu">Elenenler: ${el.map(([k,v])=>`${esc(k)} ${NUM(v)}`).join(" • ")}</div>`:""}
+ ${r.sec.length?`<div class="mu" style="margin-top:6px"><b>Yarın eklenecek ilk ${Math.min(10,r.sec.length)}:</b></div>`+r.sec.slice(0,10).map(({p,s})=>`<div class="mu">• <b>${esc(p.ad)}</b> — ${esc(sAd(p.sek))}, ${esc(p.bolge)} ${Math.round(p.km*10)/10} km${p.tel?" 📞":""}${p.web?" 🌐":""} • puan ${s}</div>`).join(""):`<div class="warn">Bu filtrelerle hiç aday çıkmıyor; sektör ekle, km'yi büyüt ya da şartları gevşet.</div>`}`}
+Object.assign(A,{
+ tfkay:()=>{if(!isAdmin())return;tfOku();const F=tfT.filtre;if(!F.sektorler.length){alert("En az bir sektör seç.");return}
+  const O=Object.assign({},ayar.otonom||{}),f={};for(const k of Object.keys(TF_VARS))f[k]=F[k];f.talimat=String(tfT.talimat||"").slice(0,1000);f.t=Date.now();
+  O.filtre=f;O.sektorler=F.sektorler.slice();O.gunlukAday=F.gunlukAday;O.yaricap=tfT.yaricap;O.yaricapMax=Math.max(tfT.yaricap,F.kmMax);O.tarama=true;
+  ayar.otonom=O;saveAyar();tfT=null;tfAiNot="";renderAjan();tost("Tarama talimatı kaydedildi — ajan yarın sabah buna göre tarar")},
+ tfsifir:()=>{if(!confirm("Tarama filtreleri varsayılana dönsün mü? (Bölgeler, sektör seçimi ve kelimeler silinir; kaydetmek için ardından 💾 Kaydet'e bas.)"))return;
+  const O=ayar.otonom||{};tfT={filtre:tfAyar({gunlukAday:15}),yaricap:10,yaricapMax:30,merkez:O.merkez||null,talimat:""};tfOn=null;tfAiNot="";tfYeniden()},
+ tfbsil:(t,i)=>{tfOku();(t==="h"?tfT.filtre.haricBolgeler:tfT.filtre.bolgeler).splice(+i,1);tfYeniden()},
+ tfbek:()=>{tfOku();const a=$("tf_ilce").value,z=ILCELER.find(x=>x[0]===a);if(!z){alert("Önce listeden bir ilçe seç.");return}
+  if(tfT.filtre.bolgeler.some(b=>b.ad===z[0]))return;tfT.filtre.bolgeler.push({ad:z[0],lat:z[2],lon:z[3],km:Math.max(1,+$("tf_bkm").value||10)});tfYeniden()},
+ tfbfab:()=>{tfOku();const m=tfT.merkez;if(!m)return;tfT.filtre.bolgeler.push({ad:m.ad||"Fabrika",lat:+m.lat,lon:+m.lon,km:tfT.yaricap||10});tfYeniden()},
+ tfbara:async t=>{tfOku();const ad=$(t==="h"?"tf_hyer":"tf_byer").value.trim();if(!ad){alert("Yer adını yaz.");return}
+  const y=await tfYerBul(ad);if(!y){alert(ad+" bulunamadı; ilçe ya da mahalle adını farklı yaz.");return}
+  (t==="h"?tfT.filtre.haricBolgeler:tfT.filtre.bolgeler).push({...y,km:Math.max(1,+$(t==="h"?"tf_hkm":"tf_bkm").value||(t==="h"?3:10))});tfYeniden()},
+ tfgr:(g,i)=>{tfOku();const ks=TSEK.filter(s=>s.gr===g).map(s=>s.k),S=new Set(tfT.filtre.sektorler);ks.forEach(k=>i==="1"?S.add(k):S.delete(k));tfT.filtre.sektorler=[...S];tfYeniden()},
+ tfoniz:async()=>{tfOku();const F=tfAyar({filtre:tfT.filtre,sektorler:tfT.filtre.sektorler,gunlukAday:tfT.filtre.gunlukAday});const O={merkez:tfT.merkez,yaricap:tfT.yaricap,yaricapMax:Math.max(tfT.yaricap,F.kmMax)};
+  tfOn=`<div class="mu" style="margin-top:8px">⏳ Harita verisi taranıyor…</div>`;tfYeniden();
+  let gor={};try{if(root&&isAdmin())gor=(await root.child("ajan/gorulen").once("value")).val()||{}}catch(e){}
+  try{const r=await tfTara(O,F,u=>/\.gz$/.test(u)?vGz(u):vJson(u),{gorulen:gor});tfOn=tfOnizHtml(r,F)}catch(e){tfOn=`<div class="warn">Önizleme yapılamadı: ${esc(e.message)}</div>`}tfYeniden()},
+ tfai:async()=>{if(tfMesgul)return;tfOku();const metin=String(tfT.talimat||"").trim();if(!metin){alert("Önce ne istediğini yaz.");return}if(!aiKey()){alert("Önce 🛠 Kurulum'dan yapay zekâ anahtarını gir.");return}
+  tfMesgul=true;tfAiNot="";tfYeniden();
+  try{const F=tfT.filtre,simdi={bolgeler:F.bolgeler.map(b=>({ad:b.ad,km:b.km})),haricBolgeler:F.haricBolgeler.map(b=>({ad:b.ad,km:b.km})),fabrikaCevresiKm:tfT.yaricap};for(const k of Object.keys(TF_VARS))if(!/olgeler$/.test(k))simdi[k]=F[k];simdi.sektorler=F.sektorler;simdi.gunlukAday=F.gunlukAday;
+   const sys=`Sen MAG AMBALAJ'ın (poşet/torba üreticisi, fabrika Silivri) müşteri arayan ajanının filtre ayarlarını yapıyorsun. Sahibin talimatını mevcut ayarlara uygula ve YALNIZ JSON döndür.
+Alanlar: bolgeler [{ad,km}] (taranacak yerler; ilçe/semt adı; boş = fabrika çevresi) • haricBolgeler [{ad,km}] • fabrikaCevresiKm • genislet (bool) • kmMax • sektorler [anahtar] (YALNIZ şu anahtarlar: ${TSEK.filter(s=>s.k!=="ozel").map(s=>s.k+"="+s.ad).join("; ")}) • sektorBasina (0=sınırsız) • haricKelime [..] • sadeceKelime [..] • telefon ("farketmez"|"zorunlu"|"cep") • web (bool) • eposta (bool) • zincir (bool) • belirsizAd (bool) • minPuan (0-100) • siralama ("puan"|"yakin"|"tuketim") • gunlukAday (0-200).
+Talimatta geçmeyen alanı DEĞİŞTİRME (mevcut değeri aynen yaz). "X istemiyorum" → sektörden çıkar ya da haricKelime. "sadece X" → sektörleri yalnız X yap. Çıktı: {"ayar":{...tüm alanlar...},"aciklama":"ne değiştirdiğini 1-3 kısa Türkçe cümleyle anlat"}`;
+   const j=JSON.parse(await aiSor(sys,[{r:"ben",m:"Mevcut ayarlar: "+JSON.stringify(simdi)+"\nTalimat: "+metin}],{json:true,sicak:0.1,max:3000})),y=j.ayar||j;
+   const yeni=Object.assign({},F),ks=new Set(TSEK.map(s=>s.k)),b01=v=>v===true||v==="true";
+   if(Array.isArray(y.sektorler)){const s=y.sektorler.map(String).filter(k=>ks.has(k)&&k!=="ozel");if(s.length)yeni.sektorler=s}
+   for(const k of ["haricKelime","sadeceKelime"])if(y[k]!=null)yeni[k]=tfKelimeler(y[k]);
+   for(const k of ["web","eposta","zincir","belirsizAd","genislet"])if(y[k]!=null)yeni[k]=b01(y[k]);
+   if(TF_TEL[y.telefon])yeni.telefon=y.telefon;if(TF_SIRA[y.siralama])yeni.siralama=y.siralama;
+   for(const [k,a,b] of [["minPuan",0,100],["gunlukAday",0,200],["sektorBasina",0,100],["kmMax",1,200]])if(y[k]!=null&&isFinite(+y[k]))yeni[k]=Math.max(a,Math.min(b,Math.round(+y[k])));
+   if(y.fabrikaCevresiKm!=null&&+y.fabrikaCevresiKm>0)tfT.yaricap=Math.round(+y.fabrikaCevresiKm);
+   const bulunmadi=[];
+   for(const [k,eski] of [["bolgeler",F.bolgeler],["haricBolgeler",F.haricBolgeler]])if(Array.isArray(y[k])){const l=[];
+    for(const b of y[k]){if(!b||!b.ad)continue;const km=Math.max(1,+b.km||(k==="bolgeler"?10:3)),e=eski.find(x=>tfN(x.ad)===tfN(b.ad));const yer=e||await tfYerBul(String(b.ad));if(yer)l.push({ad:yer.ad,lat:yer.lat,lon:yer.lon,km});else bulunmadi.push(b.ad)}yeni[k]=l}
+   tfT.filtre=yeni;tfOn=null;tfAiNot=String(j.aciklama||"Filtreler güncellendi.").slice(0,400)+(bulunmadi.length?" ⚠ Haritada bulunamadı: "+bulunmadi.join(", "):"")+" — Kontrol et, sonra 💾 Kaydet.";
+  }catch(e){tfAiNot="Yapay zekâ talimatı çeviremedi: "+e.message}finally{tfMesgul=false;tfYeniden()}}
+});
 
 __baslat();
 if(!SIPT){const _g=new URLSearchParams(location.search).get("git");if(_g&&_g!=="ajan")setTimeout(()=>go(_g),300);else if(!_g)go("akis")}
