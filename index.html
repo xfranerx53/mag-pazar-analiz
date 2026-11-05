@@ -4,7 +4,7 @@
    Telefonda biriktirir (localStorage, en çok 40), giriş yapılmışsa 20 sn'de bir Firebase `mag_pazar/hata/` altına gönderir.
    Amaç: kullanıcı anlatmadan Claude'un hatayı görüp çözebilmesi. Yalnız yönetici okur (rules.json). Şifre/fotoğraf yazılmaz. */
 (function(){
-  var K="mag_hata",V="v17.7";
+  var K="mag_hata",V="v17.8";
   function oku(){try{return JSON.parse(localStorage.getItem(K))||[]}catch(e){return[]}}
   function cihaz(){var u=navigator.userAgent||"";return(/Android/.test(u)?"Android":/iPhone|iPad/.test(u)?"iOS":/Windows/.test(u)?"Windows":/Mac/.test(u)?"Mac":"diger")+" "+(/Edg\//.test(u)?"Edge":/Chrome\//.test(u)?"Chrome":/Safari\//.test(u)?"Safari":/Firefox\//.test(u)?"Firefox":"")+(matchMedia&&matchMedia("(display-mode: standalone)").matches?" (uygulama)":"")}
   function ekle(tur,m,s){try{m=String(m==null?"":m).replace(/\s+/g," ").trim().slice(0,400);if(!m)return;var l=oku(),son=l[l.length-1];
@@ -3940,6 +3940,21 @@ Talimatta geçmeyen alanı DEĞİŞTİRME (mevcut değeri aynen yaz). "X istemiy
    tfT.filtre=yeni;tfOn=null;tfAiNot=String(j.aciklama||"Filtreler güncellendi.").slice(0,400)+(bulunmadi.length?" ⚠ Haritada bulunamadı: "+bulunmadi.join(", "):"")+" — Kontrol et, sonra 💾 Kaydet.";
   }catch(e){tfAiNot="Yapay zekâ talimatı çeviremedi: "+e.message}finally{tfMesgul=false;tfYeniden()}}
 });
+
+/* v17.7: 🎛 Ajan yönetimi BUGÜN ekranında — çalışma saatleri + «Ajanlar ne yapsın?» en üstte.
+   Sahip uygulamayı kullanmaz, ajanları yönetir; Ofis → Görevler sekmesi buraya yönlendirir (aynı form iki yerde olmasın diye). */
+{const PK="mag_bgPanel";
+ const bgHtml=()=>{if(!root||!isAdmin())return"";let h="";try{h=gorevHtml()}catch(e){return""}
+  const V=gvAl(),acik=Object.keys(V).filter(k=>V[k]&&V[k].acik).length,ac=ls.get(PK)!=="0",O=ayar.otonom||{};
+  const ms=Object.assign({gunler:[1,2,3,4,5,6],saatler:[8,13,18]},O.mesai||{});
+  return`<details class="card ajg" id="bgPanelD" ${ac?"open":""}><summary style="cursor:pointer;font-weight:800;font-size:17px">🎛 Ajan yönetimi <span class="mu" style="font-weight:400">— ${O.durdur?"⏸ tatilde":ms.gunler.map(g=>GUNAD[g]).join(", ")+" • "+ms.saatler.map(x=>String(x).padStart(2,"0")+":00").join(", ")} • ${acik} görev açık</span></summary><div style="margin-top:8px">${h}</div></details>`};
+ window.bgPanel=()=>{const p=$("bgPanel");if(p)p.innerHTML=bgHtml()};
+ const _ra=renderAkis;renderAkis=function(){_ra();const el=$("akisL");if(!el)return;if(!$("bgPanel"))el.insertAdjacentHTML("afterbegin",`<div id="bgPanel"></div>`);bgPanel();
+  if(!window.__bgGiz){window.__bgGiz=1;gizliYukle().then(bgPanel).catch(()=>{})}};
+ const _rj=renderAjan;renderAjan=function(){_rj();try{bgPanel()}catch(e){}};
+ window.ajOzel.gorev=()=>`<div class="card"><b>🎛 Görevler ve çalışma saatleri artık 🏠 Bugün ekranının en üstünde.</b><div class="row" style="margin-top:8px"><button class="p" data-go="akis">🏠 Bugün'e git</button></div></div>`;
+ document.addEventListener("toggle",e=>{if(e.target&&e.target.id==="bgPanelD")ls.set(PK,e.target.open?"1":"0")},true);
+}
 
 __baslat();
 if(!SIPT){const _g=new URLSearchParams(location.search).get("git");if(_g&&_g!=="ajan")setTimeout(()=>go(_g),300);else if(!_g)go("akis")}
