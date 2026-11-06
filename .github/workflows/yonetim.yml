@@ -54,4 +54,13 @@ jobs:
           git clone -q --depth 1 "https://x-access-token:$TOKEN@github.com/xfranerx53/mag-yonetim.git" yon
           mkdir -p "yon/mag-pazar" && cp teshis/* "yon/mag-pazar/"
           cd yon && git config user.name "mag-ajan" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A && (git commit -q -m "teşhis mag-pazar $(TZ=Europe/Istanbul date +%F_%H%M)" && git push -q && echo "✅ Teşhis özel depoya yazıldı") || echo "Değişiklik yok"
+          git add -A
+          if git diff --cached --quiet; then echo "Değişiklik yok"; exit 0; fi
+          git commit -q -m "teşhis mag-pazar $(TZ=Europe/Istanbul date +%F_%H%M)"
+          # İki programın teşhisi aynı anda yazılırsa biri reddedilir: güncelini alıp yeniden dene (sessizce kaybolmasın)
+          for i in 1 2 3 4; do
+            if git push -q; then echo "✅ Teşhis özel depoya yazıldı"; exit 0; fi
+            echo "Gönderilemedi (başka bir teşhis aynı anda yazdı) — yeniden deneniyor ($i)"; sleep $((i * 5))
+            git pull -q --rebase || { git rebase --abort; echo "❌ Birleştirilemedi"; exit 1; }
+          done
+          echo "❌ Teşhis özel depoya yazılamadı"; exit 1

@@ -55,7 +55,14 @@ if (env("AI_BASE_URL")) AI = AI.replace("https://generativelanguage.googleapis.c
 
 /* ---------- Firebase (REST) ---------- */
 async function istek(url, o = {}) {
-  const r = await fetch(url, { ...o, headers: { "Content-Type": "application/json" } });
+  // Anlık ağ kopmasında (fetch failed) bütün tur kaybolmasın: tekrarı güvenli isteklerde 3 kez dene.
+  // Veritabanına POST (yeni kayıt ekleme) tekrarlanmaz — çift kayıt olmasın.
+  const tekrarOlur = (o.method || "GET") !== "POST" || url.includes("accounts:");
+  let r;
+  for (let n = 0; ; n++) {
+    try { r = await fetch(url, { ...o, headers: { "Content-Type": "application/json" } }); break; }
+    catch (e) { if (!tekrarOlur || n >= 2) throw e; await new Promise(z => setTimeout(z, 3000 * (n + 1))); }
+  }
   const j = await r.json().catch(() => ({}));
   return { ok: r.ok, st: r.status, j };
 }
