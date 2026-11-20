@@ -9,6 +9,9 @@ name: Ajan sabah raporu
 on:
   schedule:
     - cron: "17 * * * *"    # her saatin 17. dakikası (Türkiye saatiyle de :17)
+  push:
+    branches: [main]
+    paths: [".github/ajan-istek.txt"]
   workflow_dispatch:
     inputs:
       zamanli:

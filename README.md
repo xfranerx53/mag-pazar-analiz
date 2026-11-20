@@ -250,3 +250,7 @@ GitHub → depo → Add file → Upload files → değişen dosyaları sürükle
 ## v20 — Ürüne özel satış mesajları (20 Kasım 2026)
 - Her ürün için hazır, peşin/numune odaklı teklif mesajı (`URUN_MSJ`). Sektöre göre otomatik ürün eşleşir (`URUN_OTO`, örn. kasap/kuruyemiş→vakum, fabrika/depo→palet streç, giyim→mağaza poşeti).
 - WhatsApp penceresinde "🎯 Önerilen" butonu; toplu WhatsApp'ta varsayılan "Otomatik: sektöre uygun ürün mesajı".
+
+## Ajanı Claude tetikler (20 Kasım 2026)
+- `.github/ajan-istek.txt` değişince ajan "elle" modda çalışır (push tetikleyici). İstenen görevler Firebase `ajan/istek` içinde.
+- Deneme e-posta modunda günlük örnek sınırı `ayar.otonom.denemeSinir` (en çok 30); mailler yalnız Gmail hesabının sahibine gider.

@@ -146,7 +146,7 @@ const GOREV_VARS = { tarama: { acik: true, zaman: "sabah" }, epbul: { acik: true
   sevkiyat: { acik: true, zaman: "sabah" }, kuyruk: { acik: true, zaman: "her" }, hatirlat: { acik: true, zaman: "her" }, risk: { acik: true, zaman: "sabah" }, firsat: { acik: true, zaman: "sabah" }, icerik: { acik: true, zaman: "sabah" } };
 const GV = {}; for (const k in GOREV_VARS) GV[k] = Object.assign({}, GOREV_VARS[k], (O.gorevler || {})[k] || {});
 if (O.tarama === false && !(O.gorevler || {}).tarama) GV.tarama.acik = false;
-const elle = env("GITHUB_EVENT_NAME") === "workflow_dispatch" && env("ZAMANLI") !== "1"; // ZAMANLI=1: dış zamanlayıcıdan gelen otomatik tur (mesai kuralı geçerli)
+const elle = (env("GITHUB_EVENT_NAME") === "push" || env("GITHUB_EVENT_NAME") === "workflow_dispatch") && env("ZAMANLI") !== "1"; // ZAMANLI=1: dış zamanlayıcıdan gelen otomatik tur (mesai kuralı geçerli)
 /* ---------- ⏰ Çalışma saatleri: GitHub her saat uyandırır; ajan sadece programda seçilen gün/saatte iş yapar ---------- */
 if (!elle && env("TAM") !== "1") {
   if (O.durdur) { log("⏸ Ajanlar tatilde (programda durduruldu) — iş yok"); process.exit(0); }
