@@ -449,16 +449,22 @@ const URUNLER=()=>{const m=new Map(URUN_DEF.map(u=>[u.k,{...u}]));(Array.isArray
 const urunAcik=(u,S)=>{const l=u.sek.filter(k=>TSEK.some(t=>t.k===k));return l.length>0&&l.every(k=>S.has(k))};
 const urunToggle=(k,S)=>{const u=URUNLER().find(x=>x.k===k);if(!u)return;const l=u.sek.filter(x=>TSEK.some(t=>t.k===x));if(urunAcik(u,S))l.forEach(x=>S.delete(x));else l.forEach(x=>S.add(x))};
 const urunChips=(S,att,dis)=>URUNLER().map(u=>`<button type="button" class="srow ${urunAcik(u,S)?"on":""}" ${att}="${esc(u.k)}" ${dis||""} style="display:inline-flex;width:auto;margin:3px 4px 3px 0;padding:6px 10px"><span>${esc(u.ad)}</span></button>`).join("");
-const URUN_MSJ={
- rulo:"Merhaba, iyi çalışmalar. Yoğun saatte kasada ya da manav reyonunda poşetin bitmemesi çok şey değiştiriyor. {firma} için rulo poşetten ücretsiz numune bırakmak isterim; bu hafta uğrasam uygun olur mu? — MAG Ambalaj, Silivri",
- atlet:"Merhaba, iyi çalışmalar. Müşteri çıkışında poşetin dayanıklı olması hem sizi hem müşteriyi rahatlatıyor. {firma} için atlet poşet hazırlayabiliriz, isterseniz adınızı da basarız. Ücretsiz numune bırakıp ebat ve adedinize göre fiyat vereyim, bu hafta uğrasam olur mu? — MAG Ambalaj, Silivri",
- magaza:"Merhaba, iyi çalışmalar. Müşteri alışverişten sonra poşeti elinde taşıdıkça markanız da yürür. {firma} için istediğiniz ebat ve baskıda kulplu poşet yapabiliriz. Ebatınızı söylerseniz numune ve fiyat hazırlayayım, olur mu? — MAG Ambalaj, Silivri",
- torba:"Merhaba, iyi çalışmalar. Çöp, önlük ya da düz torbada ebat ve kalınlık doğru olunca hem fire hem şikâyet azalıyor. {firma} hangi ölçüde torba kullanıyor? Aynı ölçüde ücretsiz numune göndereyim. — MAG Ambalaj, Silivri",
- banti:"Merhaba, iyi çalışmalar. Ürünün temiz ve korunaklı gitmesi için bantlı şeffaf poşet çok işe yarıyor. {firma} hangi ebatı kullanıyor? Aynı ebatta ücretsiz numune göndereyim. — MAG Ambalaj, Silivri",
- palet:"Merhaba, iyi çalışmalar. Palet sevkiyatında sağlam sarılmış yük, hasarı ve iade derdini azaltıyor. {firma} ayda kaç rulo streç kullanıyor? Öğrenirsem ona göre bir deneme rulosu ve fiyat hazırlarım. — MAG Ambalaj, Silivri",
- gida_strec:"Merhaba, iyi çalışmalar. Mutfakta ve vitrinde gıdaya uygun streç, ürünü taze ve düzenli gösteriyor. {firma} hangi genişlikte kullanıyor? Aynı ölçüde ücretsiz numune bırakayım. — MAG Ambalaj, Silivri",
- vakum:"Merhaba, iyi çalışmalar. Vakumlu ürün hem daha uzun taze kalıyor hem tezgâhta derli toplu duruyor. {firma} hangi ebatta vakum poşeti kullanıyor? Aynı ebatta ücretsiz numune göndereyim, bir deneyin. — MAG Ambalaj, Silivri"
-};
+const URUN_NE={
+ rulo:"Market ve manavlara rulo poşet yapıyoruz.",
+ atlet:"Atlet (hışır) poşet yapıyoruz; istenirse üzerine işletmenin adı basılır.",
+ magaza:"Kulplu mağaza poşeti yapıyoruz; istenirse üzerine işletmenin adı basılır.",
+ torba:"Düz, çöp ve baskılı torba yapıyoruz.",
+ banti:"Bantlı (yapışkanlı) şeffaf poşet yapıyoruz.",
+ palet:"Palet streç film üretiyoruz.",
+ gida_strec:"Gıdaya uygun streç film üretiyoruz.",
+ vakum:"Vakum poşeti de yapıyoruz, istenen ebatta."};
+const URUN_SORU={rulo:"ebadını",atlet:"ebadını",magaza:"ebadını",torba:"ebadını",banti:"ebadını",palet:"genişlik ve gramajını",gida_strec:"genişlik ve metrajını",vakum:"ebadını"};
+const URUN_MSJ={};
+const _msj=(k,firma)=>"Merhaba, iyi çalışmalar. Silivri'deki MAG Ambalaj'dan yazıyorum, poşet üretiyoruz. "+(URUN_NE[k]||"")+" Şu an kullandığınız ürünün "+(URUN_SORU[k]||"ebadını")+" söylerseniz aynısından numune ve fiyat götüreyim, elinizdekiyle kıyaslarsınız. Uygun mu?";
+function urunEposta(u,x){const k=u.k,ne=URUN_NE[k]||"",f=x.firma||"";
+ return{konu:f+" için "+(k==="palet"||k==="gida_strec"?"streç":"poşet")+" numunesi ve fiyat",
+ govde:"Merhaba,\n\nSilivri'deki MAG Ambalaj'dan yazıyorum; poşet üretiyoruz. "+ne+"\n\nŞu an kullandığınız ürünün "+(URUN_SORU[k]||"ebadını")+" ve yaklaşık aylık kullanımını söylerseniz, aynısından numune ve net fiyat hazırlayıp getireyim. Elinizdekiyle kıyaslarsınız; beğenmezseniz hiçbir yükümlülük yok.\n\nBu hafta uğramam uygun olur mu?"}}
+
 const URUN_IPUCU={
  rulo:"manav/market/kasap tezgâhında poşet sürekli ve hızlı tükenir; rulo poşet kolay kullanım ve düşük fire sağlar; peşin alımda uygun fiyat",
  atlet:"hışır atlet poşet günlük müşteri çıkışında kullanılır; dayanıklı ve isteğe göre isim/logo baskılı yapılabilir",
@@ -471,7 +477,7 @@ const URUN_IPUCU={
 const URUN_OTO={kasap:"vakum",kuruyemis:"vakum",sarkuteri:"vakum",balik:"vakum",aktar:"vakum",durum:"torba",pide:"torba",restoran:"gida_strec",kafe:"gida_strec",otel:"gida_strec",firin:"atlet",pastane:"atlet",depo:"palet",fabrika:"palet",toptan:"palet",tarim:"palet",atolye:"torba",temizleme:"torba",giyim:"magaza",ayakkabi:"magaza",kozmetik:"magaza",kirtasiye:"magaza",hediye:"magaza",kuyumcu:"banti",elektronik:"magaza",mobilya:"magaza",matbaa:"banti"};
 function urunAdOner(ad){const n=String(ad||"").replace(/İ/g,"i").replace(/I/g,"ı").toLowerCase();const k=/kasap|kasabı|et ürün|şarküteri|sarkuteri|peynir|kuruyemiş|kuruyemis|kuru yemiş|balık|balik|baharat|aktar/.test(n)?"vakum":/fırın|firin|ekmek|unlu mam/.test(n)?"atlet":/manav|sebze|meyve/.test(n)?"rulo":null;return k?URUNLER().find(u=>u.k===k)||null:null}
 function urunOner(x){x=x||{};const ao=urunAdOner(x.firma||x.ad);if(ao)return ao;const t=TSEK.find(t=>t.k===(x.sek||x.sektor)||t.ad===(x.sektor||x.sek));if(!t)return null;const k=URUN_OTO[t.k];const u=URUNLER().find(u=>u.k===k)||URUNLER().find(u=>u.sek.includes(t.k));return u||null}
-const urunMetin=(u,x)=>fillT(URUN_MSJ[u.k]||("Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için "+u.ad.toLowerCase()+" ihtiyacınızda kendi üretimimizle uygun fiyat sunuyoruz. Fiyat ve numune iletebilir miyim?"),x);
+const urunMetin=(u,x)=>fillT(_msj(u.k,x.firma)||("Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için "+u.ad.toLowerCase()+" ihtiyacınızda kendi üretimimizle uygun fiyat sunuyoruz. Fiyat ve numune iletebilir miyim?"),x);
 const SEK=[...new Set([...TSEK.map(s=>s.ad),"Dürümcü/Restoran","Tekstil/Konfeksiyon","Mağaza","Diğer"])];
 const ESKI_SEK={"Market":"Market / Süpermarket","Depo/Lojistik":"Depo / Lojistik / Kargo","Fırın/Pastane":"Fırın / Ekmek","Kafe":"Kafe / Kahveci","Kuruyemiş/Şarküteri":"Kuruyemiş","Büfe/Tekel":"Büfe / Tekel / Gazeteci","Hırdavat":"Hırdavat / Nalbur / Yapı"};
 const fixSek=x=>{if(x&&ESKI_SEK[x.sektor])x.sektor=ESKI_SEK[x.sektor];return x};

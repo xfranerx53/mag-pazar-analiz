@@ -120,7 +120,7 @@ ${CEKIRDEK}
 ${AI}
 ${V16}
 ${TF}
-globalThis.__api={urunOner,urunMetin,URUNLER,URUN_IPUCU,tfAyar,tfMerkezler,tfTara,tfImza,malOzet,SEVK_CFG,KOTU_AD,firmaEsle,riskAnaliz,firsatAra,icerikPlani,ajStok,ajRisk,ajCalistir,ajRapor,ajMasada,AJAD,aiSor,AISYS,deanon,aiKey,epCikar,anon,aiKodla,ciro,bakiye,sipAktif,docTop,daysSince,today,plus,fmt,fd,arr,reorderList,sleepers,vadeDurum,aiMesajYaz,ajKey,hav,isChain,isRival,isMobile,adayPuan,normF,tel10,uid_,bolgeOf,VERI_DEF,TSEK,tuk,kodOf,selam,imza,kalemOzet,docAra,AJ,setR:r=>{tara.r=r}};`;
+globalThis.__api={urunEposta,urunOner,urunMetin,URUNLER,URUN_IPUCU,tfAyar,tfMerkezler,tfTara,tfImza,malOzet,SEVK_CFG,KOTU_AD,firmaEsle,riskAnaliz,firsatAra,icerikPlani,ajStok,ajRisk,ajCalistir,ajRapor,ajMasada,AJAD,aiSor,AISYS,deanon,aiKey,epCikar,anon,aiKodla,ciro,bakiye,sipAktif,docTop,daysSince,today,plus,fmt,fd,arr,reorderList,sleepers,vadeDurum,aiMesajYaz,ajKey,hav,isChain,isRival,isMobile,adayPuan,normF,tel10,uid_,bolgeOf,VERI_DEF,TSEK,tuk,kodOf,selam,imza,kalemOzet,docAra,AJ,setR:r=>{tara.r=r}};`;
 Object.assign(ctx, { bellek, __ayar: ayar, __data: data, __katalog: Array.isArray(katalog) ? katalog : Object.values(katalog || {}), __users: users || {} });
 vm.runInContext(kaynak, ctx, { filename: "ajan-cekirdek.js" });
 const X = ctx.__api;
@@ -665,6 +665,16 @@ if (gmailVar && EPT.length) {
     let gonderilen = 0, hata = 0; const say = {};
     for (const h of hedef.slice(0, kalan)) {
       const x = h.x;
+      if (ONAYM && O.onayYazim !== "ai") { // sade, dürüst şablon: yapay zekâ süsü yok
+        try {
+          const ou = X.urunOner(x); if (!ou) continue;
+          const e = X.urunEposta(ou, { firma: x.firma });
+          await yaz("ajan/onay/" + x.id, g.tok, { firmaId: x.id, firma: x.firma, sektor: x.sektor || "", urun: ou.ad, to: x.eposta || "", tel: x.telefon || "", yetkili: x.yetkili || "", konu: e.konu, metin: e.govde, wa: X.urunMetin(ou, { firma: x.firma, yetkili: x.yetkili || "" }), tur: h.tur, t: Date.now() });
+          await guncelle(x, { epOnay: BUGUN }).catch(() => { });
+          onaya++; D.epN = (D.epN || 0) + 1; ONAY[x.id] = 1;
+        } catch (e) { hata++; log("onay taslağı yazılamadı:", e.message); }
+        continue;
+      }
       try {
         X.aiKodla();
         const s0 = X.arr(x.siparis).filter(X.sipAktif).sort((a, b) => (b.tar || "").localeCompare(a.tar || ""))[0];

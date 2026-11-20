@@ -273,3 +273,7 @@ GitHub → depo → Add file → Upload files → değişen dosyaları sürükle
 - Gece ajanı toplu işte Gemma/Lite'ı öne alıyordu; mesaj yazımında artık `ucuz:false` (Flash öncelikli), sıcaklık 0.9.
 - Yeni yazım istemi: kendini tanıtarak başlama yok; ilk cümle işletmenin dünyasından, tek fayda, ücretsiz numune, tek kolay soru; uydurma fiyat/teslim yok. Aynı çağrı e-posta + kısa WhatsApp metni üretir (`wa`).
 - Programdaki sabit ürün mesajları da aynı üsluba çevrildi.
+
+## v25 — Sade, dürüst taslaklar (20 Kasım 2026)
+- Onay taslakları artık yapay zekâ ile yazılmıyor: sektöre göre seçilen ürünü söyleyen, şu an kullandığı ürünün ebadını soran ve aynısından numune + net fiyat götürmeyi öneren kısa sabit şablon (`URUN_NE`, `URUN_SORU`, `urunEposta`). Uydurma iddia, sahte samimiyet, teslim vaadi yok.
+- Ajan: `ayar.otonom.onayYazim="ai"` verilirse eski yapay zekâ yazımına döner; varsayılan şablon.
