@@ -676,16 +676,36 @@ if (gmailVar && EPT.length) {
           onerilenUrun: (() => { const u = X.urunOner(x); return u ? { ad: u.ad, neden: (X.URUN_IPUCU || {})[u.k] || "" } : null; })(),
           firmamiz: `${FIRMA}: Silivri'de kendi fabrikasında poşet ve streç üreten üretici (atlet/rulo/mağaza poşeti, torba, bantlı poşet, palet ve gıda streç, vakum poşeti). Bu firmaya yalnızca "onerilenUrun" alanındaki ürünü öner, diğerlerini sayma.` };
         const j = await (async (...q) => { /* cevap yarım gelirse (düşünen model token'ı bitirir) bir kez daha, daha geniş sınırla dene */
-          for (let d = 0; d < 2; d++) { try { return JSON.parse(String(await X.aiSor(q[0], q[1], d ? { ...q[2], max: 4000, sicak: 0.5 } : q[2])).replace(/^```(?:json)?|```$/g, "").trim()); } catch (e) { if (d || !/JSON|Unterminated|Unexpected/i.test(e.message)) throw e; } } })(`Bir poşet üreticisi adına işletmeye gönderilecek e-postayı yaz. Amaç "amac" alanında. Türkçe, kısa (60-100 kelime), sıcak, doğal ve profesyonel; kalıp/reklam dili yok. Firmanın sektörüne ("firma.sektor") uygun hitap et: işini bildiğini gösteren somut bir cümle kur (örn. kasapsa vakum/tazelik, fırınsa ekmek poşeti, markette rulo/atlet poşet). Yalnızca "onerilenUrun" ürününü anlat; başka ürün sayma. "Aracısız", "hızlı teslimat", "fabrika fiyatı", "geniş ürün yelpazesi", "HDPE/LDPE" gibi teknik/kalıp ifadeler kullanma. Teslimat süresi, fiyat, indirim gibi bilmediğin hiçbir şey UYDURMA. Ücretsiz numune bırakmayı ve kısa bir ziyaret/WhatsApp ile ebat-adet öğrenmeyi öner; tek net soru ile bitir.
-Firma adı yerine {FIRMA} yaz (program doldurur). "Merhaba," ile başla; imza ve altbilgi YAZMA. Verilen tutar/tarih/fiyatları aynen kullan; verilmeyen fiyat, indirim, tarih UYDURMA.
-SADECE JSON: {"konu":"en fazla 60 karakter, spam kelimesi yok","govde":"..."}`, [{ r: "ben", m: JSON.stringify(bilgi) }], { json: true, sicak: 0.7, max: 1500, toplu: true });
+          for (let d = 0; d < 2; d++) { try { return JSON.parse(String(await X.aiSor(q[0], q[1], d ? { ...q[2], max: 4000, sicak: 0.5 } : q[2])).replace(/^```(?:json)?|```$/g, "").trim()); } catch (e) { if (d || !/JSON|Unterminated|Unexpected/i.test(e.message)) throw e; } } })(`Sen, Silivri'deki bir poşet üreticisinin (MAG Ambalaj) en iyi satış yazarısın. Görevin: küçük/orta esnafın "bu kişiyle konuşmak isterim" diyeceği, insani ve ikna edici ilk mesajı yazmak. Amaç "amac" alanında; ürün "onerilenUrun", işletme "firma" alanında.
+
+KURALLAR (hepsine uy):
+1) ASLA kendini tanıtarak ya da "fabrikamızda üretiyoruz / yelpaze / aracısız / kaliteli" diyerek BAŞLAMA. İlk cümle karşıdakinin dünyasından olsun: işinde yaşadığı gerçek bir durum ya da kazanç (örn. fırın: ekmek sıcakken poşet hazır olmalı; kasap: vakumla et taze ve derli toplu durur; market: yoğun saatte kasada poşet bitmemeli).
+2) Dili sade, sıcak, saygılı ve esnaf ağzı: kısa cümleler, kurumsal/reklam kalıbı yok, ünlem ve emoji yok. Sanki mahalleden biri nazikçe yazıyor.
+3) İşletme adını yalnızca bir kez, doğal biçimde an. Gereksiz övgü, abartı, "harika/muhteşem" yok.
+4) Tek bir somut fayda + risksiz bir adım: ücretsiz numune bırakma. Kendini kısaca "MAG Ambalaj, Silivri" diye ancak ikinci cümlede ya da imza gibi an.
+5) Tek ve kolay bir soruyla bitir ("Bu hafta uğrayıp numune bırakmam uygun olur mu?" gibi). Soru cevaplaması 5 saniye sürmeli.
+6) Fiyat, indirim, teslim süresi, stok, sertifika, referans gibi bilmediğin hiçbir şeyi UYDURMA ve yazma. "Hızlı teslimat", "uygun fiyat", "fabrika fiyatı" yazma.
+7) Her işletme için farklı yaz; aynı cümleleri kopyalama. Verilen "firma.sektor" ve "onerilenUrun.neden"e dayan.
+
+ÇIKTILAR (hepsi Türkçe):
+- "konu": en fazla 55 karakter, merak ve fayda içerir, işletme adını geçirebilir, spam/reklam kelimesi yok.
+- "govde": e-posta, 60-90 kelime, "Merhaba," ile başla, 2-3 kısa paragraf. İmza YAZMA. İşletme adı yerine {FIRMA} yaz.
+- "wa": WhatsApp mesajı, EN FAZLA 45 kelime, 2-3 kısa cümle, "Merhaba, iyi çalışmalar." ile başla, en sona " — MAG Ambalaj, Silivri" ekle. İşletme adı yerine {FIRMA} yaz.
+
+İYİ ÖRNEKLER (kopyalama, tonu al):
+wa (fırın/atlet): "Merhaba, iyi çalışmalar. Ekmek poşetinin sıcak ekmeğe göre dayanıklı olması, kuyrukta zaman kazandırıyor. {FIRMA} için isterseniz adınızı da basarak atlet poşet hazırlayabiliriz. Ücretsiz numune bırakıp ebat ve adedinize göre fiyat vereyim, bu hafta uğrasam olur mu? — MAG Ambalaj, Silivri"
+wa (kasap/vakum): "Merhaba, iyi çalışmalar. Vakumlu et hem daha uzun taze kalıyor hem tezgâhta derli toplu duruyor. {FIRMA} hangi ebatta vakum poşeti kullanıyor? Aynı ebatta ücretsiz numune göndereyim, bir deneyin. — MAG Ambalaj, Silivri"
+wa (market/rulo): "Merhaba, iyi çalışmalar. Yoğun saatte kasada ya da manav reyonunda poşetin bitmemesi çok şey değiştiriyor. {FIRMA} için rulo poşetten ücretsiz numune bırakmak isterim; bu hafta uğrasam uygun olur mu? — MAG Ambalaj, Silivri"
+konu örnekleri: "{FIRMA} için ekmek poşeti numunesi", "Vakumlu etin raf ömrü hakkında", "Kasada poşet bitmesin".
+
+SADECE JSON: {"konu":"...","govde":"...","wa":"..."}`, [{ r: "ben", m: JSON.stringify(bilgi) }], { json: true, sicak: 0.9, max: 2500, toplu: true, ucuz: false });
         const doldur = s => X.deanon(String(s || "")).replace(/\{FIRMA\}/g, x.firma).trim();
         let konu = doldur(j.konu).slice(0, 90), govde = doldur(j.govde);
         if (!konu || !govde) throw new Error("boş e-posta");
         if (x.yetkili && /^merhaba\s*,/i.test(govde)) govde = govde.replace(/^merhaba\s*,/i, "Merhaba " + x.yetkili + ",");
         if (ONAYM) {
           const ou = X.urunOner(x);
-          await yaz("ajan/onay/" + x.id, g.tok, { firmaId: x.id, firma: x.firma, sektor: x.sektor || "", urun: ou ? ou.ad : "", to: x.eposta || "", tel: x.telefon || "", yetkili: x.yetkili || "", konu, metin: govde, wa: ou ? X.urunMetin(ou, { firma: x.firma, yetkili: x.yetkili || "" }) : "", tur: h.tur, t: Date.now() });
+          await yaz("ajan/onay/" + x.id, g.tok, { firmaId: x.id, firma: x.firma, sektor: x.sektor || "", urun: ou ? ou.ad : "", to: x.eposta || "", tel: x.telefon || "", yetkili: x.yetkili || "", konu, metin: govde, wa: j.wa ? doldur(j.wa) : (ou ? X.urunMetin(ou, { firma: x.firma, yetkili: x.yetkili || "" }) : ""), tur: h.tur, t: Date.now() });
           await guncelle(x, { epOnay: BUGUN }).catch(() => { });
           onaya++; D.epN = (D.epN || 0) + 1; ONAY[x.id] = 1; continue;
         }

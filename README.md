@@ -268,3 +268,8 @@ GitHub → depo → Add file → Upload files → değişen dosyaları sürükle
 ## v23 — Sahibin ekranı: ✅ Onay sekmesi (20 Kasım 2026)
 - Alt menünün ilk düğmesi **✅ Onay** (bekleyen sayısı rozetli). Yönetici girince program doğrudan buraya açılır. Sahibin işi yalnızca burada: ajanın yazdığı mesajları okur, düzeltir, onaylar/WhatsApp'a gönderir/siler. Tarama, firma bulma, mesaj yazma Claude tarafından yönetilir (komut: mag-yonetim).
 - Liste her 20 sn'de kendiliğinden yenilenir (yazı yazarken yenilenmez).
+
+## v24 — Mesaj kalitesi (20 Kasım 2026)
+- Gece ajanı toplu işte Gemma/Lite'ı öne alıyordu; mesaj yazımında artık `ucuz:false` (Flash öncelikli), sıcaklık 0.9.
+- Yeni yazım istemi: kendini tanıtarak başlama yok; ilk cümle işletmenin dünyasından, tek fayda, ücretsiz numune, tek kolay soru; uydurma fiyat/teslim yok. Aynı çağrı e-posta + kısa WhatsApp metni üretir (`wa`).
+- Programdaki sabit ürün mesajları da aynı üsluba çevrildi.
