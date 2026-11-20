@@ -1445,11 +1445,11 @@ async function startSync(u){
  on(R.child("katalog"),s=>{const v=s.val();if(v){katalog=arr(v);ls.set("mag_katalog",JSON.stringify(katalog));render()}else if(isAdmin()&&katalog.length)R.child("katalog").set(clean(katalog)).catch(()=>{})});
  if(isAdmin()){
   /* v19 tek seferlik sıfırlama: müşteri/tarama verileri silinir (önce yedek alınır), ayar+katalog+kullanıcılar kalır */
-  R.child("ayar/sifirlamaV").once("value").then(async sn=>{if(sn.val()==="20261120-urun")return;
+  R.child("ayar/sifirlamaV").once("value").then(async sn=>{if(sn.val()==="20261120-urun"){if(ls.get("sifirlandi")!=="1"){["mag_leads","mag_tara","mag_taramalar","mag_gorulen","mag_fav","mag_gizli","mag_cop","mag_log","mag_sayac","mag_synced"].forEach(k=>ls.del?ls.del(k):0);ls.set("sifirlandi","1");location.reload()}return}
    try{const eski=(await R.child("leads").once("value")).val()||{};await R.child("yedek/sifirlama-20261120").set({t:Date.now(),leads:eski});
     await Promise.all([R.child("leads").remove(),R.child("cop").remove(),R.child("log").remove(),R.child("sayac").remove()]);
     ["mag_leads","mag_tara","mag_taramalar","mag_gorulen","mag_fav","mag_gizli","mag_cop","mag_log","mag_sayac","mag_synced"].forEach(k=>{try{localStorage.removeItem("mpz:"+k);localStorage.removeItem(k)}catch(e){}});
-    const O=Object.assign({},ayar.otonom||{});O.sektorler=[];if(O.filtre)O.filtre.sektorler=[];ayar.otonom=O;ayar.sifirlamaV="20261120-urun";
+    const O=Object.assign({},ayar.otonom||{});O.sektorler=[];if(O.filtre)O.filtre.sektorler=[];ayar.otonom=O;ayar.sifirlamaV="20261120-urun";ls.set("sifirlandi","1");
     await R.child("ayar").set(clean(ayar));alert("Mag Pazar sıfırlandı (eski kayıtların yedeği alındı). Şimdi Tara → ürün seçerek başla.");location.reload()}
    catch(e){cloudErr("Sıfırlama yapılamadı: "+e.message)}});
   if(prof.yeniSahip){ayar.ownerUid=u.uid;R.child("ayar/ownerUid").set(u.uid).catch(()=>{})}
