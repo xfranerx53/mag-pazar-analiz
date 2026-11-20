@@ -246,3 +246,7 @@ GitHub → depo → Add file → Upload files → değişen dosyaları sürükle
 - Başlangıçta hiçbir sektör seçili değil: Tara/Ajan'da önce ürün seçilir, sektörler ondan gelir.
 - Eczane sektörü kaldırıldı (yılda ~10 kg poşet; ürün ebatları uymuyor).
 - Ürün grupları magambalaj.com'daki kategorilere göre: Mağaza, Atlet, Torba (önlük/çiğköfte dahil), Bantlı, Palet/Gıda streç + Rulo manav + Vakum.
+
+## v20 — Ürüne özel satış mesajları (20 Kasım 2026)
+- Her ürün için hazır, peşin/numune odaklı teklif mesajı (`URUN_MSJ`). Sektöre göre otomatik ürün eşleşir (`URUN_OTO`, örn. kasap/kuruyemiş→vakum, fabrika/depo→palet streç, giyim→mağaza poşeti).
+- WhatsApp penceresinde "🎯 Önerilen" butonu; toplu WhatsApp'ta varsayılan "Otomatik: sektöre uygun ürün mesajı".

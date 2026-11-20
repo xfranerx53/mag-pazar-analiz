@@ -449,6 +449,19 @@ const URUNLER=()=>{const m=new Map(URUN_DEF.map(u=>[u.k,{...u}]));(Array.isArray
 const urunAcik=(u,S)=>{const l=u.sek.filter(k=>TSEK.some(t=>t.k===k));return l.length>0&&l.every(k=>S.has(k))};
 const urunToggle=(k,S)=>{const u=URUNLER().find(x=>x.k===k);if(!u)return;const l=u.sek.filter(x=>TSEK.some(t=>t.k===x));if(urunAcik(u,S))l.forEach(x=>S.delete(x));else l.forEach(x=>S.add(x))};
 const urunChips=(S,att,dis)=>URUNLER().map(u=>`<button type="button" class="srow ${urunAcik(u,S)?"on":""}" ${att}="${esc(u.k)}" ${dis||""} style="display:inline-flex;width:auto;margin:3px 4px 3px 0;padding:6px 10px"><span>${esc(u.ad)}</span></button>`).join("");
+const URUN_MSJ={
+ rulo:"Merhaba {yetkili}, MAG Ambalaj'dan (Silivri, kendi fabrikamız) yazıyorum. {firma} için rulo manav/market poşetini peşin alımda özel fiyatla ve stoktan sunuyoruz. Ücretsiz numune bırakıp fiyat iletebilir miyim?",
+ atlet:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için atlet (hışır) poşeti kendi üretimimizden, peşin alımda uygun fiyatla veriyoruz; istenirse üzerine isim/logo baskı da yapıyoruz. Numune ve fiyat iletebilir miyim?",
+ magaza:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için kulplu mağaza poşetini (baskılı/baskısız) kendi fabrikamızda üretiyoruz. Ebat ve adetinize göre fiyat ve numune hazırlayabilir miyim?",
+ torba:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için torba ihtiyacınızda (düz/çöp/nakliye/önlük, istenirse baskılı) kendi üretimimizle çözüm sunuyoruz. İhtiyacınız olan ebatı öğrenip fiyat verebilir miyim?",
+ banti:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için bantlı (yapışkanlı) şeffaf poşeti ihtiyacınız olan ebatlarda üretiyoruz. Ebatı söylerseniz fiyat ve numune göndereyim.",
+ palet:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için palet streç filmi kendi üretimimizden, peşin alımda özel fiyatla sunuyoruz. Aylık yaklaşık kaç rulo kullanıyorsunuz? Buna göre fiyat vereyim.",
+ gida_strec:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için gıda streç filmi (mutfak/vitrin) rulo olarak uygun fiyatla sunuyoruz. Hangi genişlik ve metrajı kullanıyorsunuz? Fiyat ve numune ileteyim.",
+ vakum:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için vakum poşetini (et, kuruyemiş, şarküteri, peynir için) istediğiniz ebatta üretiyoruz. Hangi ebatı kullanıyorsunuz? Fiyat ve numune göndereyim."
+};
+const URUN_OTO={kasap:"vakum",kuruyemis:"vakum",sarkuteri:"vakum",balik:"vakum",aktar:"vakum",durum:"torba",pide:"torba",restoran:"gida_strec",kafe:"gida_strec",otel:"gida_strec",firin:"atlet",pastane:"atlet",depo:"palet",fabrika:"palet",toptan:"palet",tarim:"palet",atolye:"torba",temizleme:"torba",giyim:"magaza",ayakkabi:"magaza",kozmetik:"magaza",kirtasiye:"magaza",hediye:"magaza",kuyumcu:"banti",elektronik:"magaza",mobilya:"magaza",matbaa:"banti"};
+function urunOner(x){x=x||{};const t=TSEK.find(t=>t.k===(x.sek||x.sektor)||t.ad===(x.sektor||x.sek));if(!t)return null;const k=URUN_OTO[t.k];const u=URUNLER().find(u=>u.k===k)||URUNLER().find(u=>u.sek.includes(t.k));return u||null}
+const urunMetin=(u,x)=>fillT(URUN_MSJ[u.k]||("Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için "+u.ad.toLowerCase()+" ihtiyacınızda kendi üretimimizle uygun fiyat sunuyoruz. Fiyat ve numune iletebilir miyim?"),x);
 const SEK=[...new Set([...TSEK.map(s=>s.ad),"Dürümcü/Restoran","Tekstil/Konfeksiyon","Mağaza","Diğer"])];
 const ESKI_SEK={"Market":"Market / Süpermarket","Depo/Lojistik":"Depo / Lojistik / Kargo","Fırın/Pastane":"Fırın / Ekmek","Kafe":"Kafe / Kahveci","Kuruyemiş/Şarküteri":"Kuruyemiş","Büfe/Tekel":"Büfe / Tekel / Gazeteci","Hırdavat":"Hırdavat / Nalbur / Yapı"};
 const fixSek=x=>{if(x&&ESKI_SEK[x.sektor])x.sektor=ESKI_SEK[x.sektor];return x};
@@ -505,7 +518,7 @@ function ilOf(s){const parts=String(s||"").split(/[\/,\-]/).map(p=>normF(p)).fil
 const city=s=>ilOf(s)||String(s||"").split(/[\/,\-]/)[0].trim();
 const addr=x=>[x.adres,x.il].filter(Boolean).join(", ");
 const mapUrl=x=>"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(addr(x));
-const fillT=(t,x)=>String(t||"").replace(/\{firma\}/g,x.firma||"").replace(/\{yetkili\}/g,x.yetkili||"").replace(/Merhaba\s+,/g,"Merhaba,").replace(/ {2,}/g," ").trim();
+const fillT=(t,x)=>String(t||"").replace(/\{urun\}/g,x.urun||"").replace(/\{firma\}/g,x.firma||"").replace(/\{yetkili\}/g,x.yetkili||"").replace(/Merhaba\s+,/g,"Merhaba,").replace(/ {2,}/g," ").trim();
 const ym=s=>String(s||"").slice(0,7);
 const tsDay=t=>fmt(new Date(t));
 const daysSince=d=>Math.floor((Date.now()-new Date(d+"T00:00:00").getTime())/864e5);
@@ -1221,11 +1234,12 @@ function route_eski(){
 function sevkText(x,s){const t=toDoc(s);return `📦 SİPARİŞ ${t.no||""}\nFirma: ${x.firma}${x.yetkili?" ("+x.yetkili+")":""}\n${addr(x)?"Adres: "+addr(x)+"\n":""}${x.telefon?"Tel: "+x.telefon+"\n":""}Ürünler:\n${t.kalemler.map(k=>"- "+k.urun+(k.birim?": "+NUM(k.mik)+" "+k.birim:"")).join("\n")}\n${t.teslim?"Teslim: "+fd(t.teslim)+"\n":""}${t.not?"Not: "+t.not+"\n":""}Tutar: ${TL2(docTop(t))}`}
 /* ---------- WhatsApp ---------- */
 function openW(id){wId=id;const x=data.find(v=>v.id===id);$("wt").textContent="WhatsApp: "+x.firma;
- $("wl").innerHTML=ayar.sablon.length?ayar.sablon.map((s,i)=>`<button type="button" class="tp" data-a="wsend" data-i="${i}"><b>${esc(s.ad)}</b><small>${esc(fillT(s.metin,x))}</small></button>`).join(""):'<p class="mu">Şablon yok. "Şablonları düzenle" ile ekleyebilirsin.</p>';dlgW.showModal()}
+ {const ou=urunOner(x);$("wl").innerHTML=(ou?`<button type="button" class="tp" data-a="wsend" data-i="auto"><b>🎯 Önerilen: ${esc(ou.ad)}</b><small>${esc(urunMetin(ou,x))}</small></button>`:"")}
+ $("wl").innerHTML=$("wl").innerHTML+(ayar.sablon.length?ayar.sablon.map((s,i)=>`<button type="button" class="tp" data-a="wsend" data-i="${i}"><b>${esc(s.ad)}</b><small>${esc(fillT(s.metin,x))}</small></button>`).join(""):'<p class="mu">Şablon yok. "Şablonları düzenle" ile ekleyebilirsin.</p>');dlgW.showModal()}
 function sendWa(i){
  const x=data.find(v=>v.id===wId);if(!x)return;
  if(x.izin==="Çıkış yaptı"&&!confirm("Bu firma ticari ileti almak istemediğini bildirmiş (Çıkış yaptı). Yine de mesaj açılsın mı?"))return;
- const s=i!=null?ayar.sablon[+i]:null,txt=s?fillT(s.metin,x):"";
+ let s=i!=null&&i!=="auto"?ayar.sablon[+i]:null,txt=s?fillT(s.metin,x):"";if(i==="auto"){const ou=urunOner(x);if(ou){txt=urunMetin(ou,x);s={ad:"Önerilen: "+ou.ad}}}
  window.open("https://wa.me/"+waNum(x.telefon)+(txt?"?text="+encodeURIComponent(txt):""),"_blank");
  if(s){const o={...x};o.gorus=arr(o.gorus);o.gorus.push({t:Date.now(),tip:"WhatsApp",not:"Şablon: "+s.ad,kim:me.ad||""});if(o.durum==="Yeni")o.durum="İletişim kuruldu";put(o)}
  dlgW.close();
@@ -2080,14 +2094,14 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-cr]");if(b
 
 /* --- toplu WhatsApp --- */
 let wb={l:[],i:0,n:0,sk:0};
-function leadItems(ids){return ids.map(i=>data.find(v=>v.id===i)).filter(Boolean).map(x=>({ad:x.firma,yetkili:x.yetkili,tel:x.telefon,id:x.id,izin:x.aramayin?"Çıkış yaptı":x.izin}))}
+function leadItems(ids){return ids.map(i=>data.find(v=>v.id===i)).filter(Boolean).map(x=>({ad:x.firma,yetkili:x.yetkili,tel:x.telefon,id:x.id,sektor:x.sektor,sek:x.sek,izin:x.aramayin?"Çıkış yaptı":x.izin}))}
 function wbStart(items){
  const l=items.filter(o=>waNum(o.tel)&&o.izin!=="Çıkış yaptı"),sk=items.length-l.length;
  if(!l.length){alert("WhatsApp'a uygun (cep numaralı ve izni olan) firma yok.");return}
- wb={l,i:0,n:0,sk};$("wbT").innerHTML='<option value="">— Boş mesaj —</option>'+ayar.sablon.map((s,i)=>`<option value="${i}">${esc(s.ad)}</option>`).join("");if(ayar.sablon.length)$("wbT").value="0";
+ wb={l,i:0,n:0,sk};$("wbT").innerHTML='<option value="">— Boş mesaj —</option><option value="auto">🎯 Otomatik: sektöre uygun ürün mesajı</option>'+ayar.sablon.map((s,i)=>`<option value="${i}">${esc(s.ad)}</option>`).join("");$("wbT").value="auto";
  renderWB();dlgWB.showModal();
 }
-const wbText=o=>{const v=$("wbT").value,s=v!==""?ayar.sablon[+v]:null;return s?fillT(s.metin,{firma:o.ad,yetkili:o.yetkili||""}):""};
+const wbText=o=>{const v=$("wbT").value;if(v==="auto"){const ou=urunOner(o);return ou?urunMetin(ou,{firma:o.ad,yetkili:o.yetkili||""}):""}const s=v!==""?ayar.sablon[+v]:null;return s?fillT(s.metin,{firma:o.ad,yetkili:o.yetkili||""}):""};
 function renderWB(){
  if(wb.i>=wb.l.length){$("wbP").textContent="";$("wbB").innerHTML=`<h3>Bitti 🎉</h3><p>${wb.n} firmaya WhatsApp açıldı.${wb.sk?" "+wb.sk+" firma cep numarası olmadığı veya izin vermediği için atlandı.":""}</p>`;$("wbGo").hidden=true;$("wbSk").hidden=true;return}
  const o=wb.l[wb.i],txt=wbText(o);$("wbP").textContent=`${wb.i+1} / ${wb.l.length}`;$("wbGo").hidden=false;$("wbSk").hidden=false;
@@ -2096,7 +2110,7 @@ function renderWB(){
 $("wbT").onchange=renderWB;
 function wbGo(){
  const o=wb.l[wb.i],txt=wbText(o),v=$("wbT").value;window.open("https://wa.me/"+waNum(o.tel)+(txt?"?text="+encodeURIComponent(txt):""),"_blank");
- if(o.id){const x={...data.find(d=>d.id===o.id)};x.gorus=[...arr(x.gorus),{t:Date.now(),tip:"WhatsApp",not:"Toplu mesaj"+(v!==""?": "+ayar.sablon[+v].ad:""),kim:me.ad||""}];if(x.durum==="Yeni")x.durum="İletişim kuruldu";put(x,true)}
+ if(o.id){const x={...data.find(d=>d.id===o.id)};x.gorus=[...arr(x.gorus),{t:Date.now(),tip:"WhatsApp",not:"Toplu mesaj"+(v==="auto"?": otomatik ürün mesajı":v!==""?": "+ayar.sablon[+v].ad:""),kim:me.ad||""}];if(x.durum==="Yeni")x.durum="İletişim kuruldu";put(x,true)}
  wb.n++;wb.i++;renderWB();
 }
 
