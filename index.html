@@ -437,11 +437,11 @@ const TSEK=[
 /* ===== ÜRÜN ODAKLI ARAMA: ürün → onu tüketen işletme sektörleri (magambalaj.com ürün grupları + vakum). Ayarlardan eklenebilir: ayar.urunler ===== */
 const URUN_DEF=[
  {k:"rulo",ad:"Rulo poşet (manav/market)",sek:["market","manav","kasap","balik","firin","kuruyemis","sarkuteri","aktar","pazar","bufe","icecek","toptan"]},
- {k:"atlet",ad:"Atlet poşet (hışır)",sek:["market","manav","kasap","balik","firin","pastane","kuruyemis","sarkuteri","aktar","bufe","pazar","icecek","zuccaciye","hirdavat","durum","pide"]},
- {k:"magaza",ad:"Mağaza poşeti (kulplu/baskılı)",sek:["giyim","ayakkabi","kozmetik","kirtasiye","hediye","kuyumcu","elektronik","mobilya","zuccaciye","cicek","pet","spor","avm","hirdavat","oto","saglik","veteriner"]},
- {k:"torba",ad:"Torba (düz/çöp/nakliye/önlük)",sek:["durum","pide","firin","depo","fabrika","atolye","toptan","temizleme","otel","restoran","kafe","ofis","egitim","saglik","avm","akaryakit","market","tarim","hirdavat","oto"]},
- {k:"banti",ad:"Bantlı poşet (yapışkanlı)",sek:["giyim","ayakkabi","kuyumcu","kirtasiye","hediye","matbaa","temizleme","toptan","depo","elektronik","kozmetik","mobilya","pet","atolye"]},
- {k:"palet",ad:"Palet streç",sek:["fabrika","depo","toptan","atolye","tarim","hirdavat","oto","icecek","mobilya","pazar","elektronik"]},
+ {k:"atlet",ad:"Atlet poşet (hışır)",sek:["market","manav","kasap","balik","firin","pastane","kuruyemis","sarkuteri","aktar","bufe","pazar","icecek","zuccaciye","durum","pide"]},
+ {k:"magaza",ad:"Mağaza poşeti (kulplu/baskılı)",sek:["giyim","ayakkabi","kozmetik","kirtasiye","hediye","kuyumcu","elektronik","mobilya","zuccaciye","cicek","pet","spor","avm"]},
+ {k:"torba",ad:"Torba (düz/çöp/nakliye/önlük)",sek:["durum","pide","firin","depo","fabrika","toptan","temizleme","otel","restoran","kafe"]},
+ {k:"banti",ad:"Bantlı poşet (yapışkanlı)",sek:["giyim","ayakkabi","kuyumcu","kirtasiye","hediye","matbaa","temizleme","toptan","depo","elektronik","kozmetik"]},
+ {k:"palet",ad:"Palet streç",sek:["fabrika","depo","toptan","icecek","pazar","mobilya"]},
  {k:"gida_strec",ad:"Gıda streç",sek:["restoran","durum","pide","firin","pastane","kasap","sarkuteri","market","otel","kafe","balik","manav","kuruyemis","aktar"]},
  {k:"vakum",ad:"Vakum poşeti",sek:["kasap","kuruyemis","sarkuteri","balik","aktar","market","restoran","otel","pazar","fabrika","toptan","depo","durum","firin","pastane","temizleme"]}
 ];
@@ -450,15 +450,24 @@ const urunAcik=(u,S)=>{const l=u.sek.filter(k=>TSEK.some(t=>t.k===k));return l.l
 const urunToggle=(k,S)=>{const u=URUNLER().find(x=>x.k===k);if(!u)return;const l=u.sek.filter(x=>TSEK.some(t=>t.k===x));if(urunAcik(u,S))l.forEach(x=>S.delete(x));else l.forEach(x=>S.add(x))};
 const urunChips=(S,att,dis)=>URUNLER().map(u=>`<button type="button" class="srow ${urunAcik(u,S)?"on":""}" ${att}="${esc(u.k)}" ${dis||""} style="display:inline-flex;width:auto;margin:3px 4px 3px 0;padding:6px 10px"><span>${esc(u.ad)}</span></button>`).join("");
 const URUN_MSJ={
- rulo:"Merhaba {yetkili}, MAG Ambalaj'dan (Silivri, kendi fabrikamız) yazıyorum. {firma} için rulo manav/market poşetini peşin alımda özel fiyatla ve stoktan sunuyoruz. Ücretsiz numune bırakıp fiyat iletebilir miyim?",
- atlet:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için atlet (hışır) poşeti kendi üretimimizden, peşin alımda uygun fiyatla veriyoruz; istenirse üzerine isim/logo baskı da yapıyoruz. Numune ve fiyat iletebilir miyim?",
- magaza:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için kulplu mağaza poşetini (baskılı/baskısız) kendi fabrikamızda üretiyoruz. Ebat ve adetinize göre fiyat ve numune hazırlayabilir miyim?",
- torba:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için torba ihtiyacınızda (düz/çöp/nakliye/önlük, istenirse baskılı) kendi üretimimizle çözüm sunuyoruz. İhtiyacınız olan ebatı öğrenip fiyat verebilir miyim?",
- banti:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için bantlı (yapışkanlı) şeffaf poşeti ihtiyacınız olan ebatlarda üretiyoruz. Ebatı söylerseniz fiyat ve numune göndereyim.",
- palet:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için palet streç filmi kendi üretimimizden, peşin alımda özel fiyatla sunuyoruz. Aylık yaklaşık kaç rulo kullanıyorsunuz? Buna göre fiyat vereyim.",
- gida_strec:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için gıda streç filmi (mutfak/vitrin) rulo olarak uygun fiyatla sunuyoruz. Hangi genişlik ve metrajı kullanıyorsunuz? Fiyat ve numune ileteyim.",
- vakum:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için vakum poşetini (et, kuruyemiş, şarküteri, peynir için) istediğiniz ebatta üretiyoruz. Hangi ebatı kullanıyorsunuz? Fiyat ve numune göndereyim."
+ rulo:"Merhaba {yetkili}, ben MAG Ambalaj'dan (Silivri'deki kendi fabrikamızdan) yazıyorum. {firma} gibi yoğun çalışan manav ve marketlerde poşetin hiç bitmemesi önemli; rulo poşetimizi peşin alımda uygun fiyatla veriyoruz. İsterseniz uğrayıp ücretsiz numune bırakayım, siz de ebat ve ihtiyacınızı söyleyin. Müsait olduğunuz bir zaman var mı?",
+ atlet:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum, Silivri'de kendi fabrikamızda üretiyoruz. {firma} için dayanıklı atlet (hışır) poşet hazırlayabiliriz; isterseniz isim ya da logonuzu da basarız. Numune bırakıp ebat ve adetinize göre fiyat vermek isterim, uygun olur mu?",
+ magaza:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} müşterisinin elinde markanızı taşıyacak kulplu mağaza poşetini kendi fabrikamızda, istediğiniz ebat ve baskıyla üretiyoruz. Hangi ebatları kullandığınızı öğrenip numune ve fiyat hazırlayabilir miyim?",
+ torba:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için torba ihtiyacınızda (düz, çöp, önlük ya da baskılı) ebat ve kalınlığı size göre üretiyoruz. Hangi ölçülerle çalıştığınızı söylerseniz fiyat ve numune ileteyim.",
+ banti:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} ürünlerini temiz ve korunaklı sunmak için bantlı (yapışkanlı) şeffaf poşeti istediğiniz ebatta üretiyoruz. Ebadı söylerseniz numune ve fiyat göndereyim.",
+ palet:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} sevkiyatlarında palet streç kullanıyorsanız kendi üretimimizden peşin alımda uygun fiyat verebiliriz. Aylık yaklaşık kaç rulo tükettiğinizi paylaşırsanız ona göre bir teklif hazırlayayım.",
+ gida_strec:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} mutfağı ve vitrini için gıdaya uygun streç filmi rulo olarak uygun fiyatla sunuyoruz. Hangi genişlik ve metrajı kullandığınızı söylerseniz numune ve fiyat ileteyim.",
+ vakum:"Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} gibi et, kuruyemiş ya da peynir/şarküteri ürünüyle çalışan işletmeler için vakum poşetini istedikleri ebatta üretiyoruz; ürün daha uzun süre taze kalıyor. Hangi ebatı kullandığınızı öğrenip numune ve fiyat göndermek isterim."
 };
+const URUN_IPUCU={
+ rulo:"manav/market/kasap tezgâhında poşet sürekli ve hızlı tükenir; rulo poşet kolay kullanım ve düşük fire sağlar; peşin alımda uygun fiyat",
+ atlet:"hışır atlet poşet günlük müşteri çıkışında kullanılır; dayanıklı ve isteğe göre isim/logo baskılı yapılabilir",
+ magaza:"müşterinin elinde markanızı taşır; kulplu poşet istenen ebat ve baskıyla üretilir",
+ torba:"düz/çöp/önlük/baskılı torba ihtiyacına göre ebat ve kalınlık ayarlanır",
+ banti:"ürünü korur ve temiz gösterir; yapışkan bantlı şeffaf poşet istenen ebatta",
+ palet:"palet streç ürünü sabitler, hasar ve fireyi azaltır; sevkiyat yapan işletmeler için",
+ gida_strec:"gıdaya uygun streç film mutfak, vitrin ve hazırlık için; hijyenik ve kolay kullanım",
+ vakum:"vakum poşeti et, kuruyemiş, peynir/şarküteri ürünlerinde tazeliği ve raf ömrünü uzatır; istenen ebatta"};
 const URUN_OTO={kasap:"vakum",kuruyemis:"vakum",sarkuteri:"vakum",balik:"vakum",aktar:"vakum",durum:"torba",pide:"torba",restoran:"gida_strec",kafe:"gida_strec",otel:"gida_strec",firin:"atlet",pastane:"atlet",depo:"palet",fabrika:"palet",toptan:"palet",tarim:"palet",atolye:"torba",temizleme:"torba",giyim:"magaza",ayakkabi:"magaza",kozmetik:"magaza",kirtasiye:"magaza",hediye:"magaza",kuyumcu:"banti",elektronik:"magaza",mobilya:"magaza",matbaa:"banti"};
 function urunOner(x){x=x||{};const t=TSEK.find(t=>t.k===(x.sek||x.sektor)||t.ad===(x.sektor||x.sek));if(!t)return null;const k=URUN_OTO[t.k];const u=URUNLER().find(u=>u.k===k)||URUNLER().find(u=>u.sek.includes(t.k));return u||null}
 const urunMetin=(u,x)=>fillT(URUN_MSJ[u.k]||("Merhaba {yetkili}, MAG Ambalaj'dan yazıyorum. {firma} için "+u.ad.toLowerCase()+" ihtiyacınızda kendi üretimimizle uygun fiyat sunuyoruz. Fiyat ve numune iletebilir miyim?"),x);
@@ -3855,6 +3864,7 @@ function tfMerkezler(O,F,ek){ek=Math.max(0,+ek||0);O=O||{};
 const tfImza=(O,F)=>JSON.stringify([F.bolgeler.map(b=>[b.lat,b.lon,b.km]),(O||{}).merkez&&[O.merkez.lat,O.merkez.lon],(O||{}).yaricap,F.sektorler.slice().sort()]);
 // bir işletme neden elendi? (boş = geçti)
 function tfEle(p,F){const a=tfN(p.ad);
+ if(/mermer|granit|maden|ta[sş] ocag|beton|hafriyat|in[sş]aat|sondaj|jeoloji|palplan|nakliyat|otomotiv|kablo|metal|demir|celik|çelik/i.test(String(p.ad||"").replace(/İ/g,"i").replace(/ı/g,"i").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")))return"ürünlerimizi tüketmeyen sektör (taş/maden/inşaat/metal…)";
  if(!p.ad||a.length<3)return"adı yok/çok kısa";
  if(isRival(p))return"rakip (ambalajcı)";
  if(!F.zincir&&isChain(p))return"zincir mağaza";

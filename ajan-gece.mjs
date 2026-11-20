@@ -42,13 +42,14 @@ function blok(bas, son) {
   if (a < 0 || b < 0) throw new Error("index.html'de blok bulunamadı: " + bas);
   return html.slice(a, b);
 }
-const YARDIMCI = ["arr", "pad", "fmt", "today", "plus", "fd", "fdt", "ym", "tsDay", "daysSince", "PARA", "TL", "TL2", "NUM", "esc", "digits", "ulkeKod", "waNum",
+const YARDIMCI = ["fillT", "arr", "pad", "fmt", "today", "plus", "fd", "fdt", "ym", "tsDay", "daysSince", "PARA", "TL", "TL2", "NUM", "esc", "digits", "ulkeKod", "waNum",
   "toDoc", "calc", "docTop", "docAra", "sipAktif", "ciro", "odenen", "bakiye", "alimT", "lastBuy", "kalemOzet", "TUK_DEF", "tuk", "oner", "hamL", "TSEK", "sleepers", "reorderList", "EPRE", "epCikar", "hav", "ZINCIR", "zRe", "isChain", "isMobile", "isRival", "adayPuan", "normF", "tel10", "uid_", "bolgeler", "bolgeOf", "VERI_DEF"];
 const goruldu = new Set(), kodlar = [];
 for (const ad of YARDIMCI) { const p = parca(ad); if (!goruldu.has(p.i)) { goruldu.add(p.i); kodlar.push([p.i, p.kod]); } }
 kodlar.sort((a, b) => a[0] - b[0]);
 const CEKIRDEK = blok("/* ================= v11 — 🤖 AJAN MERKEZİ", "/* --- ekran --- */");
 let AI = blok("/* ================= v12 — 🧠 YAPAY ZEKÂ BEYNİ", "/* --- 💬 Müdürle konuş --- */") + "\n" + blok("/* --- ✨ firmaya özel mesaj --- */", "let aiYaziyor");
+const URUNB = blok("/* ===== ÜRÜN ODAKLI ARAMA", "const SEK=[...new Set");
 const V16 = blok("/* ================= v16 ÇEKİRDEK", "/* --- v16 ekran --- */");
 const TF = blok("/* ================= v18 TARAMA FİLTRESİ", "/* --- v18 ekran --- */"); // sahibin tarama talimatı (programdaki önizlemeyle aynı kod)
 if (env("AI_BASE_URL")) AI = AI.replace("https://generativelanguage.googleapis.com/v1beta/", env("AI_BASE_URL"));
@@ -114,11 +115,12 @@ const lsJ=(k,d)=>{try{return JSON.parse(ls.get(k))??d}catch(e){return d}};
 let ayar=__ayar,data=__data,katalog=__katalog,users=__users,me={uid:null,ad:"🤖 Ajan",email:""},role="admin",tara={r:10};
 const isAdmin=()=>false;
 ${kodlar.map(k => k[1]).join("\n")}
+${URUNB}
 ${CEKIRDEK}
 ${AI}
 ${V16}
 ${TF}
-globalThis.__api={tfAyar,tfMerkezler,tfTara,tfImza,malOzet,SEVK_CFG,KOTU_AD,firmaEsle,riskAnaliz,firsatAra,icerikPlani,ajStok,ajRisk,ajCalistir,ajRapor,ajMasada,AJAD,aiSor,AISYS,deanon,aiKey,epCikar,anon,aiKodla,ciro,bakiye,sipAktif,docTop,daysSince,today,plus,fmt,fd,arr,reorderList,sleepers,vadeDurum,aiMesajYaz,ajKey,hav,isChain,isRival,isMobile,adayPuan,normF,tel10,uid_,bolgeOf,VERI_DEF,TSEK,tuk,kodOf,selam,imza,kalemOzet,docAra,AJ,setR:r=>{tara.r=r}};`;
+globalThis.__api={urunOner,urunMetin,URUNLER,URUN_IPUCU,tfAyar,tfMerkezler,tfTara,tfImza,malOzet,SEVK_CFG,KOTU_AD,firmaEsle,riskAnaliz,firsatAra,icerikPlani,ajStok,ajRisk,ajCalistir,ajRapor,ajMasada,AJAD,aiSor,AISYS,deanon,aiKey,epCikar,anon,aiKodla,ciro,bakiye,sipAktif,docTop,daysSince,today,plus,fmt,fd,arr,reorderList,sleepers,vadeDurum,aiMesajYaz,ajKey,hav,isChain,isRival,isMobile,adayPuan,normF,tel10,uid_,bolgeOf,VERI_DEF,TSEK,tuk,kodOf,selam,imza,kalemOzet,docAra,AJ,setR:r=>{tara.r=r}};`;
 Object.assign(ctx, { bellek, __ayar: ayar, __data: data, __katalog: Array.isArray(katalog) ? katalog : Object.values(katalog || {}), __users: users || {} });
 vm.runInContext(kaynak, ctx, { filename: "ajan-cekirdek.js" });
 const X = ctx.__api;
@@ -639,6 +641,7 @@ if (gmailVar && EPT.length) {
     const yakin = (gec, tur, gun) => gec.some(q => q.tur === tur && Date.now() - q.t < gun * 864e5);
     const hedef = [];
     for (const x of data) {
+      if (!X.urunOner(x)) continue; // ürünlerimizi tüketmeyen sektöre mail yok
       if ((!x.eposta && mod === "acik") || x.aramayin || x.izin === "Çıkış yaptı" || x.durum === "İlgilenmiyor" || X.isChain({ ad: x.firma })) continue;
       const gec = X.arr(x.epGonderim), son = gec[gec.length - 1], cevapVar = x.epCevap && (!son || x.epCevap.t > son.t);
       if (cevapVar) continue;
@@ -669,9 +672,10 @@ if (gmailVar && EPT.length) {
           odeme: h.vd ? { tutar: TL(h.vd.tut), vadeTarihi: X.fd(h.vd.enEski.due), gecikmeGun: h.vd.enEski.gec } : null,
           sonSiparis: s0 && ["tekrar", "capraz", "uyuyan", "fiyat"].includes(h.tur) ? { tarih: X.fd(s0.tar), urunler: X.anon(X.kalemOzet(s0, true)) } : null,
           ajanBulgusu: h.f ? X.anon(h.f.bas + " — " + h.f.det) : null,
-          firmamiz: `${FIRMA}: Silivri'de kendi fabrikasında atlet, rulo (manav), kasap/dürüm, HDPE/LDPE, el geçme/kulplu, baskılı ve baskısız poşet üreticisi; aracısız fabrika fiyatı, hızlı teslim` };
+          onerilenUrun: (() => { const u = X.urunOner(x); return u ? { ad: u.ad, neden: (X.URUN_IPUCU || {})[u.k] || "" } : null; })(),
+          firmamiz: `${FIRMA}: Silivri'de kendi fabrikasında poşet ve streç üreten üretici (atlet/rulo/mağaza poşeti, torba, bantlı poşet, palet ve gıda streç, vakum poşeti). Bu firmaya yalnızca "onerilenUrun" alanındaki ürünü öner, diğerlerini sayma.` };
         const j = await (async (...q) => { /* cevap yarım gelirse (düşünen model token'ı bitirir) bir kez daha, daha geniş sınırla dene */
-          for (let d = 0; d < 2; d++) { try { return JSON.parse(String(await X.aiSor(q[0], q[1], d ? { ...q[2], max: 4000, sicak: 0.5 } : q[2])).replace(/^```(?:json)?|```$/g, "").trim()); } catch (e) { if (d || !/JSON|Unterminated|Unexpected/i.test(e.message)) throw e; } } })(`Bir poşet üreticisi adına işletmeye gönderilecek e-postayı yaz. Amaç "amac" alanında. Türkçe, kısa (50-110 kelime), samimi ama profesyonel; tek net soru/teklif ile bitir.
+          for (let d = 0; d < 2; d++) { try { return JSON.parse(String(await X.aiSor(q[0], q[1], d ? { ...q[2], max: 4000, sicak: 0.5 } : q[2])).replace(/^```(?:json)?|```$/g, "").trim()); } catch (e) { if (d || !/JSON|Unterminated|Unexpected/i.test(e.message)) throw e; } } })(`Bir poşet üreticisi adına işletmeye gönderilecek e-postayı yaz. Amaç "amac" alanında. Türkçe, kısa (60-100 kelime), sıcak, doğal ve profesyonel; kalıp/reklam dili yok. Firmanın sektörüne ("firma.sektor") uygun hitap et: işini bildiğini gösteren somut bir cümle kur (örn. kasapsa vakum/tazelik, fırınsa ekmek poşeti, markette rulo/atlet poşet). Yalnızca "onerilenUrun" ürününü anlat; başka ürün sayma. "Aracısız", "geniş ürün yelpazesi", "HDPE/LDPE" gibi teknik/kalıp ifadeler kullanma. Teslimat süresi, fiyat, indirim gibi bilmediğin hiçbir şey UYDURMA. Ücretsiz numune bırakmayı ve kısa bir ziyaret/WhatsApp ile ebat-adet öğrenmeyi öner; tek net soru ile bitir.
 Firma adı yerine {FIRMA} yaz (program doldurur). "Merhaba," ile başla; imza ve altbilgi YAZMA. Verilen tutar/tarih/fiyatları aynen kullan; verilmeyen fiyat, indirim, tarih UYDURMA.
 SADECE JSON: {"konu":"en fazla 60 karakter, spam kelimesi yok","govde":"..."}`, [{ r: "ben", m: JSON.stringify(bilgi) }], { json: true, sicak: 0.7, max: 1500, toplu: true });
         const doldur = s => X.deanon(String(s || "")).replace(/\{FIRMA\}/g, x.firma).trim();

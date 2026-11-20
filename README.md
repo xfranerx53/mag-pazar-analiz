@@ -254,3 +254,8 @@ GitHub → depo → Add file → Upload files → değişen dosyaları sürükle
 ## Ajanı Claude tetikler (20 Kasım 2026)
 - `.github/ajan-istek.txt` değişince ajan "elle" modda çalışır (push tetikleyici). İstenen görevler Firebase `ajan/istek` içinde.
 - Deneme e-posta modunda günlük örnek sınırı `ayar.otonom.denemeSinir` (en çok 30); mailler yalnız Gmail hesabının sahibine gider.
+
+## v21 — Ürün uyumu + sektöre özel samimi mesajlar (20 Kasım 2026)
+- Ajan e-postası artık yalnızca ürünlerimizi tüketen sektörlere gider (`urunOner` boşsa atlanır: ofis, atölye, belirsiz…). Mermer/granit/maden/inşaat/metal adlı firmalar taramada elenir (`tfEle`).
+- E-posta/WhatsApp metni firmanın sektörüne göre yalnızca ONA uygun ürünü anlatır (kasap→vakum, fırın→atlet, market→rulo, depo→palet streç…); sıcak ve profesyonel ton, uydurma fiyat/teslim yok.
+- Ürün-sektör listeleri sıkılaştırıldı (tüketimi zayıf sektörler çıkarıldı).
