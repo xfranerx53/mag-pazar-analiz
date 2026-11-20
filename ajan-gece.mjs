@@ -639,7 +639,7 @@ if (gmailVar && EPT.length) {
     const yakin = (gec, tur, gun) => gec.some(q => q.tur === tur && Date.now() - q.t < gun * 864e5);
     const hedef = [];
     for (const x of data) {
-      if (!x.eposta || x.aramayin || x.izin === "Çıkış yaptı" || x.durum === "İlgilenmiyor" || X.isChain({ ad: x.firma })) continue;
+      if ((!x.eposta && mod === "acik") || x.aramayin || x.izin === "Çıkış yaptı" || x.durum === "İlgilenmiyor" || X.isChain({ ad: x.firma })) continue;
       const gec = X.arr(x.epGonderim), son = gec[gec.length - 1], cevapVar = x.epCevap && (!son || x.epCevap.t > son.t);
       if (cevapVar) continue;
       if (O.eposta !== "acik" && x.epDeneme) continue; // deneme modunda her firmaya bir kez örnek
@@ -680,7 +680,7 @@ SADECE JSON: {"konu":"en fazla 60 karakter, spam kelimesi yok","govde":"..."}`, 
         if (x.yetkili && /^merhaba\s*,/i.test(govde)) govde = govde.replace(/^merhaba\s*,/i, "Merhaba " + x.yetkili + ",");
         govde += "\n\nSaygılarımızla," + altBilgi();
         const deneme = mod !== "acik";
-        await tp.sendMail({ from: `"${FIRMA}" <${GU}>`, to: deneme ? GU : x.eposta, subject: deneme ? `[DENEME → ${x.firma} <${x.eposta}> • ${TUR_AD[h.tur]}] ${konu}` : konu, text: govde, headers: deneme ? {} : { "List-Unsubscribe": `<mailto:${GU}?subject=IPTAL>` } });
+        await tp.sendMail({ from: `"${FIRMA}" <${GU}>`, to: deneme ? GU : x.eposta, subject: deneme ? `[DENEME → ${x.firma} <${x.eposta || "e-posta yok"}> • ${TUR_AD[h.tur]}] ${konu}` : konu, text: govde, headers: deneme ? {} : { "List-Unsubscribe": `<mailto:${GU}?subject=IPTAL>` } });
         gonderilen++; say[h.k] = (say[h.k] || 0) + 1; D.epN = (D.epN || 0) + 1;
         if (deneme) { x.epDeneme = BUGUN; await guncelle(x, { epDeneme: BUGUN }).catch(() => { }); }
         else {
