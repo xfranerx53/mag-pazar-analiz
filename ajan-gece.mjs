@@ -627,7 +627,7 @@ const TUR_AD = { tanitim: "tanıtım", takip: "takip", teklif: "teklif hatırlat
 if (gmailVar && EPT.length) {
   let nodemailer; try { nodemailer = (await import("nodemailer")).default; } catch (e) { log("nodemailer yok, gönderim atlandı"); }
   const mod = O.eposta === "acik" ? "acik" : "deneme";
-  const sinir = mod === "acik" ? Math.max(0, +O.gunlukEposta || 20) : 3;
+  const sinir = mod === "acik" ? Math.max(0, +O.gunlukEposta || 20) : Math.max(3, Math.min(30, +O.denemeSinir || 3));
   const kalan = Math.max(0, sinir - (D.epN || 0));
   if (!kalan) for (const k of EPT) GSON[k] = { t: Date.now(), metin: `Günlük e-posta sınırı doldu (${sinir})` };
   if (!X.aiKey()) for (const k of EPT) GSON[k] = { t: Date.now(), metin: "Yapay zekâ anahtarı yok (Kurulum 1. adım)" };
