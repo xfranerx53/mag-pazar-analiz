@@ -233,3 +233,10 @@ Kural: hiçbir servise para ödenmeyecek. Ücretsiz katmanı olan servis kullan�
 
 ## Güncelleme nasıl yapılır
 GitHub → depo → Add file → Upload files → değişen dosyaları sürükle → Commit changes → 1-2 dk sonra sitede Ctrl+F5.
+
+## v19 — Ürün odaklı arama (20 Kasım 2026)
+- Tara → "Hangi işletmeler aransın?" sayfasının ve Ajan → Talimat ekranının başında **ürün seçimi**: Rulo poşet, Atlet poşet, Mağaza poşeti, Torba, Bantlı poşet, Palet streç, Gıda streç, **Vakum poşeti** (kasap, kuruyemiş, şarküteri, balıkçı, aktar, market, restoran, otel, hal, fabrika, toptan, depo…).
+- Ürüne dokununca onu tüketen sektörler işaretlenir/kalkar (çoklu ürün seçilebilir); gece ajanı aynı seçimi kullanır.
+- Ürün→sektör eşleşmesi kodda `URUN_DEF`. Yeni ürün: sektörleri işaretle → "+ Seçili sektörleri yeni ürün olarak kaydet" (ayar.urunler, Firebase'e yazılır).
+- Not: ürün listesi magambalaj.com kategorilerinden kuruldu (site oturumdan okunamadı); eksik ürünü yukarıdaki yolla ekleyebilirsin.
+- sw.js önbelleği mag-v37.
