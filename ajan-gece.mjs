@@ -629,7 +629,7 @@ const TUR_AD = { tanitim: "tanıtım", takip: "takip", teklif: "teklif hatırlat
 if (gmailVar && EPT.length) {
   let nodemailer; try { nodemailer = (await import("nodemailer")).default; } catch (e) { log("nodemailer yok, gönderim atlandı"); }
   const mod = O.eposta === "acik" ? "acik" : "deneme";
-  const sinir = mod === "acik" ? Math.max(0, +O.gunlukEposta || 20) : Math.max(3, Math.min(30, +O.denemeSinir || 3));
+  const sinir = O.onayModu !== false ? Math.max(1, Math.min(60, +O.onayGunluk || 30)) : mod === "acik" ? Math.max(0, +O.gunlukEposta || 20) : Math.max(3, Math.min(30, +O.denemeSinir || 3));
   const kalan = Math.max(0, sinir - (D.epN || 0));
   if (!kalan) for (const k of EPT) GSON[k] = { t: Date.now(), metin: `Günlük e-posta sınırı doldu (${sinir})` };
   if (!X.aiKey()) for (const k of EPT) GSON[k] = { t: Date.now(), metin: "Yapay zekâ anahtarı yok (Kurulum 1. adım)" };
@@ -639,10 +639,11 @@ if (gmailVar && EPT.length) {
     const bulgu = new Map(); for (const f of l) if (f.id) { if (!bulgu.has(f.id)) bulgu.set(f.id, []); bulgu.get(f.id).push(f); }
     const roL = new Map(X.reorderList().map(o => [o.x.id, o])), slS = new Set(X.sleepers().map(o => o.x.id));
     const yakin = (gec, tur, gun) => gec.some(q => q.tur === tur && Date.now() - q.t < gun * 864e5);
+    const ONAY = (await okuG("ajan/onay")) || {}; const ONAYM = O.onayModu !== false; let onaya = 0;
     const hedef = [];
     for (const x of data) {
       if (!X.urunOner(x)) continue; // ürünlerimizi tüketmeyen sektöre mail yok
-      if ((!x.eposta && mod === "acik") || x.aramayin || x.izin === "Çıkış yaptı" || x.durum === "İlgilenmiyor" || X.isChain({ ad: x.firma })) continue;
+      if ((!x.eposta && mod === "acik" && !ONAYM) || (ONAYM && (ONAY[x.id] || x.epOnay)) || x.aramayin || x.izin === "Çıkış yaptı" || x.durum === "İlgilenmiyor" || X.isChain({ ad: x.firma })) continue;
       const gec = X.arr(x.epGonderim), son = gec[gec.length - 1], cevapVar = x.epCevap && (!son || x.epCevap.t > son.t);
       if (cevapVar) continue;
       if (O.eposta !== "acik" && x.epDeneme) continue; // deneme modunda her firmaya bir kez örnek
@@ -682,6 +683,12 @@ SADECE JSON: {"konu":"en fazla 60 karakter, spam kelimesi yok","govde":"..."}`, 
         let konu = doldur(j.konu).slice(0, 90), govde = doldur(j.govde);
         if (!konu || !govde) throw new Error("boş e-posta");
         if (x.yetkili && /^merhaba\s*,/i.test(govde)) govde = govde.replace(/^merhaba\s*,/i, "Merhaba " + x.yetkili + ",");
+        if (ONAYM) {
+          const ou = X.urunOner(x);
+          await yaz("ajan/onay/" + x.id, g.tok, { firmaId: x.id, firma: x.firma, sektor: x.sektor || "", urun: ou ? ou.ad : "", to: x.eposta || "", tel: x.telefon || "", yetkili: x.yetkili || "", konu, metin: govde, wa: ou ? X.urunMetin(ou, { firma: x.firma, yetkili: x.yetkili || "" }) : "", tur: h.tur, t: Date.now() });
+          await guncelle(x, { epOnay: BUGUN }).catch(() => { });
+          onaya++; D.epN = (D.epN || 0) + 1; ONAY[x.id] = 1; continue;
+        }
         govde += "\n\nSaygılarımızla," + altBilgi();
         const deneme = mod !== "acik";
         await tp.sendMail({ from: `"${FIRMA}" <${GU}>`, to: deneme ? GU : x.eposta, subject: deneme ? `[DENEME → ${x.firma} <${x.eposta || "e-posta yok"}> • ${TUR_AD[h.tur]}] ${konu}` : konu, text: govde, headers: deneme ? {} : { "List-Unsubscribe": `<mailto:${GU}?subject=IPTAL>` } });
@@ -697,6 +704,7 @@ SADECE JSON: {"konu":"en fazla 60 karakter, spam kelimesi yok","govde":"..."}`, 
     }
     for (const k of EPT) if (say[k]) GSON[k] = { t: Date.now(), metin: `${say[k]} ${mod === "acik" ? "firmaya" : "deneme"} e-posta gönderdi` };
     if (gonderilen) not_("📧", mod === "acik" ? `${gonderilen} firmaya e-postayı kendisi gönderdi (${Object.entries(say).map(([k, n]) => TUR_AD[TURA[k][0]] + " " + n).join(", ")})` : `DENEME modu: ${gonderilen} örnek e-postayı sana (${GU}) gönderdi — beğenirsen Kurulum'da "Açık" yap`);
+    if (onaya) { not_("📝", `${onaya} mesaj senin onayını bekliyor (Ajanlar → ✅ Onay bekleyenler)`); for (const k of EPT) GSON[k] = { t: Date.now(), metin: `${onaya} mesaj onay bekliyor` }; }
     log("E-posta gönderimi:", gonderilen, mod, hata ? "• hata: " + hata : "");
   }
 }

@@ -259,3 +259,8 @@ GitHub → depo → Add file → Upload files → değişen dosyaları sürükle
 - Ajan e-postası artık yalnızca ürünlerimizi tüketen sektörlere gider (`urunOner` boşsa atlanır: ofis, atölye, belirsiz…). Mermer/granit/maden/inşaat/metal adlı firmalar taramada elenir (`tfEle`).
 - E-posta/WhatsApp metni firmanın sektörüne göre yalnızca ONA uygun ürünü anlatır (kasap→vakum, fırın→atlet, market→rulo, depo→palet streç…); sıcak ve profesyonel ton, uydurma fiyat/teslim yok.
 - Ürün-sektör listeleri sıkılaştırıldı (tüketimi zayıf sektörler çıkarıldı).
+
+## v22 — Onay akışı (20 Kasım 2026)
+- Sahibi komut verir ("5 km tara, mesajları oluştur"); ajan firmaları bulur, her firma için sektöre uygun e-posta + WhatsApp metnini yazar ve `ajan/onay` kuyruğuna koyar. HİÇBİR ŞEY kendiliğinden gönderilmez.
+- Program: Ajanlar → ✅ Onay bekleyenler: metni düzelt, "E-postayı onayla" (e-posta kuyruğuna; mod Deneme ise önce sahibine, Açık ise firmaya gider) ya da "WhatsApp'ta aç" (sahibi dokunarak gönderir) ya da sil.
+- Kapatmak için `ayar.otonom.onayModu=false`. Günlük taslak sınırı `onayGunluk` (varsayılan 30).

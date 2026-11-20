@@ -3943,6 +3943,32 @@ function talimatHtml(){if(!tfT)tfT=tfTaslakAl();const F=tfT.filtre,adm=isAdmin()
  ${son?`<div class="mu" style="margin-top:6px">Son tarama: ${fdt(son.t)} — ${esc(son.metin)}</div>`:""}<div id="tf_oniz">${tfOn||""}</div></div>`;
  return h}
 window.ajOzel.talimat=talimatHtml;
+/* ===== v22 ✅ ONAY KUYRUĞU: ajan mesajları yazar, sen programda okuyup onaylarsın; onaylananlar e-posta kuyruğuna (mod: deneme/açık) ya da WhatsApp'a gider ===== */
+let ONAY=null,ONAYY=0;
+async function onayYukle(){if(!root||ONAYY)return;ONAYY=1;try{ONAY=(await root.child("ajan/onay").once("value")).val()||{}}catch(e){ONAY={}}ONAYY=0;if(ajFiltre==="onay")renderAjan()}
+function onayHtml(){if(ONAY===null){onayYukle();return`<div class="card"><div class="mu">⏳ Yükleniyor…</div></div>`}
+ const L=Object.entries(ONAY).sort((a,b)=>(a[1].t||0)-(b[1].t||0)),acik=(ayar.otonom||{}).eposta==="acik";
+ return `<div class="card"><h3>✅ Onay bekleyen mesajlar (${L.length})</h3><div class="mu">Ajan her firma için o sektöre uygun mesajı yazdı. Okuyup düzeltebilir, <b>Onayla</b> diyebilir ya da silebilirsin. E-posta modu: <b>${acik?"AÇIK — onayladığın mail firmaya gider":"Deneme — onayladığın mail önce sana gelir"}</b>. WhatsApp'ı sen dokunarak gönderirsin.</div>
+ <div class="row"><button data-a="onyenile">↻ Yenile</button><button data-a="onist">🔍 Şimdi tara ve mesaj yaz</button>${L.some(([k,q])=>q.to)?`<button class="p" data-a="onhepsi">✅ E-postası olanların hepsini onayla</button>`:""}</div></div>`+
+ (L.length?L.map(([k,q])=>`<div class="card"><b>${esc(q.firma)}</b> <span class="tag">${esc(q.sektor||"")}</span> <span class="tag">${esc(q.urun||"")}</span><div class="mu">${q.to?"📧 "+esc(q.to):"📧 e-posta yok"} ${q.tel?"• 📞 "+esc(q.tel):""}</div>
+  ${q.to?`<label>E-posta konusu</label><input id="onk_${k}" value="${esc(q.konu||"")}"><label>E-posta metni</label><textarea id="onm_${k}" rows="6" style="width:100%">${esc(q.metin||"")}</textarea>`:""}
+  ${q.wa&&q.tel?`<label>WhatsApp metni</label><textarea id="onw_${k}" rows="4" style="width:100%">${esc(q.wa)}</textarea>`:""}
+  <div class="row">${q.to?`<button class="p" data-a="onok" data-id="${k}">✅ E-postayı onayla</button>`:""}${q.tel&&q.wa?`<button data-a="onwa" data-id="${k}">💬 WhatsApp'ta aç</button>`:""}<button data-a="onsil" data-id="${k}">🗑 Sil</button></div></div>`).join(""):`<div class="empty">Onay bekleyen mesaj yok. "Şimdi tara ve mesaj yaz" ile ajanı başlatabilirsin.</div>`)}
+async function onayOk(k){const q=(ONAY||{})[k];if(!q||!q.to)return;const kon=($("onk_"+k)||{}).value||q.konu,met=($("onm_"+k)||{}).value||q.metin;
+ try{const m=await kuyrugaEkle({firmaId:q.firmaId,to:q.to,konu:kon,metin:met});await root.child("ajan/onay/"+k).remove();delete ONAY[k];tost("✅ "+m,4000)}catch(e){alert(e.message)}renderAjan()}
+Object.assign(A,{
+ onyenile:()=>{ONAY=null;renderAjan()},
+ onok:(k)=>onayOk(k),
+ onhepsi:async()=>{const ks=Object.entries(ONAY||{}).filter(([k,q])=>q.to).map(([k])=>k);if(!confirm(ks.length+" e-posta onaylansın mı? "+(((ayar.otonom||{}).eposta==="acik")?"Firmalara GİDECEK.":"(Deneme modu: sana gelecek)")))return;for(const k of ks)await onayOk(k)},
+ onsil:async(k)=>{if(!confirm("Bu mesaj silinsin mi?"))return;await root.child("ajan/onay/"+k).remove();delete ONAY[k];renderAjan()},
+ onwa:async(k)=>{const q=(ONAY||{})[k];if(!q)return;const t=($("onw_"+k)||{}).value||q.wa;window.open("https://wa.me/"+waNum(q.tel)+"?text="+encodeURIComponent(t),"_blank");
+  const x=data.find(v=>v.id===q.firmaId);if(x){const o={...x};o.gorus=[...arr(o.gorus),{t:Date.now(),tip:"WhatsApp",not:"Onaylı ürün mesajı",kim:me.ad||""}];if(o.durum==="Yeni")o.durum="İletişim kuruldu";put(o)}
+  await root.child("ajan/onay/"+k).remove();delete ONAY[k];renderAjan()},
+ onist:async()=>{try{await root.child("ajan/istek").set({t:Date.now(),gorevler:["tarama","epbul","tanitim"],kim:me.ad||""});ajanlariCalistir();tost("Ajan başlatıldı; birkaç dakika sonra ↻ Yenile",5000)}catch(e){alert(e.message)}}
+});
+AJLER.splice(2,0,{k:"onay",ik:"✅",ad:"Onay bekleyenler",ac:"Ajanın yazdığı mesajlar: sen oku, düzelt, onayla."});
+window.ajOzel.onay=onayHtml;
+
 const tfYeniden=()=>{if(ajFiltre==="talimat")renderAjan()};
 async function tfYerBul(ad){const z=(typeof ILCELER!=="undefined"?ILCELER:[]).find(i=>tfN(i[0])===tfN(ad)||tfN(i[0]+i[1])===tfN(ad));if(z)return{ad:z[0],lat:z[2],lon:z[3]};
  try{const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=tr&accept-language=tr&q="+encodeURIComponent(ad));const j=await r.json();if(j[0])return{ad:String(ad).trim(),lat:Math.round(+j[0].lat*1e4)/1e4,lon:Math.round(+j[0].lon*1e4)/1e4}}catch(e){}return null}
