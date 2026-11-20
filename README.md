@@ -240,3 +240,9 @@ GitHub → depo → Add file → Upload files → değişen dosyaları sürükle
 - Ürün→sektör eşleşmesi kodda `URUN_DEF`. Yeni ürün: sektörleri işaretle → "+ Seçili sektörleri yeni ürün olarak kaydet" (ayar.urunler, Firebase'e yazılır).
 - Not: ürün listesi magambalaj.com kategorilerinden kuruldu (site oturumdan okunamadı); eksik ürünü yukarıdaki yolla ekleyebilirsin.
 - sw.js önbelleği mag-v37.
+
+## v19b — Sıfırlama + eczane çıkarıldı (20 Kasım 2026)
+- Tek seferlik sıfırlama: yönetici ilk açışta eski müşteri kayıtlarının yedeği `yedek/sifirlama-20261120` altına alınır, sonra leads/cop/log/sayac ve cihazdaki tarama geçmişi silinir. Ayar, ürün kataloğu ve kullanıcılar korunur. Bayrak: `ayar/sifirlamaV`.
+- Başlangıçta hiçbir sektör seçili değil: Tara/Ajan'da önce ürün seçilir, sektörler ondan gelir.
+- Eczane sektörü kaldırıldı (yılda ~10 kg poşet; ürün ebatları uymuyor).
+- Ürün grupları magambalaj.com'daki kategorilere göre: Mağaza, Atlet, Torba (önlük/çiğköfte dahil), Bantlı, Palet/Gıda streç + Rulo manav + Vakum.

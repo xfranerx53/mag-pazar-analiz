@@ -406,7 +406,6 @@ const TSEK=[
  {gr:"Mağazalar",k:"giyim",ad:"Giyim / Butik",geo:["commercial.clothing"],osm:[["shop","^(clothes|boutique|fashion)$"]],g:["giyim mağazası"]},
  {gr:"Mağazalar",k:"ayakkabi",ad:"Ayakkabı / Çanta",geo:["commercial.clothing.shoes","commercial.bag"],osm:[["shop","^(shoes|bag|leather)$"]],g:["ayakkabıcı"]},
  {gr:"Mağazalar",k:"kozmetik",ad:"Kozmetik / Parfümeri",geo:["commercial.health_and_beauty.cosmetics","commercial.chemist"],osm:[["shop","^(cosmetics|perfumery|chemist|beauty)$"]],g:["kozmetik"]},
- {gr:"Mağazalar",k:"eczane",ad:"Eczane",geo:["healthcare.pharmacy"],osm:[["amenity","^pharmacy$"]],g:["eczane"]},
  {gr:"Mağazalar",k:"kirtasiye",ad:"Kırtasiye / Kitapçı",geo:["commercial.stationery","commercial.books"],osm:[["shop","^(stationery|books|copyshop)$"]],g:["kırtasiye"]},
  {gr:"Mağazalar",k:"hediye",ad:"Oyuncak / Hediyelik",geo:["commercial.toy_and_game","commercial.gift_and_souvenir"],osm:[["shop","^(toys|gift)$"]],g:["hediyelik eşya"]},
  {gr:"Mağazalar",k:"kuyumcu",ad:"Kuyumcu / Saatçi",geo:["commercial.jewelry","commercial.watches"],osm:[["shop","^(jewelry|watches)$"]],g:["kuyumcu"]},
@@ -438,9 +437,9 @@ const TSEK=[
 /* ===== ÜRÜN ODAKLI ARAMA: ürün → onu tüketen işletme sektörleri (magambalaj.com ürün grupları + vakum). Ayarlardan eklenebilir: ayar.urunler ===== */
 const URUN_DEF=[
  {k:"rulo",ad:"Rulo poşet (manav/market)",sek:["market","manav","kasap","balik","firin","kuruyemis","sarkuteri","aktar","pazar","bufe","icecek","toptan"]},
- {k:"atlet",ad:"Atlet poşet (hışır)",sek:["market","manav","kasap","balik","firin","pastane","kuruyemis","sarkuteri","aktar","bufe","pazar","icecek","eczane","zuccaciye","hirdavat","durum","pide"]},
- {k:"magaza",ad:"Mağaza poşeti (kulplu/baskılı)",sek:["giyim","ayakkabi","kozmetik","eczane","kirtasiye","hediye","kuyumcu","elektronik","mobilya","zuccaciye","cicek","pet","spor","avm","hirdavat","oto","saglik","veteriner"]},
- {k:"torba",ad:"Torba (düz/çöp/nakliye)",sek:["depo","fabrika","atolye","toptan","temizleme","otel","restoran","kafe","ofis","egitim","saglik","avm","akaryakit","market","tarim","hirdavat","oto"]},
+ {k:"atlet",ad:"Atlet poşet (hışır)",sek:["market","manav","kasap","balik","firin","pastane","kuruyemis","sarkuteri","aktar","bufe","pazar","icecek","zuccaciye","hirdavat","durum","pide"]},
+ {k:"magaza",ad:"Mağaza poşeti (kulplu/baskılı)",sek:["giyim","ayakkabi","kozmetik","kirtasiye","hediye","kuyumcu","elektronik","mobilya","zuccaciye","cicek","pet","spor","avm","hirdavat","oto","saglik","veteriner"]},
+ {k:"torba",ad:"Torba (düz/çöp/nakliye/önlük)",sek:["durum","pide","firin","depo","fabrika","atolye","toptan","temizleme","otel","restoran","kafe","ofis","egitim","saglik","avm","akaryakit","market","tarim","hirdavat","oto"]},
  {k:"banti",ad:"Bantlı poşet (yapışkanlı)",sek:["giyim","ayakkabi","kuyumcu","kirtasiye","hediye","matbaa","temizleme","toptan","depo","elektronik","kozmetik","mobilya","pet","atolye"]},
  {k:"palet",ad:"Palet streç",sek:["fabrika","depo","toptan","atolye","tarim","hirdavat","oto","icecek","mobilya","pazar","elektronik"]},
  {k:"gida_strec",ad:"Gıda streç",sek:["restoran","durum","pide","firin","pastane","kasap","sarkuteri","market","otel","kafe","balik","manav","kuruyemis","aktar"]},
@@ -1445,6 +1444,14 @@ async function startSync(u){
  on(R.child("ayar"),s=>{const v=s.val();if(v){const loc=ayar,up={};ayar=mergeAyar(v);if(ayar.geoKey&&normGeo(ayar.geoKey)!==ayar.geoKey){ayar.geoKey=normGeo(ayar.geoKey);up.geoKey=ayar.geoKey}if(ayar.googleKey&&!okGoogle(ayar.googleKey)){ayar.googleKey="";up.googleKey=""}["geoKey","googleKey","gLimit","kgFiyat","hedefMarj","tuketim"].forEach(k=>{if((ayar[k]==null||ayar[k]==="")&&loc[k]!=null&&loc[k]!==""){ayar[k]=loc[k];up[k]=clean(loc[k])}});ls.set("mag_ayar",JSON.stringify(ayar));if(isAdmin()&&Object.keys(up).length)R.child("ayar").update(up).catch(()=>{});render()}else if(isAdmin()){if(prof.yeniSahip)ayar.ownerUid=u.uid;R.child("ayar").set(clean(ayar)).catch(()=>{})}});
  on(R.child("katalog"),s=>{const v=s.val();if(v){katalog=arr(v);ls.set("mag_katalog",JSON.stringify(katalog));render()}else if(isAdmin()&&katalog.length)R.child("katalog").set(clean(katalog)).catch(()=>{})});
  if(isAdmin()){
+  /* v19 tek seferlik sıfırlama: müşteri/tarama verileri silinir (önce yedek alınır), ayar+katalog+kullanıcılar kalır */
+  R.child("ayar/sifirlamaV").once("value").then(async sn=>{if(sn.val()==="20261120-urun")return;
+   try{const eski=(await R.child("leads").once("value")).val()||{};await R.child("yedek/sifirlama-20261120").set({t:Date.now(),leads:eski});
+    await Promise.all([R.child("leads").remove(),R.child("cop").remove(),R.child("log").remove(),R.child("sayac").remove()]);
+    ["mag_leads","mag_tara","mag_taramalar","mag_gorulen","mag_fav","mag_gizli","mag_cop","mag_log","mag_sayac","mag_synced"].forEach(k=>{try{localStorage.removeItem("mpz:"+k);localStorage.removeItem(k)}catch(e){}});
+    const O=Object.assign({},ayar.otonom||{});O.sektorler=[];if(O.filtre)O.filtre.sektorler=[];ayar.otonom=O;ayar.sifirlamaV="20261120-urun";
+    await R.child("ayar").set(clean(ayar));alert("Mag Pazar sıfırlandı (eski kayıtların yedeği alındı). Şimdi Tara → ürün seçerek başla.");location.reload()}
+   catch(e){cloudErr("Sıfırlama yapılamadı: "+e.message)}});
   if(prof.yeniSahip){ayar.ownerUid=u.uid;R.child("ayar/ownerUid").set(u.uid).catch(()=>{})}
   on(R.child("users"),s=>{users=s.val()||{};render()});
   on(R.child("cop"),s=>{cop=s.val()||{};Object.entries(cop).forEach(([k,x])=>{if(Date.now()-(x.st||0)>30*864e5){R.child("cop/"+k).remove();delete cop[k]}});if(tab==="yonetim")renderYonetim()});
@@ -1455,7 +1462,7 @@ async function startSync(u){
 
 /* ================= ÇEVREDE TARA ================= */
 const LCSS="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",LJS="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
-let tara=lsJ("mag_tara",null)||{};tara={c:null,r:2,sek:["market","manav","kasap","durum"],res:[],...tara};
+let tara=lsJ("mag_tara",null)||{};tara={c:null,r:2,sek:[],res:[],...tara};
 let tSek=new Set(tara.sek),tview="l";
 let tmap=null,tLayer=null,tSel=new Set(),gAuthErr="",gLimitHit=false,gLib=null,gCloud=0;
 const hav=(a,b,c,d)=>{const t=Math.PI/180,x=Math.sin((c-a)*t/2)**2+Math.cos(a*t)*Math.cos(c*t)*Math.sin((d-b)*t/2)**2;return 12742*Math.asin(Math.sqrt(x))};
@@ -1915,7 +1922,7 @@ function formGetPos(){
 function quickAdd(){openForm();formGetPos();try{$("ffoto").click()}catch(e){}}
 
 /* --- poşet tüketimi, aday puanı, rakip --- */
-const TUK_DEF={market:60,manav:40,kasap:30,balik:20,firin:25,pastane:20,kuruyemis:25,sarkuteri:20,aktar:10,icecek:5,dondurma:10,pazar:50,durum:25,pide:20,restoran:20,kafe:8,bar:5,otel:10,bufe:8,giyim:15,ayakkabi:10,kozmetik:8,eczane:12,kirtasiye:6,hediye:6,kuyumcu:2,elektronik:5,mobilya:10,zuccaciye:8,cicek:6,pet:8,spor:8,avm:100,fabrika:150,atolye:20,toptan:80,depo:50,ambalaj:0,matbaa:10,hirdavat:15,tarim:15,oto:8,akaryakit:10,kuafor:3,temizleme:15,saglik:10,veteriner:5,egitim:5,ofis:3,ozel:10};
+const TUK_DEF={market:60,manav:40,kasap:30,balik:20,firin:25,pastane:20,kuruyemis:25,sarkuteri:20,aktar:10,icecek:5,dondurma:10,pazar:50,durum:25,pide:20,restoran:20,kafe:8,bar:5,otel:10,bufe:8,giyim:15,ayakkabi:10,kozmetik:8,kirtasiye:6,hediye:6,kuyumcu:2,elektronik:5,mobilya:10,zuccaciye:8,cicek:6,pet:8,spor:8,avm:100,fabrika:150,atolye:20,toptan:80,depo:50,ambalaj:0,matbaa:10,hirdavat:15,tarim:15,oto:8,akaryakit:10,kuafor:3,temizleme:15,saglik:10,veteriner:5,egitim:5,ofis:3,ozel:10};
 const tuk=k=>{const v=(ayar.tuketim||{})[k];return v!=null&&v!==""?+v:(TUK_DEF[k]??10)};
 const isRival=p=>p.sek==="ambalaj"||/(ambalaj|poşet|naylon|plastik)/.test(String(p.ad||"").toLocaleLowerCase("tr"));
 function adayPuan(p){
@@ -3111,7 +3118,7 @@ async function aiAra(prompt,o){o=o||{};if(!aiKey())throw new Error("Önce yapay 
    Güven puanı (0-100) = Ödeme geçmişi (40) + İşletme profili (20) + Web araştırması (40).
    Geçmiş/araştırma yoksa o bölüm ORTA (yarım) puan alır — "bilinmiyor" iyi de kötü de sayılmaz. */
 const RISK_KELIME=/(karşılıksız|protesto|icra|haciz|konkordato|iflas|ödemedi|ödeyemi|ödeme yapmad|erteled|batık|kapandı|kapattı|dolandır|kaçtı|sorunlu)/i;
-const SEKRISK={kafe:-3,bar:-4,restoran:-2,durum:-2,pide:-2,bufe:-3,dondurma:-2,pazar:-3,kuafor:-2,cicek:-1,hediye:-1,market:2,eczane:3,avm:3,fabrika:2,toptan:1,depo:1,saglik:2,akaryakit:3,otel:1,kasap:1,firin:1};
+const SEKRISK={kafe:-3,bar:-4,restoran:-2,durum:-2,pide:-2,bufe:-3,dondurma:-2,pazar:-3,kuafor:-2,cicek:-1,hediye:-1,market:2,avm:3,fabrika:2,toptan:1,depo:1,saglik:2,akaryakit:3,otel:1,kasap:1,firin:1};
 function odemeGecmisi(x){const v=+x.vade||AJ().vade;
  const sip=arr(x.siparis).filter(sipAktif).map(s=>({tar:s.tar||today(),kal:docTop(s)})).filter(s=>s.kal>0.5).sort((a,b)=>a.tar.localeCompare(b.tar));
  const od=arr(x.odeme).map(p=>({tar:p.tar||today(),t:+p.tutar||0})).filter(p=>p.t>0).sort((a,b)=>a.tar.localeCompare(b.tar));
@@ -3818,11 +3825,11 @@ setTimeout(()=>{if(!root||!isAdmin())return;Object.entries(OF.takvim||{}).forEac
 const TF_VARS={bolgeler:[],haricBolgeler:[],genislet:true,kmMax:30,haricKelime:[],sadeceKelime:[],telefon:"farketmez",web:false,eposta:false,zincir:false,belirsizAd:true,minPuan:0,siralama:"puan",sektorBasina:0};
 const TF_SIRA={puan:"En yüksek aday puanı",yakin:"En yakın olan",tuketim:"En çok poşet kullanan sektör"};
 const TF_TEL={farketmez:"Fark etmez",zorunlu:"Telefonu olsun",cep:"Cep telefonu olsun"};
-const TF_BELIRSIZ=new Set(["fabrika","market","bakkal","depo","atolye","sirket","firma","isyeri","dukkan","magaza","restoran","lokanta","bufe","firin","kasap","manav","otopark","insaat","santiye","sanayi","tesis","uretim","imalat","fabrikasi","toptan","toptanci","ofis","buro","merkez","sube","market1","tekel","kafe","cafe","otel","eczane","avm"]);
+const TF_BELIRSIZ=new Set(["fabrika","market","bakkal","depo","atolye","sirket","firma","isyeri","dukkan","magaza","restoran","lokanta","bufe","firin","kasap","manav","otopark","insaat","santiye","sanayi","tesis","uretim","imalat","fabrikasi","toptan","toptanci","ofis","buro","merkez","sube","market1","tekel","kafe","cafe","otel","avm"]);
 const tfN=s=>String(s||"").replace(/[İIı]/g,"i").toLowerCase().normalize("NFD").replace(/[^\p{L}\p{N}]/gu,"");
 const tfKelimeler=v=>(Array.isArray(v)?v:String(v||"").split(/[,;\n]/)).map(s=>String(s).trim()).filter(Boolean);
 function tfAyar(O){O=O||{};const F=Object.assign({},TF_VARS,O.filtre||{});
- F.sektorler=Array.isArray(O.sektorler)&&O.sektorler.length?O.sektorler.slice():TSEK.filter(s=>s.k!=="ozel"&&tuk(s.k)>=20).map(s=>s.k);
+ F.sektorler=Array.isArray(O.sektorler)&&O.sektorler.length?O.sektorler.slice():[];
  F.gunlukAday=Math.max(0,Math.min(200,+(O.gunlukAday??15)||0));F.haricKelime=tfKelimeler(F.haricKelime);F.sadeceKelime=tfKelimeler(F.sadeceKelime);
  F.bolgeler=(Array.isArray(F.bolgeler)?F.bolgeler:[]).filter(b=>b&&isFinite(+b.lat)&&isFinite(+b.lon)&&+b.km>0);
  F.haricBolgeler=(Array.isArray(F.haricBolgeler)?F.haricBolgeler:[]).filter(b=>b&&isFinite(+b.lat)&&isFinite(+b.lon)&&+b.km>0);return F}
