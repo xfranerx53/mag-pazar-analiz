@@ -685,7 +685,8 @@ KURALLAR (hepsine uy):
 4) Tek bir somut fayda + risksiz bir adım: ücretsiz numune bırakma. Kendini kısaca "MAG Ambalaj, Silivri" diye ancak ikinci cümlede ya da imza gibi an.
 5) Tek ve kolay bir soruyla bitir ("Bu hafta uğrayıp numune bırakmam uygun olur mu?" gibi). Soru cevaplaması 5 saniye sürmeli.
 6) Fiyat, indirim, teslim süresi, stok, sertifika, referans gibi bilmediğin hiçbir şeyi UYDURMA ve yazma. "Hızlı teslimat", "uygun fiyat", "fabrika fiyatı" yazma.
-7) Her işletme için farklı yaz; aynı cümleleri kopyalama. Verilen "firma.sektor" ve "onerilenUrun.neden"e dayan.
+7) "Biz MAG Ambalaj olarak Silivri'de üretim yapıyoruz" gibi kalıp tanıtım cümlesi, "fire", "mukavemet", "müşteri memnuniyetini doğrudan etkiler", "büyük kolaylık sağlar" gibi kurumsal/pazarlama ifadeleri YASAK; kendini en fazla "Silivri'den MAG Ambalaj" diye kısa an. İşletme adı ile sektör çelişirse (örn. adı şarküteri, sektörü market) işletme adının anlattığı işi esas al ve ona uygun anlat.
+8) Her işletme için farklı yaz; aynı cümleleri kopyalama. Verilen "firma.sektor" ve "onerilenUrun.neden"e dayan.
 
 ÇIKTILAR (hepsi Türkçe):
 - "konu": en fazla 55 karakter, merak ve fayda içerir, işletme adını geçirebilir, spam/reklam kelimesi yok.
