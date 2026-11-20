@@ -3948,8 +3948,8 @@ window.ajOzel.talimat=talimatHtml;
 let ONAY=null,ONAYY=0;
 async function onayYukle(){if(!root||ONAYY)return;ONAYY=1;try{ONAY=(await root.child("ajan/onay").once("value")).val()||{}}catch(e){ONAY={}}ONAYY=0;if(ajFiltre==="onay")renderAjan()}
 function onayHtml(){if(ONAY===null){onayYukle();return`<div class="card"><div class="mu">⏳ Yükleniyor…</div></div>`}
- const L=Object.entries(ONAY).sort((a,b)=>(a[1].t||0)-(b[1].t||0)),acik=(ayar.otonom||{}).eposta==="acik";
- return `<div class="card"><h3>✅ Onay bekleyen mesajlar (${L.length})</h3><div class="mu">Ajan her firma için o sektöre uygun mesajı yazdı. Okuyup düzeltebilir, <b>Onayla</b> diyebilir ya da silebilirsin. E-posta modu: <b>${acik?"AÇIK — onayladığın mail firmaya gider":"Deneme — onayladığın mail önce sana gelir"}</b>. WhatsApp'ı sen dokunarak gönderirsin.</div>
+ onayRozet();const L=Object.entries(ONAY).sort((a,b)=>(a[1].t||0)-(b[1].t||0)),acik=(ayar.otonom||{}).eposta==="acik";
+ return `<div class="card"><h3>✅ Onay bekleyen mesajlar (${L.length})</h3><div class="mu">Senin görevin yalnızca burası: ajan firmaları buldu ve mesajları yazdı, sen okuyup onaylarsın. Tarama, firma bulma ve mesaj yazma işini ben (Claude) yönetiyorum. Ajan her firma için o sektöre uygun mesajı yazdı. Okuyup düzeltebilir, <b>Onayla</b> diyebilir ya da silebilirsin. E-posta modu: <b>${acik?"AÇIK — onayladığın mail firmaya gider":"Deneme — onayladığın mail önce sana gelir"}</b>. WhatsApp'ı sen dokunarak gönderirsin.</div>
  <div class="row"><button data-a="onyenile">↻ Yenile</button><button data-a="onist">🔍 Şimdi tara ve mesaj yaz</button>${L.some(([k,q])=>q.to)?`<button class="p" data-a="onhepsi">✅ E-postası olanların hepsini onayla</button>`:""}</div></div>`+
  (L.length?L.map(([k,q])=>`<div class="card"><b>${esc(q.firma)}</b> <span class="tag">${esc(q.sektor||"")}</span> <span class="tag">${esc(q.urun||"")}</span><div class="mu">${q.to?"📧 "+esc(q.to):"📧 e-posta yok"} ${q.tel?"• 📞 "+esc(q.tel):""}</div>
   ${q.to?`<label>E-posta konusu</label><input id="onk_${k}" value="${esc(q.konu||"")}"><label>E-posta metni</label><textarea id="onm_${k}" rows="6" style="width:100%">${esc(q.metin||"")}</textarea>`:""}
@@ -3969,6 +3969,14 @@ Object.assign(A,{
 });
 AJLER.splice(2,0,{k:"onay",ik:"✅",ad:"Onay bekleyenler",ac:"Ajanın yazdığı mesajlar: sen oku, düzelt, onayla."});
 window.ajOzel.onay=onayHtml;
+/* ===== v23 ✅ Onay: ana menüde ayrı sekme (sahibin göreceği yer), rozet, açılışta ilk ekran ===== */
+{const n=document.querySelector("nav.bnav");if(n){const b=document.createElement("button");b.dataset.go="onay";b.id="navOnay";b.innerHTML='<b>✅</b>Onay<span class="badge" id="bdO" hidden></span>';n.insertBefore(b,n.firstChild)}}
+{const _g=go;go=function(t){const on=t==="onay";if(on){ajFiltre="onay";t="ajan"}_g(t);if(t==="ajan"){renderAjan();if(on&&typeof ONAY!=="undefined"&&ONAY===null)onayYukle()}
+ document.querySelectorAll(".bnav button").forEach(x=>{if(x.dataset.go==="onay")x.classList.toggle("on",on||(t==="ajan"&&ajFiltre==="onay"));else if(on||(t==="ajan"&&ajFiltre==="onay"))x.classList.remove("on")})}}
+function onayRozet(){const n=Object.keys(ONAY||{}).length,e=$("bdO");if(e){e.textContent=n;e.hidden=!n}}
+{let ilk=true;const _t=async()=>{if(!root||ONAYY)return;try{ONAYY=1;ONAY=(await root.child("ajan/onay").once("value")).val()||{}}catch(e){}ONAYY=0;onayRozet();
+ if(ilk){ilk=false;if(isAdmin())go("onay")}else if(tab==="ajan"&&ajFiltre==="onay"&&!document.activeElement.matches("textarea,input"))renderAjan()};setTimeout(_t,3500);setInterval(_t,20000)}
+
 
 const tfYeniden=()=>{if(ajFiltre==="talimat")renderAjan()};
 async function tfYerBul(ad){const z=(typeof ILCELER!=="undefined"?ILCELER:[]).find(i=>tfN(i[0])===tfN(ad)||tfN(i[0]+i[1])===tfN(ad));if(z)return{ad:z[0],lat:z[2],lon:z[3]};

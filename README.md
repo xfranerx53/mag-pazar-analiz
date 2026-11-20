@@ -264,3 +264,7 @@ GitHub → depo → Add file → Upload files → değişen dosyaları sürükle
 - Sahibi komut verir ("5 km tara, mesajları oluştur"); ajan firmaları bulur, her firma için sektöre uygun e-posta + WhatsApp metnini yazar ve `ajan/onay` kuyruğuna koyar. HİÇBİR ŞEY kendiliğinden gönderilmez.
 - Program: Ajanlar → ✅ Onay bekleyenler: metni düzelt, "E-postayı onayla" (e-posta kuyruğuna; mod Deneme ise önce sahibine, Açık ise firmaya gider) ya da "WhatsApp'ta aç" (sahibi dokunarak gönderir) ya da sil.
 - Kapatmak için `ayar.otonom.onayModu=false`. Günlük taslak sınırı `onayGunluk` (varsayılan 30).
+
+## v23 — Sahibin ekranı: ✅ Onay sekmesi (20 Kasım 2026)
+- Alt menünün ilk düğmesi **✅ Onay** (bekleyen sayısı rozetli). Yönetici girince program doğrudan buraya açılır. Sahibin işi yalnızca burada: ajanın yazdığı mesajları okur, düzeltir, onaylar/WhatsApp'a gönderir/siler. Tarama, firma bulma, mesaj yazma Claude tarafından yönetilir (komut: mag-yonetim).
+- Liste her 20 sn'de kendiliğinden yenilenir (yazı yazarken yenilenmez).
