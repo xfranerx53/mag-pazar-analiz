@@ -3864,6 +3864,7 @@ function tfMerkezler(O,F,ek){ek=Math.max(0,+ek||0);O=O||{};
 const tfImza=(O,F)=>JSON.stringify([F.bolgeler.map(b=>[b.lat,b.lon,b.km]),(O||{}).merkez&&[O.merkez.lat,O.merkez.lon],(O||{}).yaricap,F.sektorler.slice().sort()]);
 // bir işletme neden elendi? (boş = geçti)
 function tfEle(p,F){const a=tfN(p.ad);
+ if(p.sek==="market"&&/fastfood|bufe|kebap|doner|lokanta|restoran|pizza|cafe|kafe|pastane|kuafor/.test(a))return"market değil (büfe/lokanta/kafe)";
  if(/mermer|granit|maden|ta[sş] ocag|beton|hafriyat|in[sş]aat|sondaj|jeoloji|palplan|nakliyat|otomotiv|kablo|metal|demir|celik|çelik/i.test(String(p.ad||"").replace(/İ/g,"i").replace(/ı/g,"i").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")))return"ürünlerimizi tüketmeyen sektör (taş/maden/inşaat/metal…)";
  if(!p.ad||a.length<3)return"adı yok/çok kısa";
  if(isRival(p))return"rakip (ambalajcı)";
